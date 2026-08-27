@@ -1,0 +1,33 @@
+# Project TODO
+
+- [x] Define the normalized school domain model and role-permission matrix.
+- [x] Create versioned database migrations for school records, academic operations, finance, content, communications, and audit history.
+- [x] Implement secure server-side authorization for SUPER_ADMIN, ADMIN, TEACHER, STUDENT, and PARENT.
+- [ ] Configure a secure first-super-admin onboarding mechanism without hard-coded production credentials.
+- [ ] Build editable public pages for Home, About, Academics, Admissions, News, Events, Gallery, Contact, and Portal Login.
+- [x] Implement public admissions and contact forms backed by persistent database records.
+- [ ] Build database-backed administration for users, students, parents, teachers, classes, streams, subjects, enrollments, academic years, terms, and school settings.
+- [x] Implement real attendance entry, scoped teacher access, and attendance reporting.
+- [x] Implement exams, configurable grading, results entry, and report-card print/PDF workflows from persisted data.
+- [ ] Implement fee structures, invoices, invoice items, payments, balances, and an M-Pesa-ready payment abstraction that separates sandbox from production.
+- [ ] Implement timetables, homework and submissions, announcements, notifications, internal messages, and audit logs.
+- [x] Build role-specific teacher, student, and parent portals that expose only authorized records.
+- [ ] Add database-backed search, pagination, CSV import validation, and administrative reports.
+- [ ] Implement secure file-storage metadata and upload validation for admissions, gallery, and homework files.
+- [x] Add loading, empty, error, validation, confirmation, and accessible responsive UI states.
+- [ ] Add SEO, security headers, documentation, environment-variable examples, and deployment configuration.
+- [ ] Add and run Vitest coverage for authorization, validation, and core business workflows.
+- [ ] Verify the application, security posture, responsive design, and production readiness.
+- [ ] Save a final project checkpoint and provide publication instructions without publishing automatically.
+- [x] Reconcile the authoritative master directive and preserve its prohibition on fake data, fake workflows, and placeholders.
+- [x] Replace the template authentication flow with real Supabase Auth, password management, and database-enforced role authorization.
+- [x] Connect the application to the existing Supabase PostgreSQL project without using the template MySQL database.
+- [ ] Replace the template MySQL and Manus-auth data paths with verified Supabase client sessions and PostgreSQL reads and writes.
+- [ ] Add stream, teacher-subject, fee-structure, and multi-item invoice management screens.
+- [ ] Implement homework submission uploads, marking, and notifications using persisted records.
+- [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
+- [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
+- [ ] Implement and test a one-time first-SUPER_ADMIN bootstrap mechanism secured by a protected project secret.
+- [ ] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
+- [ ] Add executable role-boundary and persisted-workflow integration tests using a dedicated non-production Supabase project.
+- [ ] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.

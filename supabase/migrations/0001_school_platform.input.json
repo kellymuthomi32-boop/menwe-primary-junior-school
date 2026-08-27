@@ -1,0 +1,5 @@
+{
+  "project_id": "zpmrwdvtchblgntnaloh",
+  "name": "configurable_grading",
+  "query": "create or replace function public.apply_configured_grade()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = public, pg_catalog\nas $$\ndeclare score_percentage numeric(6,2);\ndeclare configured_grade text;\nbegin\n  score_percentage := round((new.score / new.maximum_score) * 100, 2);\n  select gr.grade into configured_grade\n  from public.exams e\n  join public.terms t on t.id = e.term_id\n  join public.grading_rules gr on gr.academic_year_id = t.academic_year_id\n  where e.id = new.exam_id\n    and score_percentage between gr.min_score and gr.max_score\n  order by gr.sort_order asc, gr.min_score desc\n  limit 1;\n\n  new.grade := configured_grade;\n  return new;\nend;\n$$;\n\nrevoke all on function public.apply_configured_grade() from public, anon, authenticated;\ndrop trigger if exists exam_results_apply_configured_grade on public.exam_results;\ncreate trigger exam_results_apply_configured_grade\nbefore insert or update of score, maximum_score, exam_id on public.exam_results\nfor each row execute procedure public.apply_configured_grade();\n"
+}
