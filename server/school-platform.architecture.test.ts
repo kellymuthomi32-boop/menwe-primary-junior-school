@@ -157,4 +157,10 @@ describe("school platform database architecture", () => {
     expect(migration).toContain("insert into public.payment_events");
     expect(migration).toContain("Only a pending payment can be verified");
   });
+
+  it("does not label all historical enrolments as active in operations reporting", async () => {
+    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
+    expect(operations).toContain('from("enrollments").select("id", { count: "exact", head: true }).eq("status", "ACTIVE")');
+    expect(operations).toContain('"Active enrolment records"');
+  });
 });
