@@ -167,6 +167,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          framework: ["react", "react-dom", "wouter"],
+          supabase: ["@supabase/supabase-js"],
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          icons: ["lucide-react"],
+        },
+      },
+    },
   },
   server: {
     host: true,

@@ -48,4 +48,28 @@ describe("school platform database architecture", () => {
     expect(bootstrap).toContain("A Super Administrator already exists");
     expect(bootstrap).toContain("candidate_count <> 1");
   });
+
+  it("exposes gallery files publicly only through published gallery records and indexes advisor-identified foreign keys", async () => {
+    const [galleryPolicy, indexes] = await Promise.all([
+      read("../supabase/migrations/0010_published_gallery_media_read.sql"),
+      read("../supabase/migrations/0011_cover_unindexed_foreign_keys.sql"),
+    ]);
+    expect(galleryPolicy).toContain("files_published_gallery_read");
+    expect(galleryPolicy).toContain("gi.status = 'PUBLISHED'");
+    expect(galleryPolicy).toContain("ga.status = 'PUBLISHED'");
+    expect(indexes).toContain("create index if not exists exam_results_subject_idx");
+    expect(indexes).toContain("create index if not exists uploaded_files_owner_idx");
+  });
+
+  it("saves fee structures and multi-line invoices through atomic administrator-only procedures", async () => {
+    const [finance, portal] = await Promise.all([
+      read("../supabase/migrations/0014_atomic_finance_setup_workflows.sql"),
+      read("../client/src/pages/PortalPages.tsx"),
+    ]);
+    expect(finance).toContain("create_fee_structure_with_items");
+    expect(finance).toContain("create_invoice_with_items");
+    expect(finance).toContain("Only school administrators can create invoices");
+    expect(portal).toContain('rpc("create_fee_structure_with_items"');
+    expect(portal).toContain('rpc("create_invoice_with_items"');
+  });
 });

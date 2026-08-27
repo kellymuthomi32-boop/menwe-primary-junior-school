@@ -1,13 +1,15 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
+import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import PortalGuard from "./pages/PortalPages";
 import MagicLinkPage from "./pages/MagicLinkPage";
 import PortalAccessPage from "./pages/PortalAccessPage";
 import { AdmissionsPage, ContactPage, EditorialPage, EventsPage, GalleryPage, HomePage, LoginPage, NewsPage } from "./pages/PublicPages";
+
+const PortalGuard = lazy(() => import("./pages/PortalPages"));
 
 function Router() {
   return (
@@ -37,7 +39,7 @@ export default function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <Suspense fallback={<div className="grid min-h-screen place-items-center bg-[#f4f5f1] text-sm text-[var(--ink)]/60">Loading secure portal…</div>}><Router /></Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
