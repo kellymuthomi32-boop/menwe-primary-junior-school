@@ -206,4 +206,13 @@ describe("school platform database architecture", () => {
     expect(hardeningMigration).toContain("where thread_id = p_thread_id and profile_id = auth.uid()");
     expect(hardeningMigration).toContain("create trigger messages_notify_participants");
   });
+
+  it("keeps generic authorised record lists bounded to known tables, columns, and page sizes", async () => {
+    const database = await read("../client/src/lib/database.ts");
+    expect(database).toContain("const readableListTables = new Set(");
+    expect(database).toContain('"students", "subjects", "teachers", "terms"');
+    expect(database).toContain("const readableOrderColumns = new Set(");
+    expect(database).toContain("This record list uses an invalid select expression.");
+    expect(database).toContain("const safeSize = Math.min(100, Math.max(1, Math.floor(size)))");
+  });
 });
