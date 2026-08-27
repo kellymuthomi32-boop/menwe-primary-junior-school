@@ -72,4 +72,12 @@ describe("school platform database architecture", () => {
     expect(portal).toContain('rpc("create_fee_structure_with_items"');
     expect(portal).toContain('rpc("create_invoice_with_items"');
   });
+
+  it("keeps streams and teaching responsibilities as persisted academic relationships", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    expect(portal).toContain('insertRow("streams"');
+    expect(portal).toContain('insertRow("class_subjects"');
+    expect(portal).toContain('insertRow("teacher_subjects"');
+    expect(portal).toContain('updateRow("classes", values.class_id, { class_teacher_id: values.teacher_id || null })');
+  });
 });

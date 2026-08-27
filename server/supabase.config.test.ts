@@ -13,5 +13,5 @@ describe("Supabase public configuration", () => {
     });
 
     expect(response.ok).toBe(true);
-  });
+  }, 12000);
 });

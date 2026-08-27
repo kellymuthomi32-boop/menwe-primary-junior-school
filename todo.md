@@ -24,6 +24,8 @@
 - [x] Connect the application to the existing Supabase PostgreSQL project without using the template MySQL database.
 - [x] Replace the template MySQL and Manus-auth data paths with verified Supabase client sessions and PostgreSQL reads and writes.
 - [ ] Add stream, teacher-subject, fee-structure, and multi-item invoice management screens.
+- [ ] Add an administrator invoice-management panel showing persisted invoice line items, verified-payment balance, and status.
+- [x] Make class-teacher assignment explicitly optional in the administration form, or remove the unassign option.
 - [ ] Implement homework submission uploads, marking, and notifications using persisted records.
 - [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
