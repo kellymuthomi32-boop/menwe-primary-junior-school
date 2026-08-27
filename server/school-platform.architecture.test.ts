@@ -187,4 +187,23 @@ describe("school platform database architecture", () => {
     expect(publicPages).toContain('pageText(pageContent, "content")');
     expect(publicPages).not.toContain('const slug = eyebrow === "Admissions"');
   });
+
+  it("uses constrained procedures for secure messaging, replies, and participant read state", async () => {
+    const [portal, messageCenter, workflowMigration, hardeningMigration] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/MessageCenter.tsx"),
+      read("../supabase/migrations/0019_secure_message_thread_workflows.sql"),
+      read("../supabase/migrations/0020_message_workflow_linter_hardening.sql"),
+    ]);
+    expect(portal).toContain('<MessageCenter role={role} />');
+    expect(messageCenter).toContain('rpc("create_message_thread"');
+    expect(messageCenter).toContain('rpc("reply_to_message_thread"');
+    expect(messageCenter).toContain('rpc("mark_message_thread_read"');
+    expect(workflowMigration).toContain("create or replace function public.create_message_thread");
+    expect(workflowMigration).toContain("create or replace function public.reply_to_message_thread");
+    expect(workflowMigration).toContain("not private.can_message_profile(p_recipient_id)");
+    expect(hardeningMigration).toContain("security invoker");
+    expect(hardeningMigration).toContain("where thread_id = p_thread_id and profile_id = auth.uid()");
+    expect(hardeningMigration).toContain("create trigger messages_notify_participants");
+  });
 });

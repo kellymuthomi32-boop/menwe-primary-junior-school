@@ -12,6 +12,8 @@
 - [ ] Implement fee structures, invoices, invoice items, payments, balances, and an M-Pesa-ready payment abstraction that separates sandbox from production.
 - [ ] Implement timetables, homework and submissions, announcements, notifications, internal messages, and audit logs.
 - [x] Add recipient-scoped in-app notification reading and a protected administrator audit-history view.
+- [x] Add relationship-authorised secure message creation, replies, participant read state, and recipient in-app notifications.
+- [ ] Exercise the complete messaging workflow with authorised school accounts before production launch.
 - [x] Build role-specific teacher, student, and parent portals that expose only authorized records.
 - [ ] Add database-backed search, pagination, CSV import validation, and administrative reports.
 - [ ] Implement secure file-storage metadata and upload validation for admissions, gallery, and homework files.
