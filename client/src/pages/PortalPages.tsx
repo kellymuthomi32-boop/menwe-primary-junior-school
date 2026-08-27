@@ -14,6 +14,7 @@ import MessageCenter from "./MessageCenter";
 import ContentManagement from "./ContentManagement";
 import PeopleDirectory from "./PeopleDirectory";
 import AcademicDirectory from "./AcademicDirectory";
+import EnrollmentDirectory from "./EnrollmentDirectory";
 
 type Row = Record<string, unknown>;
 const pageSize = 25;
@@ -55,7 +56,7 @@ function PortalRouter({ role }: { role: AppRole }) {
   const [location] = useLocation(); const view = location.split("/").at(-1) || "overview";
   const allowedAdmin = isAdministrator(role);
   if (view === "notifications") return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><NotificationsView /></main></PortalLayout>;
-  const component = view === "overview" ? <Overview role={role} /> : view === "profile" ? <ProfileView /> : view === "timetable" ? <TimetableView role={role} /> : view === "homework" ? <HomeworkView role={role} /> : view === "announcements" ? <AnnouncementsView role={role} /> : view === "messages" ? <MessageCenter role={role} /> : allowedAdmin && view === "people" ? <><PeopleDirectory /><PeopleAdmin /></> : allowedAdmin && view === "academics" ? <><AcademicDirectory /><AcademicsAdmin /><AcademicAssignmentsAdmin /></> : allowedAdmin && view === "attendance" ? <AttendanceView role={role} /> : allowedAdmin && view === "exams" ? <ExamsView role={role} /> : view === "finance" ? <FinanceManagementView role={role} /> : allowedAdmin && view === "content" ? <ContentManagement /> : allowedAdmin && view === "operations" ? <OperationsAdmin /> : <Overview role={role} />;
+  const component = view === "overview" ? <Overview role={role} /> : view === "profile" ? <ProfileView /> : view === "timetable" ? <TimetableView role={role} /> : view === "homework" ? <HomeworkView role={role} /> : view === "announcements" ? <AnnouncementsView role={role} /> : view === "messages" ? <MessageCenter role={role} /> : allowedAdmin && view === "people" ? <><PeopleDirectory /><PeopleAdmin /></> : allowedAdmin && view === "academics" ? <><EnrollmentDirectory /><AcademicDirectory /><AcademicsAdmin /><AcademicAssignmentsAdmin /></> : allowedAdmin && view === "attendance" ? <AttendanceView role={role} /> : allowedAdmin && view === "exams" ? <ExamsView role={role} /> : view === "finance" ? <FinanceManagementView role={role} /> : allowedAdmin && view === "content" ? <ContentManagement /> : allowedAdmin && view === "operations" ? <OperationsAdmin /> : <Overview role={role} />;
   return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{component}{allowedAdmin && view === "finance" && <><AdminInvoiceDirectory /><PaymentVerificationPanel /></>}</main></PortalLayout>;
 }
 

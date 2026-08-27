@@ -263,4 +263,18 @@ describe("school platform database architecture", () => {
     expect(directory).toContain('"academic_years" | "terms" | "classes" | "streams" | "subjects"');
     expect(directory).toContain("function Pager({ page, count, setPage }");
   });
+
+  it("provides protected enrolment pagination and non-destructive status management", async () => {
+    const [portal, directory] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/EnrollmentDirectory.tsx"),
+    ]);
+    expect(portal).toContain("import EnrollmentDirectory from \"./EnrollmentDirectory\"");
+    expect(portal).toContain("<EnrollmentDirectory /><AcademicDirectory />");
+    expect(directory).toContain('from("enrollments")');
+    expect(directory).toContain('count: "exact"');
+    expect(directory).toContain('eq("status", status)');
+    expect(directory).toContain("The enrolment record was updated without deleting its history.");
+    expect(directory).toContain("function Pager({ page, count, setPage }");
+  });
 });

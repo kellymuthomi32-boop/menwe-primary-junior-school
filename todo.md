@@ -9,7 +9,7 @@
 - [ ] Build database-backed administration for users, students, parents, teachers, classes, streams, subjects, enrollments, academic years, terms, and school settings.
 - [x] Add a paginated, administrator-only directory for students, teachers, and parents with authorised server-side search, contact editing, and non-destructive status controls.
 - [x] Add paginated authorised search, conservative edits, and non-destructive status controls for academic years, terms, classes, streams, and subjects.
-- [ ] Add comparable edit/deactivate handling and pagination for enrolment administration records.
+- [x] Add protected enrolment pagination, active/inactive filtering, and non-destructive class, stream, and status updates.
 - [x] Implement real attendance entry, scoped teacher access, and attendance reporting.
 - [x] Implement exams, configurable grading, results entry, and report-card print/PDF workflows from persisted data.
 - [ ] Implement fee structures, invoices, invoice items, payments, balances, and an M-Pesa-ready payment abstraction that separates sandbox from production.
