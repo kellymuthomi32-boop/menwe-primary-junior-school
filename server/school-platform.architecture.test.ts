@@ -163,4 +163,12 @@ describe("school platform database architecture", () => {
     expect(operations).toContain('from("enrollments").select("id", { count: "exact", head: true }).eq("status", "ACTIVE")');
     expect(operations).toContain('"Active enrolment records"');
   });
+
+  it("runs operational search through bounded role-scoped Supabase queries", async () => {
+    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
+    expect(operations).toContain("function OperationalSearchPanel()");
+    expect(operations).toContain('replace(/[^a-zA-Z0-9 @._-]/g, "")');
+    expect(operations).toContain('.or(expression).limit(25)');
+    expect(operations).toContain('"Search authorised records"');
+  });
 });
