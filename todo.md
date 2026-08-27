@@ -22,12 +22,18 @@
 - [x] Reconcile the authoritative master directive and preserve its prohibition on fake data, fake workflows, and placeholders.
 - [x] Replace the template authentication flow with real Supabase Auth, password management, and database-enforced role authorization.
 - [x] Connect the application to the existing Supabase PostgreSQL project without using the template MySQL database.
-- [ ] Replace the template MySQL and Manus-auth data paths with verified Supabase client sessions and PostgreSQL reads and writes.
+- [x] Replace the template MySQL and Manus-auth data paths with verified Supabase client sessions and PostgreSQL reads and writes.
 - [ ] Add stream, teacher-subject, fee-structure, and multi-item invoice management screens.
 - [ ] Implement homework submission uploads, marking, and notifications using persisted records.
 - [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
-- [ ] Implement and test a one-time first-SUPER_ADMIN bootstrap mechanism secured by a protected project secret.
+- [ ] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.
+- [ ] Record the owner-run verification that the first-SUPER_ADMIN process promotes one authorised profile and blocks subsequent use.
 - [ ] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
 - [ ] Add executable role-boundary and persisted-workflow integration tests using a dedicated non-production Supabase project.
-- [ ] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
+- [x] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
+- [x] Make the public portal login explicitly support email/password sign-in, password reset, and optional email-link sign-in.
+- [ ] Refine the Super Administrator invitation workflow with email status, resend guidance, and clear success or failure states.
+- [ ] Document and verify Supabase Auth email templates, sender configuration, redirect URLs, and delivery diagnostics.
+- [ ] Improve the invitation and email-access user experience across desktop and mobile layouts.
+- [ ] Visually validate Super Administrator invitation success, failure, and delivery guidance at desktop and mobile breakpoints after the first privileged account is created.

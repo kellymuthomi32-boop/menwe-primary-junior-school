@@ -38,6 +38,12 @@ The interface creates only a **pending sandbox payment intent**. It never treats
 
 Use the deployment platform’s protected Environment Variables interface to set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Keep `.env.local` local and excluded from Git. Set Supabase Auth redirect URLs to the final production domain and the preview domain when known. Do not add a service-role key to any browser-facing variable.
 
+## Email sign-in, invitations, and delivery
+
+The portal supports email and password sign-in at `/portal/login`, password recovery, and a passwordless email-link option at `/portal/email-link`. The email-link form sets `shouldCreateUser: false`, so it cannot create an unapproved account. Public self-registration is disabled in Supabase; the Super Administrator must first create and link a real school record, then issue a secure invitation from the portal.
+
+Supabase is configured with the application’s Vercel and development redirect allowlists. The current default sender is adequate for development and small controlled tests. Before a school-wide invitation campaign or production launch, configure a verified custom SMTP sender and review the Invite user, Magic link, and Reset password templates in **Supabase → Authentication → Emails**. Confirm sender DNS verification, email rate limits, spam-folder behaviour, and the final custom domain before sending invitations to school families.
+
 ## Verification checklist
 
 - Run `pnpm check` and `pnpm test` after changes.

@@ -21,6 +21,7 @@ type AuthContextValue = {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  sendMagicLink: (email: string) => Promise<{ error?: string }>;
   sendPasswordReset: (email: string) => Promise<{ error?: string }>;
   updatePassword: (password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -88,9 +89,16 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         const { error: signInError } = await getSupabase().auth.signInWithPassword({ email, password });
         return signInError ? { error: signInError.message } : {};
       },
+      sendMagicLink: async email => {
+        const { error: magicLinkError } = await getSupabase().auth.signInWithOtp({
+          email,
+          options: { emailRedirectTo: `${window.location.origin}/portal/overview`, shouldCreateUser: false },
+        });
+        return magicLinkError ? { error: magicLinkError.message } : {};
+      },
       sendPasswordReset: async email => {
         const { error: resetError } = await getSupabase().auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/portal/login?mode=update-password`,
+          redirectTo: `${window.location.origin}/portal/password?mode=update-password`,
         });
         return resetError ? { error: resetError.message } : {};
       },

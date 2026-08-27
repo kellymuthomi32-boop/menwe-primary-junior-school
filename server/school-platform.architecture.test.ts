@@ -33,9 +33,13 @@ describe("school platform database architecture", () => {
 
   it("applies grades through the school’s saved grading configuration", async () => {
     const grading = await read("../supabase/migrations/0009_configurable_grading.sql");
+    const portal = await read("../client/src/pages/PortalPages.tsx");
     expect(grading).toContain("public.grading_rules");
     expect(grading).toContain("exam_results_apply_configured_grade");
     expect(grading).toContain("new.grade := configured_grade");
+    expect(portal).toContain("Its grade is calculated from the saved grading rules.");
+    expect(portal).not.toContain('grade: percent >= 80 ? "A"');
+    expect(portal).toContain('if (mode !== "report") return');
   });
 
   it("provides a one-time Super Administrator bootstrap that locks itself after a privileged account exists", async () => {
