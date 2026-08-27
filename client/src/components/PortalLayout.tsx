@@ -1,4 +1,4 @@
-import { BarChart3, BookOpenCheck, CalendarDays, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, Users, X, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, BookOpenCheck, CalendarDays, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, Users, X, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { isAdministrator, type AppRole, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -12,6 +12,7 @@ const baseItems: PortalNavItem[] = [
   ["Timetable", "timetable", CalendarDays],
   ["Homework", "homework", BookOpenCheck],
   ["Announcements", "announcements", FileText],
+  ["Notifications", "notifications", Bell],
   ["Messages", "messages", MessageSquare],
 ];
 

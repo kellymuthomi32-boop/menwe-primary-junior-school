@@ -11,6 +11,7 @@
 - [x] Implement exams, configurable grading, results entry, and report-card print/PDF workflows from persisted data.
 - [ ] Implement fee structures, invoices, invoice items, payments, balances, and an M-Pesa-ready payment abstraction that separates sandbox from production.
 - [ ] Implement timetables, homework and submissions, announcements, notifications, internal messages, and audit logs.
+- [x] Add recipient-scoped in-app notification reading and a protected administrator audit-history view.
 - [x] Build role-specific teacher, student, and parent portals that expose only authorized records.
 - [ ] Add database-backed search, pagination, CSV import validation, and administrative reports.
 - [ ] Implement secure file-storage metadata and upload validation for admissions, gallery, and homework files.
@@ -38,6 +39,8 @@
 - [x] Re-run the guarded first-SUPER_ADMIN bootstrap to capture the expected lockout failure without changing any production profile.
 - [x] Create and verify the approved first-SUPER_ADMIN account without recording the owner email in source control.
 - [ ] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
+- [x] Extend saved CMS title and headline reads to Admissions, Contact, Gallery, and Portal Login content.
+- [ ] Bind full saved CMS body copy and supporting public-page sections for Admissions, Contact, Gallery, and Portal Login.
 - [ ] Add executable role-boundary and persisted-workflow integration tests using a dedicated non-production Supabase project.
 - [x] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
 - [x] Make the public portal login explicitly support email/password sign-in, password reset, and optional email-link sign-in.

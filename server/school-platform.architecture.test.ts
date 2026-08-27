@@ -98,4 +98,41 @@ describe("school platform database architecture", () => {
     expect(migration).toContain("join public.enrollments e on e.class_id = h.class_id");
     expect(migration).toContain("insert into public.notifications");
   });
+
+  it("keeps Admissions, Contact, Gallery, and Portal Login headings connected to saved CMS records", async () => {
+    const publicPages = await read("../client/src/pages/PublicPages.tsx");
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    expect(publicPages).toContain('usePage("admissions")');
+    expect(publicPages).toContain('usePage("contact")');
+    expect(publicPages).toContain('usePage("gallery")');
+    expect(publicPages).toContain('usePage("portal-login")');
+    expect(portal).toContain('["home","about","academics","admissions","contact","gallery","portal-login"]');
+  });
+
+  it("provides audit history without exposing raw metadata or public routes", async () => {
+    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
+    expect(operations).toContain("function AuditPanel()");
+    expect(operations).toContain('getRows("audit_logs", "id,action,entity_type,entity_id,created_at"');
+    expect(operations).toContain("without displaying raw record payloads or credentials");
+  });
+
+  it("ships baseline SEO metadata and deployment security headers", async () => {
+    const vercel = await read("../vercel.json");
+    const html = await read("../client/index.html");
+    const robots = await read("../client/public/robots.txt");
+    expect(vercel).toContain("Content-Security-Policy");
+    expect(vercel).toContain("X-Content-Type-Options");
+    expect(html).toContain('property="og:title"');
+    expect(html).toContain('name="robots"');
+    expect(robots).toContain("Sitemap:");
+  });
+
+  it("exposes persisted notifications through a recipient-scoped portal route", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    const layout = await read("../client/src/components/PortalLayout.tsx");
+    expect(portal).toContain("function NotificationsView()");
+    expect(portal).toContain('useRows("notifications", "id,type,title,body,link,read_at,created_at"');
+    expect(portal).toContain('updateRow("notifications", text(notice.id), { read_at: new Date().toISOString() })');
+    expect(layout).toContain('["Notifications", "notifications", Bell]');
+  });
 });

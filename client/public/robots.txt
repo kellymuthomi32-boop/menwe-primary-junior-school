@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://menwe-primary-junior-school.vercel.app/sitemap.xml
