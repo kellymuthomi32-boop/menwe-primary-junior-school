@@ -135,4 +135,16 @@ describe("school platform database architecture", () => {
     expect(portal).toContain('updateRow("notifications", text(notice.id), { read_at: new Date().toISOString() })');
     expect(layout).toContain('["Notifications", "notifications", Bell]');
   });
+
+  it("keeps homework attachments private, size-limited, and owner-validated before submission", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    const migration = await read("../supabase/migrations/0017_private_homework_attachment_storage.sql");
+    expect(portal).toContain('storage.from("homework-submissions").upload');
+    expect(portal).toContain('storage.from("homework-submissions").createSignedUrl');
+    expect(portal).toContain("function StudentAttachmentAccess");
+    expect(portal).toContain('p_attachment_file_id: attachmentId');
+    expect(migration).toContain("'homework-submissions'");
+    expect(migration).toContain("p_attachment_file_id is not null and not exists");
+    expect(migration).toContain("byte_size <= 5242880");
+  });
 });

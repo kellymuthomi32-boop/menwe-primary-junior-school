@@ -32,6 +32,9 @@
 - [ ] Implement homework submission uploads, marking, and notifications using persisted records.
 - [x] Implement role-scoped homework text submissions, authorised teacher marking, and persisted in-app marking notifications.
 - [ ] Add protected homework attachment uploads and metadata validation to the persisted submission workflow.
+- [x] Add private homework attachment upload, MIME/size validation, and owner-scoped metadata persistence.
+- [x] Add authorised private attachment retrieval for the owning student and assigned teacher or administrator.
+- [ ] Test the complete homework attachment lifecycle with authorised accounts before marking the upload workflow complete.
 - [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
 - [x] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.
