@@ -80,4 +80,22 @@ describe("school platform database architecture", () => {
     expect(portal).toContain('insertRow("teacher_subjects"');
     expect(portal).toContain('updateRow("classes", values.class_id, { class_teacher_id: values.teacher_id || null })');
   });
+
+  it("provides administrators with a persisted invoice directory without treating pending payments as settled", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    expect(portal).toContain("function AdminInvoiceDirectory()");
+    expect(portal).toContain('payment.status) === "VERIFIED"');
+    expect(portal).toContain('value="OVERDUE"');
+    expect(portal).toContain('<AdminInvoiceDirectory />');
+  });
+
+  it("uses scoped database procedures for homework submission, marking, and marking notifications", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    const migration = await read("../supabase/migrations/0015_homework_submission_and_marking_workflows.sql");
+    expect(portal).toContain('rpc("submit_homework_submission"');
+    expect(portal).toContain('rpc("mark_homework_submission"');
+    expect(migration).toContain('private.current_student_id()');
+    expect(migration).toContain("join public.enrollments e on e.class_id = h.class_id");
+    expect(migration).toContain("insert into public.notifications");
+  });
 });

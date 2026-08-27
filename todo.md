@@ -3,7 +3,7 @@
 - [x] Define the normalized school domain model and role-permission matrix.
 - [x] Create versioned database migrations for school records, academic operations, finance, content, communications, and audit history.
 - [x] Implement secure server-side authorization for SUPER_ADMIN, ADMIN, TEACHER, STUDENT, and PARENT.
-- [ ] Configure a secure first-super-admin onboarding mechanism without hard-coded production credentials.
+- [x] Configure a secure first-super-admin onboarding mechanism without hard-coded production credentials.
 - [ ] Build editable public pages for Home, About, Academics, Admissions, News, Events, Gallery, Contact, and Portal Login.
 - [x] Implement public admissions and contact forms backed by persistent database records.
 - [ ] Build database-backed administration for users, students, parents, teachers, classes, streams, subjects, enrollments, academic years, terms, and school settings.
@@ -23,14 +23,20 @@
 - [x] Replace the template authentication flow with real Supabase Auth, password management, and database-enforced role authorization.
 - [x] Connect the application to the existing Supabase PostgreSQL project without using the template MySQL database.
 - [x] Replace the template MySQL and Manus-auth data paths with verified Supabase client sessions and PostgreSQL reads and writes.
-- [ ] Add stream, teacher-subject, fee-structure, and multi-item invoice management screens.
-- [ ] Add an administrator invoice-management panel showing persisted invoice line items, verified-payment balance, and status.
+- [x] Add stream, teacher-subject, fee-structure, and multi-item invoice management screens.
+- [x] Add an administrator invoice-management panel showing persisted invoice line items, verified-payment balance, and status.
+- [ ] Implement and verify an authorised payment-verification callback or equivalent server-side handler that records payment events and safely transitions pending payments to verified.
+- [ ] Run controlled end-to-end finance tests for fee structures, multi-line invoices, verified balances, and the payment-intent lifecycle.
 - [x] Make class-teacher assignment explicitly optional in the administration form, or remove the unassign option.
 - [ ] Implement homework submission uploads, marking, and notifications using persisted records.
+- [x] Implement role-scoped homework text submissions, authorised teacher marking, and persisted in-app marking notifications.
+- [ ] Add protected homework attachment uploads and metadata validation to the persisted submission workflow.
 - [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
-- [ ] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.
-- [ ] Record the owner-run verification that the first-SUPER_ADMIN process promotes one authorised profile and blocks subsequent use.
+- [x] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.
+- [x] Record the owner-run verification that the first-SUPER_ADMIN process promotes one authorised profile and blocks subsequent use.
+- [x] Re-run the guarded first-SUPER_ADMIN bootstrap to capture the expected lockout failure without changing any production profile.
+- [x] Create and verify the approved first-SUPER_ADMIN account without recording the owner email in source control.
 - [ ] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
 - [ ] Add executable role-boundary and persisted-workflow integration tests using a dedicated non-production Supabase project.
 - [x] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
@@ -39,3 +45,5 @@
 - [ ] Document and verify Supabase Auth email templates, sender configuration, redirect URLs, and delivery diagnostics.
 - [ ] Improve the invitation and email-access user experience across desktop and mobile layouts.
 - [ ] Visually validate Super Administrator invitation success, failure, and delivery guidance at desktop and mobile breakpoints after the first privileged account is created.
+- [ ] Repair the invitation completion redirect so accepted Supabase invitations reach a deployed password-setup route instead of the current Vercel 404 page.
+- [ ] Return to owner password setup, invitation delivery verification, and final production redirect configuration after the remaining platform work is complete.

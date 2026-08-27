@@ -16,6 +16,10 @@ The first privileged account must be established directly in Supabase, once, by 
 4. Sign in at `/portal/login`. The Super Administrator can then create real school configuration, records, and linked user invitations through the application.
 5. Keep the database password, service-role key, and all `sb_secret_` values out of GitHub, browser code, Kimi prompts, and ordinary messages.
 
+### Promotion verification record
+
+The guarded bootstrap was executed once after a school-controlled owner account was created through Supabase Authentication. The resulting profile was verified as **ACTIVE** with the **SUPER_ADMIN** role. The account email, user identifier, password, and all authentication credentials are intentionally omitted from this repository. A second guarded execution was then attempted and returned the expected `42501` lockout error before any profile could be modified, proving that the bootstrap cannot be reused.
+
 ## Safe setup order
 
 Create records in this order: academic year and current term; grading rules; subjects; classes and streams; teachers; parents and students; parent links and enrolments; teacher subject assignments; timetables; fee structures and invoices; then authorised account invitations. This order preserves referential integrity and enables role-scoped workflows.

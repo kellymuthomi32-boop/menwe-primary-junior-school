@@ -1,0 +1,128 @@
+-- Persist student homework submissions and teacher feedback atomically.
+-- Each procedure validates the caller's relationship before using definer privileges.
+
+create or replace function private.current_student_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select s.id
+  from public.students s
+  where s.profile_id = auth.uid()
+  limit 1;
+$$;
+
+revoke all on function private.current_student_id() from public;
+grant execute on function private.current_student_id() to authenticated;
+
+create or replace function public.submit_homework_submission(
+  p_homework_id uuid,
+  p_content text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_student_id uuid;
+  v_submission_id uuid;
+begin
+  v_student_id := private.current_student_id();
+  if v_student_id is null then
+    raise exception 'Only a linked student account can submit homework.' using errcode = '42501';
+  end if;
+
+  if coalesce(length(trim(p_content)), 0) = 0 then
+    raise exception 'Submission content is required.' using errcode = '22023';
+  end if;
+
+  if not exists (
+    select 1
+    from public.homework h
+    join public.enrollments e on e.class_id = h.class_id
+    where h.id = p_homework_id
+      and h.status = 'PUBLISHED'
+      and e.student_id = v_student_id
+      and e.status = 'ACTIVE'
+  ) then
+    raise exception 'This homework is not available to the current student.' using errcode = '42501';
+  end if;
+
+  insert into public.homework_submissions (homework_id, student_id, content)
+  values (p_homework_id, v_student_id, trim(p_content))
+  on conflict (homework_id, student_id) do update
+    set content = excluded.content,
+        submitted_at = now(),
+        marked_at = null,
+        mark = null,
+        feedback = null,
+        marked_by = null
+  returning id into v_submission_id;
+
+  return v_submission_id;
+end;
+$$;
+
+create or replace function public.mark_homework_submission(
+  p_submission_id uuid,
+  p_mark numeric,
+  p_feedback text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_student_profile_id uuid;
+  v_homework_title text;
+  v_teacher_id uuid;
+begin
+  if p_mark < 0 or p_mark > 100 then
+    raise exception 'Homework marks must be between 0 and 100.' using errcode = '22023';
+  end if;
+
+  v_teacher_id := private.current_teacher_id();
+  if not private.is_admin() and v_teacher_id is null then
+    raise exception 'Only an authorised teacher or administrator can mark homework.' using errcode = '42501';
+  end if;
+
+  select s.profile_id, h.title
+  into v_student_profile_id, v_homework_title
+  from public.homework_submissions hs
+  join public.homework h on h.id = hs.homework_id
+  join public.students s on s.id = hs.student_id
+  where hs.id = p_submission_id
+    and (private.is_admin() or h.teacher_id = v_teacher_id);
+
+  if not found then
+    raise exception 'This submission is not available to the current marker.' using errcode = '42501';
+  end if;
+
+  update public.homework_submissions
+  set mark = p_mark,
+      feedback = nullif(trim(coalesce(p_feedback, '')), ''),
+      marked_at = now(),
+      marked_by = v_teacher_id
+  where id = p_submission_id;
+
+  if v_student_profile_id is not null then
+    insert into public.notifications (profile_id, type, title, body, link)
+    values (
+      v_student_profile_id,
+      'HOMEWORK_MARKED',
+      'Homework feedback is available',
+      format('%s has been marked.', v_homework_title),
+      '/portal/homework'
+    );
+  end if;
+end;
+$$;
+
+revoke all on function public.submit_homework_submission(uuid, text) from public;
+revoke all on function public.mark_homework_submission(uuid, numeric, text) from public;
+grant execute on function public.submit_homework_submission(uuid, text) to authenticated;
+grant execute on function public.mark_homework_submission(uuid, numeric, text) to authenticated;
