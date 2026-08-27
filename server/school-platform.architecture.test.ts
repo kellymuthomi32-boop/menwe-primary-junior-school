@@ -250,4 +250,17 @@ describe("school platform database architecture", () => {
     expect(directory).toContain('"WITHDRAWN"');
     expect(directory).toContain("function Pager({ page, count, setPage }");
   });
+
+  it("provides a paginated administrator academic directory with safe record status handling", async () => {
+    const [portal, directory] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/AcademicDirectory.tsx"),
+    ]);
+    expect(portal).toContain("import AcademicDirectory from \"./AcademicDirectory\"");
+    expect(portal).toContain("<AcademicDirectory /><AcademicsAdmin /><AcademicAssignmentsAdmin />");
+    expect(directory).toContain('term.replace(/[^a-zA-Z0-9 @._-]/g, "")');
+    expect(directory).toContain('count: "exact"');
+    expect(directory).toContain('"academic_years" | "terms" | "classes" | "streams" | "subjects"');
+    expect(directory).toContain("function Pager({ page, count, setPage }");
+  });
 });
