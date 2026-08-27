@@ -38,6 +38,8 @@
 - [ ] Add role-authorised search across operational records and complete pagination for all high-volume administration screens.
 - [x] Add a bounded, role-authorised Supabase search across students, teachers, guardians, invoices, and admission records.
 - [ ] Extend clear next/previous pagination controls to the remaining high-volume administration and operations tables.
+- [x] Add bounded next/previous pagination to the protected administrator audit-history view.
+- [ ] Add equivalent database-backed pagination to the remaining people, finance, admissions, and reporting lists.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
 - [x] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.
 - [x] Record the owner-run verification that the first-SUPER_ADMIN process promotes one authorised profile and blocks subsequent use.

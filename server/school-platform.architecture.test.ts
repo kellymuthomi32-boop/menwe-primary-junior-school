@@ -171,4 +171,20 @@ describe("school platform database architecture", () => {
     expect(operations).toContain('.or(expression).limit(25)');
     expect(operations).toContain('"Search authorised records"');
   });
+
+  it("paginates the protected audit history rather than loading an unbounded record trail", async () => {
+    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
+    expect(operations).toContain('function Pager({ page, count, setPage }');
+    expect(operations).toContain('getRows("audit_logs", "id,action,entity_type,entity_id,created_at", page, 25');
+    expect(operations).toContain('<Pager page={page} count={count} setPage={setPage} />');
+  });
+
+  it("uses explicit saved CMS body copy without duplicate public-page content lookups", async () => {
+    const publicPages = await read("../client/src/pages/PublicPages.tsx");
+    expect(publicPages).toContain("function pageText(content: PageContent");
+    expect(publicPages).toContain("function PageIntro({ eyebrow, title, description, body }");
+    expect(publicPages).toContain('body={pageText(content, "content")}');
+    expect(publicPages).toContain('pageText(pageContent, "content")');
+    expect(publicPages).not.toContain('const slug = eyebrow === "Admissions"');
+  });
 });
