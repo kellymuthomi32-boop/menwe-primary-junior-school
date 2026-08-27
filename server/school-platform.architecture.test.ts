@@ -236,4 +236,18 @@ describe("school platform database architecture", () => {
     expect(chooser).toContain("const primaryCopy = typeof content?.body?.content");
     expect(chooser).toContain("const supportingCopy = typeof content?.body?.supporting");
   });
+
+  it("provides a paginated administrator people directory with constrained search and status handling", async () => {
+    const [portal, directory] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/PeopleDirectory.tsx"),
+    ]);
+    expect(portal).toContain("import PeopleDirectory from \"./PeopleDirectory\"");
+    expect(portal).toContain("<PeopleDirectory /><PeopleAdmin />");
+    expect(directory).toContain('term.replace(/[^a-zA-Z0-9 @._-]/g, "")');
+    expect(directory).toContain('count: "exact"');
+    expect(directory).toContain('"GRADUATED"');
+    expect(directory).toContain('"WITHDRAWN"');
+    expect(directory).toContain("function Pager({ page, count, setPage }");
+  });
 });
