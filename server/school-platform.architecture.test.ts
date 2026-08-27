@@ -147,4 +147,14 @@ describe("school platform database architecture", () => {
     expect(migration).toContain("p_attachment_file_id is not null and not exists");
     expect(migration).toContain("byte_size <= 5242880");
   });
+
+  it("keeps payment verification separate, administrator-authorised, and event-audited", async () => {
+    const portal = await read("../client/src/pages/PortalPages.tsx");
+    const migration = await read("../supabase/migrations/0018_admin_payment_verification_workflow.sql");
+    expect(portal).toContain("function PaymentVerificationPanel()");
+    expect(portal).toContain('rpc("verify_payment"');
+    expect(migration).toContain("if not private.is_admin()");
+    expect(migration).toContain("insert into public.payment_events");
+    expect(migration).toContain("Only a pending payment can be verified");
+  });
 });
