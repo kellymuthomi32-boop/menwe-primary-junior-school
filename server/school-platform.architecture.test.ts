@@ -215,4 +215,25 @@ describe("school platform database architecture", () => {
     expect(database).toContain("This record list uses an invalid select expression.");
     expect(database).toContain("const safeSize = Math.min(100, Math.max(1, Math.floor(size)))");
   });
+
+  it("provides controlled CMS editing with saved supporting copy and paginated intake administration", async () => {
+    const [portal, contentManagement] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/ContentManagement.tsx"),
+    ]);
+    expect(portal).toContain("import ContentManagement from \"./ContentManagement\"");
+    expect(portal).toContain("<ContentManagement />");
+    expect(contentManagement).toContain('body: { content: values.body, supporting: values.supporting || undefined }');
+    expect(contentManagement).toContain("Supporting page copy");
+    expect(contentManagement).toContain('count: "exact"');
+    expect(contentManagement).toContain("function Pager({ page, count, setPage }");
+  });
+
+  it("binds portal-login CMS copy to the actual public portal access chooser", async () => {
+    const chooser = await read("../client/src/pages/PortalAccessPage.tsx");
+    expect(chooser).toContain('getPublishedPage("portal-login")');
+    expect(chooser).toContain('content?.title || "Choose your secure way to continue."');
+    expect(chooser).toContain("const primaryCopy = typeof content?.body?.content");
+    expect(chooser).toContain("const supportingCopy = typeof content?.body?.supporting");
+  });
 });

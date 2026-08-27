@@ -48,9 +48,10 @@
 - [x] Record the owner-run verification that the first-SUPER_ADMIN process promotes one authorised profile and blocks subsequent use.
 - [x] Re-run the guarded first-SUPER_ADMIN bootstrap to capture the expected lockout failure without changing any production profile.
 - [x] Create and verify the approved first-SUPER_ADMIN account without recording the owner email in source control.
-- [ ] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
+- [x] Extend CMS editing and saved page reads to Admissions, Contact, Gallery, and Portal Login content.
 - [x] Extend saved CMS title and headline reads to Admissions, Contact, Gallery, and Portal Login content.
-- [ ] Bind full saved CMS body copy and supporting public-page sections for Admissions, Contact, Gallery, and Portal Login.
+- [x] Bind full saved CMS body copy and supporting public-page sections for Admissions, Contact, Gallery, and Portal Login.
+- [x] Bind the portal-login CMS record to the actual public portal-access chooser and visually verify it at desktop and mobile breakpoints.
 - [ ] Add executable role-boundary and persisted-workflow integration tests using a dedicated non-production Supabase project.
 - [x] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
 - [x] Make the public portal login explicitly support email/password sign-in, password reset, and optional email-link sign-in.
