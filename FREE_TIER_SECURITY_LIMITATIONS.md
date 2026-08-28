@@ -25,6 +25,11 @@ The outstanding free-tier limitation is intentionally recorded rather than bypas
 
 No real school accounts, payment records, or message threads have been created for testing. Real end-to-end confirmation of role boundaries, private homework attachments, payment reconciliation, and invitation delivery remains deferred until the school authorises a safe test approach.
 
+## Performance Advisor Context
+
+A fresh Supabase Performance Advisor review reports only **unused-index informational notices**. The project is intentionally new and has no real operational traffic, so index-use statistics are not yet meaningful. The existing indexes support the protected relationship, status, and date queries already implemented; they should not be removed solely because the empty database has not used them. The school should revisit these notices after real, authorised operation establishes normal query patterns.[2]
+
 ## References
 
 [1]: https://supabase.com/docs/guides/auth/password-security "Supabase Auth: Password security"
+[2]: https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index "Supabase Database Linter: Unused index"
