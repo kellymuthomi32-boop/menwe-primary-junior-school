@@ -19,11 +19,12 @@ import PublicGalleryPage from "./pages/PublicGalleryPage";
 import GalleryManagementPage from "./pages/GalleryManagementPage";
 import SchoolSetupPage from "./pages/SchoolSetupPage";
 import FirstAdminPage from "./pages/FirstAdminPage";
-import { AdmissionsPage, ContactPage, EditorialPage, EventsPage, HomePage, LoginPage, NewsPage } from "./pages/PublicPages";
+import HomePagePremium from "./pages/HomePagePremium";
+import { AdmissionsPage, ContactPage, EditorialPage, EventsPage, LoginPage, NewsPage } from "./pages/PublicPages";
 
 const PortalGuard = lazy(() => import("./pages/PortalPages"));
 function Router() { return <Switch>
-<Route path="/" component={HomePage} /><Route path="/about">{() => <EditorialPage slug="about" eyebrow="Our school" defaultTitle="About Menwe" description="School leaders can publish the school’s history, mission, vision, values, leadership message, teaching approach, and facilities information here." />}</Route><Route path="/academics">{() => <EditorialPage slug="academics" eyebrow="Learning" defaultTitle="Academics" description="Academic programmes, subjects, curriculum information, and co-curricular activities are published by authorised school administrators." />}</Route>
+<Route path="/" component={HomePagePremium} /><Route path="/about">{() => <EditorialPage slug="about" eyebrow="Our school" defaultTitle="About Menwe" description="School leaders can publish the school’s history, mission, vision, values, leadership message, teaching approach, and facilities information here." />}</Route><Route path="/academics">{() => <EditorialPage slug="academics" eyebrow="Learning" defaultTitle="Academics" description="Academic programmes, subjects, curriculum information, and co-curricular activities are published by authorised school administrators." />}</Route>
 <Route path="/admissions" component={AdmissionsPage} /><Route path="/news" component={NewsPage} /><Route path="/events" component={EventsPage} /><Route path="/gallery" component={PublicGalleryPage} /><Route path="/contact" component={ContactPage} />
 <Route path="/portal/login" component={PortalAccessPage} /><Route path="/portal/password" component={LoginPage} /><Route path="/portal/email-link" component={MagicLinkPage} /><Route path="/portal/setup/first-admin" component={FirstAdminPage} /><Route path="/portal/setup" component={SchoolSetupPage} />
 <Route path="/portal/academics" component={AcademicManagementPage} /><Route path="/portal/exams" component={ExamManagementPage} /><Route path="/portal/attendance" component={AttendanceDirectory} /><Route path="/portal/report-cards" component={ReportCardsDirectory} /><Route path="/portal/finance" component={FinanceDirectory} /><Route path="/portal/homework" component={HomeworkDirectory} /><Route path="/portal/timetable" component={TimetableDirectory} /><Route path="/portal/notifications" component={NotificationCenter} /><Route path="/portal/gallery" component={GalleryManagementPage} />
