@@ -4,6 +4,7 @@ import { isAdministrator, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { getSupabase } from "@/lib/supabase";
 
 type Notice = { kind: "success" | "error"; text: string } | null;
+type MutationResult = { error: { message: string } | null };
 
 export default function SchoolSetupPage() {
   const { loading, user, profile } = useSchoolAuth();
@@ -32,7 +33,7 @@ export default function SchoolSetupPage() {
 
   useEffect(() => { if (user && isAdministrator(profile?.role)) void load(); }, [user, profile?.role]);
 
-  const save = async (key: string, task: () => Promise<{ error: { message: string } | null }>) => {
+  const save = async (key: string, task: () => PromiseLike<MutationResult>) => {
     setBusy(key); setNotice(null);
     const { error } = await task();
     setBusy(null);
