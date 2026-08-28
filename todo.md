@@ -67,4 +67,4 @@
 - [ ] Repair the invitation completion redirect so accepted Supabase invitations reach a deployed password-setup route instead of the current Vercel 404 page.
 - [ ] Return to owner password setup, invitation delivery verification, and final production redirect configuration after the remaining platform work is complete.
 - [x] Confirm the project will remain on the existing free tiers, without paid Supabase branches or upgrades.
-- [ ] Document the free-tier limitation that Supabase leaked-password protection cannot be enabled without a Pro plan or higher.
+- [x] Document the free-tier limitation that Supabase leaked-password protection cannot be enabled without a Pro plan or higher.
