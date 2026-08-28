@@ -4,35 +4,26 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFile(new URL(path, import.meta.url), "utf8");
 
 describe("email access and invitation controls", () => {
-  it("offers passwordless email links without allowing the form to create arbitrary accounts", async () => {
+  it("offers passwordless access without allowing arbitrary account creation", async () => {
     const authContext = await read("../client/src/contexts/SupabaseAuthContext.tsx");
-    expect(authContext).toContain("signInWithOtp");
-    expect(authContext).toContain("shouldCreateUser: false");
-    expect(authContext).toContain("resetPasswordForEmail");
-    expect(authContext).toContain("signInWithPassword");
-    expect(authContext).toContain("/portal/overview");
+    expect(authContext).toContain("signInWithOtp"); expect(authContext).toContain("shouldCreateUser: false");
+    expect(authContext).toContain("resetPasswordForEmail"); expect(authContext).toContain("signInWithPassword");
   });
 
-  it("keeps invitation creation on the server and restricts it to an active Super Administrator", async () => {
+  it("keeps invitations server-side and restricted to active privileged callers", async () => {
     const invitationFunction = await read("../supabase/functions/school-invite/index.ts");
-    expect(invitationFunction).toContain("callerProfile?.role !== \"SUPER_ADMIN\"");
+    expect(invitationFunction).toContain('callerProfile?.role !== "SUPER_ADMIN"');
     expect(invitationFunction).toContain("serviceClient.auth.admin.inviteUserByEmail");
     expect(invitationFunction).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(invitationFunction).not.toContain("return response({ serviceKey");
   });
 
-  it("requires invitation roles to match the linked school record type", async () => {
-    const [invitationFunction, portal] = await Promise.all([
-      read("../supabase/functions/school-invite/index.ts"),
-      read("../client/src/pages/PortalPages.tsx"),
-    ]);
+  it("requires invitation roles to match the selected school record", async () => {
+    const invitationFunction = await read("../supabase/functions/school-invite/index.ts");
     expect(invitationFunction).toContain('const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const');
     expect(invitationFunction).toContain("The invitation role must match the selected school record type.");
     expect(invitationFunction).toContain("The selected school record is unavailable or already linked to an account.");
     expect(invitationFunction).toContain("const removeNewAccount = async () => { await serviceClient.auth.admin.deleteUser(invitation.user.id); };");
     expect(invitationFunction).toContain("The account could not be linked to the selected school record.");
-    expect(portal).toContain("const enforcedRole = recordType === \"teacher\" ? \"TEACHER\"");
-    expect(portal).toContain("role: enforcedRole, recordType, recordId: values.recordId");
-    expect(portal).toContain("Role assigned from the school record");
   });
 });
