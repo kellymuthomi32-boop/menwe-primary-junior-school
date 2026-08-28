@@ -158,6 +158,17 @@ describe("school platform database architecture", () => {
     expect(migration).toContain("Only a pending payment can be verified");
   });
 
+  it("keeps the internal storage proxy compatible with the maintained Express wildcard syntax", async () => {
+    const [proxy, viteServer] = await Promise.all([
+      read("../server/_core/storageProxy.ts"),
+      read("../server/_core/vite.ts"),
+    ]);
+    expect(proxy).toContain('app.get("/manus-storage/*key"');
+    expect(proxy).toContain("Array.isArray(wildcard) ? wildcard.join(\"/\") : wildcard");
+    expect(proxy).toContain("res.set(\"Cache-Control\", \"no-store\")");
+    expect(viteServer).toContain('app.use("/{*splat}"');
+  });
+
   it("does not label all historical enrolments as active in operations reporting", async () => {
     const operations = await read("../client/src/pages/OperationsAdmin.tsx");
     expect(operations).toContain('from("enrollments").select("id", { count: "exact", head: true }).eq("status", "ACTIVE")');
@@ -306,5 +317,32 @@ describe("school platform database architecture", () => {
     expect(directory).toContain('count: "exact"');
     expect(directory).toContain('"PARTIALLY_PAID"');
     expect(directory).toContain("function Pager({ page, count, setPage }");
+  });
+
+  it("uses the shared accessible card system on public and protected portal surfaces", async () => {
+    const [styles, publicPages, portal, finance, people, academics, enrolments, content, messages, operations] = await Promise.all([
+      read("../client/src/index.css"),
+      read("../client/src/pages/PublicPages.tsx"),
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/FinanceDirectory.tsx"),
+      read("../client/src/pages/PeopleDirectory.tsx"),
+      read("../client/src/pages/AcademicDirectory.tsx"),
+      read("../client/src/pages/EnrollmentDirectory.tsx"),
+      read("../client/src/pages/ContentManagement.tsx"),
+      read("../client/src/pages/MessageCenter.tsx"),
+      read("../client/src/pages/OperationsAdmin.tsx"),
+    ]);
+    expect(styles).toContain(".menwe-card");
+    expect(styles).toContain(".menwe-card--interactive:focus-visible");
+    expect(styles).toContain(".menwe-metric-card");
+    expect(publicPages).toContain('className={`menwe-card rounded-3xl p-6 ${className}`}');
+    expect(publicPages).toContain("menwe-card--interactive group rounded-3xl");
+    expect(publicPages).toContain('className="menwe-card grid gap-5 rounded-[2rem] p-6 sm:p-9"');
+    expect(portal).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
+    expect(portal).toContain('className="menwe-metric-card rounded-3xl p-5 text-white"');
+    expect(finance).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
+    for (const workspace of [people, academics, enrolments, content, messages, operations]) {
+      expect(workspace).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
+    }
   });
 });

@@ -71,3 +71,8 @@
 - [ ] Return to owner password setup, invitation delivery verification, and final production redirect configuration after the remaining platform work is complete.
 - [x] Confirm the project will remain on the existing free tiers, without paid Supabase branches or upgrades.
 - [x] Document the free-tier limitation that Supabase leaked-password protection cannot be enabled without a Pro plan or higher.
+- [x] Remediate production dependency-audit findings with compatible free package updates and re-run the audit.
+- [ ] Upgrade the public and portal card system with stronger visual hierarchy, responsive interaction states, and accessibility-safe contrast.
+- [x] Apply upgraded shared card surfaces to the standalone administrator and portal workspaces, with the interactive treatment attached to real public navigation cards.
+- [ ] Visually verify an authenticated portal workspace with the upgraded card system once authorised access testing is resumed.
+- [ ] Review Vercel project configuration and prepare the validated release path without publishing directly.

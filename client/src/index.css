@@ -69,3 +69,57 @@ button:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: no-preference) {
   button, a { transition: color 180ms cubic-bezier(.23, 1, .32, 1), background-color 180ms cubic-bezier(.23, 1, .32, 1), transform 160ms cubic-bezier(.23, 1, .32, 1), box-shadow 180ms cubic-bezier(.23, 1, .32, 1); }
 }
+
+.menwe-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 250, 247, .96));
+  box-shadow: 0 12px 32px rgba(29, 43, 37, .06), inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.menwe-card::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  content: "";
+  background: linear-gradient(90deg, var(--menwe-accent), var(--sage) 58%, var(--gold));
+  opacity: .82;
+}
+
+.menwe-card--interactive {
+  transform: translateZ(0);
+}
+
+.menwe-card--interactive:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold) 72%, white);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menwe-card--interactive { transition: transform 180ms cubic-bezier(.23, 1, .32, 1), box-shadow 180ms cubic-bezier(.23, 1, .32, 1), border-color 180ms cubic-bezier(.23, 1, .32, 1); }
+  .menwe-card--interactive:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--menwe-accent) 28%, transparent); box-shadow: 0 20px 40px rgba(29, 43, 37, .11), inset 0 1px 0 rgba(255, 255, 255, .96); }
+}
+
+.menwe-metric-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: linear-gradient(145deg, #1d2b25, #29473a);
+  box-shadow: 0 14px 28px rgba(29, 43, 37, .17);
+}
+
+.menwe-metric-card::after {
+  position: absolute;
+  right: -2.4rem;
+  bottom: -2.4rem;
+  width: 7.5rem;
+  height: 7.5rem;
+  content: "";
+  border: 1px solid rgba(213, 185, 92, .42);
+  border-radius: 999px;
+}

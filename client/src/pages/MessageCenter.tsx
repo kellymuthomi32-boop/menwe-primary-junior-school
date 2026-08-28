@@ -11,7 +11,7 @@ const dateTime = (item: unknown) => item ? new Date(String(item)).toLocaleString
 const inputClass = "w-full rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none ring-[var(--accent)] focus:ring-2";
 
 function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <section className="rounded-[1.75rem] border border-[var(--ink)]/10 bg-white p-5 shadow-[0_10px_28px_rgba(29,43,37,.05)] sm:p-7"><h2 className="font-serif text-2xl font-semibold tracking-tight">{title}</h2><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">{description}</p><div className="mt-6">{children}</div></section>;
+  return <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><h2 className="font-serif text-2xl font-semibold tracking-tight">{title}</h2><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">{description}</p><div className="mt-6">{children}</div></section>;
 }
 
 export default function MessageCenter({ role }: { role: AppRole }) {

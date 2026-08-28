@@ -36,7 +36,9 @@ Create records in this order: academic year and current term; grading rules; sub
 
 ## Payment safety
 
-The interface creates only a **pending sandbox payment intent**. It never treats a browser action as a successful payment. A real M-Pesa implementation must add a protected provider callback that verifies the provider response, records a `payment_events` row, then marks the payment `VERIFIED`. Switch to production only after provider credentials, callback signature verification, and production URLs have been configured in protected deployment settings.
+The interface creates only a **pending sandbox payment intent**. It never treats a browser action as a successful payment. An authorised administrator may perform documented manual reconciliation after independently confirming a real provider receipt; the database procedure records an immutable `payment_events` row, enforces provider-reference uniqueness, and recalculates the invoice balance.
+
+M-Pesa is **not connected or simulated**. No provider credentials, callback URL, webhook signature validation, or production payment endpoint is configured in this free-tier implementation. A real M-Pesa implementation requires a protected provider callback that validates the provider response before calling the same verification workflow. Switch to production only after provider credentials, callback signature verification, production URLs, and controlled end-to-end tests have been configured outside browser-facing code.
 
 ## Deployment settings
 
