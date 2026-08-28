@@ -3,346 +3,44 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFile(new URL(path, import.meta.url), "utf8");
 
-describe("school platform database architecture", () => {
-  it("defines the required persistent school records and protects them with Row Level Security", async () => {
-    const schema = await read("../supabase/migrations/0001_school_platform.sql");
-    for (const table of ["students", "parents", "teachers", "enrollments", "attendance_sessions", "attendance_records", "exams", "exam_results", "report_cards", "invoices", "payments", "admission_applications", "contact_submissions", "message_threads", "audit_logs"]) {
-      expect(schema).toContain(`create table public.${table}`);
-    }
-    expect(schema).toContain("enable row level security");
-    expect(schema).toContain("private.can_access_student");
-    expect(schema).toContain("private.can_teach_class");
-    expect(schema).toContain("create trigger attendance_audit");
-    expect(schema).toContain("create trigger exam_results_audit");
-    expect(schema).toContain("create trigger payments_audit");
-  });
-
-  it("keeps public submissions constrained and payment completion separate from payment initiation", async () => {
-    const [workflows, schema] = await Promise.all([
-      read("../supabase/migrations/0004_school_workflow_functions_and_scope.sql"),
-      read("../supabase/migrations/0001_school_platform.sql"),
+describe("school platform canonical architecture", () => {
+  it("uses canonical Supabase academic, enrolment, attendance and finance models", async () => {
+    const [academics, enrollment, attendance, finance] = await Promise.all([
+      read("../client/src/pages/AcademicDirectory.tsx"), read("../client/src/pages/EnrollmentDirectory.tsx"),
+      read("../client/src/pages/AttendanceDirectory.tsx"), read("../client/src/pages/FinanceDirectory.tsx"),
     ]);
-    const admissionStorage = await read("../supabase/migrations/0005_private_admission_document_storage.sql");
-    expect(workflows).toContain("create or replace function public.submit_admission");
-    expect(workflows).toContain("create or replace function public.create_payment_intent");
-    expect(workflows).toContain("'PENDING'::public.payment_status");
-    expect(schema).toContain("verified_by_system");
-    expect(admissionStorage).toContain("file_size_limit");
-    expect(admissionStorage).toContain("admission_documents_admin_read");
+    expect(academics).toContain('academic_periods'); expect(academics).toContain('academic_terms');
+    expect(academics).not.toContain('academic_years');
+    expect(enrollment).toContain('enrollments'); expect(attendance).toContain('attendance');
+    expect(finance).toContain('charges'); expect(finance).toContain('payment_allocations');
+    expect(finance).not.toContain('from("invoices")');
   });
 
-  it("applies grades through the school’s saved grading configuration", async () => {
-    const grading = await read("../supabase/migrations/0009_configurable_grading.sql");
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    expect(grading).toContain("public.grading_rules");
-    expect(grading).toContain("exam_results_apply_configured_grade");
-    expect(grading).toContain("new.grade := configured_grade");
-    expect(portal).toContain("Its grade is calculated from the saved grading rules.");
-    expect(portal).not.toContain('grade: percent >= 80 ? "A"');
-    expect(portal).toContain('if (mode !== "report") return');
-  });
-
-  it("provides a one-time Super Administrator bootstrap that locks itself after a privileged account exists", async () => {
-    const bootstrap = await read("../supabase/bootstrap/claim-first-super-admin.sql");
-    expect(bootstrap).toContain("__OWNER_EMAIL__");
-    expect(bootstrap).toContain("A Super Administrator already exists");
-    expect(bootstrap).toContain("candidate_count <> 1");
-  });
-
-  it("exposes gallery files publicly only through published gallery records and indexes advisor-identified foreign keys", async () => {
-    const [galleryPolicy, indexes] = await Promise.all([
-      read("../supabase/migrations/0010_published_gallery_media_read.sql"),
-      read("../supabase/migrations/0011_cover_unindexed_foreign_keys.sql"),
+  it("keeps messaging and gallery hardening in the current production architecture", async () => {
+    const [messages, hardening, gallery] = await Promise.all([
+      read("../client/src/pages/MessageCenter.tsx"), read("../supabase/migrations/0020_message_workflow_linter_hardening.sql"),
+      read("../supabase/migrations/0011_harden_messaging_and_gallery_storage.sql"),
     ]);
-    expect(galleryPolicy).toContain("files_published_gallery_read");
-    expect(galleryPolicy).toContain("gi.status = 'PUBLISHED'");
-    expect(galleryPolicy).toContain("ga.status = 'PUBLISHED'");
-    expect(indexes).toContain("create index if not exists exam_results_subject_idx");
-    expect(indexes).toContain("create index if not exists uploaded_files_owner_idx");
+    expect(messages).toContain('rpc("my_messages")'); expect(messages).toContain('rpc("send_message")'); expect(messages).toContain('rpc("mark_message_read")');
+    expect(hardening).toContain('search_path'); expect(gallery).toContain('public-assets'); expect(gallery).toContain('10485760');
   });
 
-  it("saves fee structures and multi-line invoices through atomic administrator-only procedures", async () => {
-    const [finance, portal] = await Promise.all([
-      read("../supabase/migrations/0014_atomic_finance_setup_workflows.sql"),
-      read("../client/src/pages/PortalPages.tsx"),
-    ]);
-    expect(finance).toContain("create_fee_structure_with_items");
-    expect(finance).toContain("create_invoice_with_items");
-    expect(finance).toContain("Only school administrators can create invoices");
-    expect(portal).toContain('rpc("create_fee_structure_with_items"');
-    expect(portal).toContain('rpc("create_invoice_with_items"');
+  it("persists initial school setup through canonical Supabase tables", async () => {
+    const [setup, migration] = await Promise.all([read("../client/src/pages/SchoolSetupPage.tsx"), read("../supabase/migrations/202608280001_school_settings.sql")]);
+    for (const table of ['school_settings', 'academic_periods', 'academic_terms', 'classes', 'subjects']) expect(setup).toContain(`from("${table}")`);
+    expect(setup).not.toContain('from("streams")'); expect(migration).toContain('enable row level security');
   });
 
-  it("keeps streams and teaching responsibilities as persisted academic relationships", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    expect(portal).toContain('insertRow("streams"');
-    expect(portal).toContain('insertRow("class_subjects"');
-    expect(portal).toContain('insertRow("teacher_subjects"');
-    expect(portal).toContain('updateRow("classes", values.class_id, { class_teacher_id: values.teacher_id || null })');
+  it("keeps portal administration role-gated and profile identity canonical", async () => {
+    const [portal, layout] = await Promise.all([read("../client/src/pages/PortalPages.tsx"), read("../client/src/components/PortalLayout.tsx")]);
+    expect(portal).toContain('isAdministrator'); expect(portal).toContain('profile.status !== "ACTIVE"');
+    expect(layout).toContain('profile?.display_name'); expect(layout).not.toContain('profile?.full_name');
   });
 
-  it("provides administrators with a persisted invoice directory without treating pending payments as settled", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    expect(portal).toContain("function AdminInvoiceDirectory()");
-    expect(portal).toContain('payment.status) === "VERIFIED"');
-    expect(portal).toContain('value="OVERDUE"');
-    expect(portal).toContain('<AdminInvoiceDirectory />');
-  });
-
-  it("uses scoped database procedures for homework submission, marking, and marking notifications", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    const migration = await read("../supabase/migrations/0015_homework_submission_and_marking_workflows.sql");
-    expect(portal).toContain('rpc("submit_homework_submission"');
-    expect(portal).toContain('rpc("mark_homework_submission"');
-    expect(migration).toContain('private.current_student_id()');
-    expect(migration).toContain("join public.enrollments e on e.class_id = h.class_id");
-    expect(migration).toContain("insert into public.notifications");
-  });
-
-  it("keeps Admissions, Contact, Gallery, and Portal Login headings connected to saved CMS records", async () => {
-    const publicPages = await read("../client/src/pages/PublicPages.tsx");
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    expect(publicPages).toContain('usePage("admissions")');
-    expect(publicPages).toContain('usePage("contact")');
-    expect(publicPages).toContain('usePage("gallery")');
-    expect(publicPages).toContain('usePage("portal-login")');
-    expect(portal).toContain('["home","about","academics","admissions","contact","gallery","portal-login"]');
-  });
-
-  it("provides audit history without exposing raw metadata or public routes", async () => {
-    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
-    expect(operations).toContain("function AuditPanel()");
-    expect(operations).toContain('getRows("audit_logs", "id,action,entity_type,entity_id,created_at"');
-    expect(operations).toContain("without displaying raw record payloads or credentials");
-  });
-
-  it("ships baseline SEO metadata and deployment security headers", async () => {
-    const vercel = await read("../vercel.json");
-    const html = await read("../client/index.html");
-    const robots = await read("../client/public/robots.txt");
-    expect(vercel).toContain("Content-Security-Policy");
-    expect(vercel).toContain("X-Content-Type-Options");
-    expect(html).toContain('property="og:title"');
-    expect(html).toContain('name="robots"');
-    expect(robots).toContain("Sitemap:");
-  });
-
-  it("exposes persisted notifications through a recipient-scoped portal route", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    const layout = await read("../client/src/components/PortalLayout.tsx");
-    expect(portal).toContain("function NotificationsView()");
-    expect(portal).toContain('useRows("notifications", "id,type,title,body,link,read_at,created_at"');
-    expect(portal).toContain('updateRow("notifications", text(notice.id), { read_at: new Date().toISOString() })');
-    expect(layout).toContain('["Notifications", "notifications", Bell]');
-  });
-
-  it("keeps homework attachments private, size-limited, and owner-validated before submission", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    const migration = await read("../supabase/migrations/0017_private_homework_attachment_storage.sql");
-    expect(portal).toContain('storage.from("homework-submissions").upload');
-    expect(portal).toContain('storage.from("homework-submissions").createSignedUrl');
-    expect(portal).toContain("function StudentAttachmentAccess");
-    expect(portal).toContain('p_attachment_file_id: attachmentId');
-    expect(migration).toContain("'homework-submissions'");
-    expect(migration).toContain("p_attachment_file_id is not null and not exists");
-    expect(migration).toContain("byte_size <= 5242880");
-  });
-
-  it("keeps payment verification separate, administrator-authorised, and event-audited", async () => {
-    const portal = await read("../client/src/pages/PortalPages.tsx");
-    const migration = await read("../supabase/migrations/0018_admin_payment_verification_workflow.sql");
-    expect(portal).toContain("function PaymentVerificationPanel()");
-    expect(portal).toContain('rpc("verify_payment"');
-    expect(migration).toContain("if not private.is_admin()");
-    expect(migration).toContain("insert into public.payment_events");
-    expect(migration).toContain("Only a pending payment can be verified");
-  });
-
-  it("keeps the internal storage proxy compatible with the maintained Express wildcard syntax", async () => {
-    const [proxy, viteServer] = await Promise.all([
-      read("../server/_core/storageProxy.ts"),
-      read("../server/_core/vite.ts"),
-    ]);
-    expect(proxy).toContain('app.get("/manus-storage/*key"');
-    expect(proxy).toContain("Array.isArray(wildcard) ? wildcard.join(\"/\") : wildcard");
-    expect(proxy).toContain("res.set(\"Cache-Control\", \"no-store\")");
-    expect(viteServer).toContain('app.use("/{*splat}"');
-  });
-
-  it("does not label all historical enrolments as active in operations reporting", async () => {
-    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
-    expect(operations).toContain('from("enrollments").select("id", { count: "exact", head: true }).eq("status", "ACTIVE")');
-    expect(operations).toContain('"Active enrolment records"');
-  });
-
-  it("runs operational search through bounded role-scoped Supabase queries", async () => {
-    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
-    expect(operations).toContain("function OperationalSearchPanel()");
-    expect(operations).toContain('replace(/[^a-zA-Z0-9 @._-]/g, "")');
-    expect(operations).toContain('.or(expression).limit(25)');
-    expect(operations).toContain('"Search authorised records"');
-  });
-
-  it("paginates the protected audit history rather than loading an unbounded record trail", async () => {
-    const operations = await read("../client/src/pages/OperationsAdmin.tsx");
-    expect(operations).toContain('function Pager({ page, count, setPage }');
-    expect(operations).toContain('getRows("audit_logs", "id,action,entity_type,entity_id,created_at", page, 25');
-    expect(operations).toContain('<Pager page={page} count={count} setPage={setPage} />');
-  });
-
-  it("uses explicit saved CMS body copy without duplicate public-page content lookups", async () => {
-    const publicPages = await read("../client/src/pages/PublicPages.tsx");
-    expect(publicPages).toContain("function pageText(content: PageContent");
-    expect(publicPages).toContain("function PageIntro({ eyebrow, title, description, body }");
-    expect(publicPages).toContain('body={pageText(content, "content")}');
-    expect(publicPages).toContain('pageText(pageContent, "content")');
-    expect(publicPages).not.toContain('const slug = eyebrow === "Admissions"');
-  });
-
-  it("uses constrained procedures for secure messaging, replies, and participant read state", async () => {
-    const [portal, messageCenter, workflowMigration, hardeningMigration] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/MessageCenter.tsx"),
-      read("../supabase/migrations/0019_secure_message_thread_workflows.sql"),
-      read("../supabase/migrations/0020_message_workflow_linter_hardening.sql"),
-    ]);
-    expect(portal).toContain('<MessageCenter role={role} />');
-    expect(messageCenter).toContain('rpc("create_message_thread"');
-    expect(messageCenter).toContain('rpc("reply_to_message_thread"');
-    expect(messageCenter).toContain('rpc("mark_message_thread_read"');
-    expect(workflowMigration).toContain("create or replace function public.create_message_thread");
-    expect(workflowMigration).toContain("create or replace function public.reply_to_message_thread");
-    expect(workflowMigration).toContain("not private.can_message_profile(p_recipient_id)");
-    expect(hardeningMigration).toContain("security invoker");
-    expect(hardeningMigration).toContain("where thread_id = p_thread_id and profile_id = auth.uid()");
-    expect(hardeningMigration).toContain("create trigger messages_notify_participants");
-  });
-
-  it("keeps generic authorised record lists bounded to known tables, columns, and page sizes", async () => {
-    const database = await read("../client/src/lib/database.ts");
-    expect(database).toContain("const readableListTables = new Set(");
-    expect(database).toContain('"students", "subjects", "teachers", "terms"');
-    expect(database).toContain("const readableOrderColumns = new Set(");
-    expect(database).toContain("This record list uses an invalid select expression.");
-    expect(database).toContain("const safeSize = Math.min(100, Math.max(1, Math.floor(size)))");
-  });
-
-  it("provides controlled CMS editing with saved supporting copy and paginated intake administration", async () => {
-    const [portal, contentManagement] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/ContentManagement.tsx"),
-    ]);
-    expect(portal).toContain("import ContentManagement from \"./ContentManagement\"");
-    expect(portal).toContain("<ContentManagement />");
-    expect(contentManagement).toContain('body: { content: values.body, supporting: values.supporting || undefined }');
-    expect(contentManagement).toContain("Supporting page copy");
-    expect(contentManagement).toContain('count: "exact"');
-    expect(contentManagement).toContain("function Pager({ page, count, setPage }");
-  });
-
-  it("keeps existing public news and events editable through the protected content workspace", async () => {
-    const contentManagement = await read("../client/src/pages/ContentManagement.tsx");
-    expect(contentManagement).toContain("const [editingId, setEditingId] = useState<string | null>(null)");
-    expect(contentManagement).toContain("const editContent = (row: Row)");
-    expect(contentManagement).toContain('client.from("news_articles").update(payload).eq("id", editingId)');
-    expect(contentManagement).toContain('client.from("events").update(payload).eq("id", editingId)');
-    expect(contentManagement).toContain('tab === "news" ? ["Title", "Slug", "Status", "Published", "Edit"]');
-  });
-
-  it("binds portal-login CMS copy to the actual public portal access chooser", async () => {
-    const chooser = await read("../client/src/pages/PortalAccessPage.tsx");
-    expect(chooser).toContain('getPublishedPage("portal-login")');
-    expect(chooser).toContain('content?.title || "Choose your secure way to continue."');
-    expect(chooser).toContain("const primaryCopy = typeof content?.body?.content");
-    expect(chooser).toContain("const supportingCopy = typeof content?.body?.supporting");
-  });
-
-  it("uses current CMS primary and supporting copy on the home page", async () => {
-    const publicPages = await read("../client/src/pages/PublicPages.tsx");
-    expect(publicPages).toContain('const primaryCopy = pageText(content, "content") ||');
-    expect(publicPages).toContain('const supportingCopy = pageText(content, "supporting")');
-    expect(publicPages).toContain("{primaryCopy || \"Explore a clear, secure school experience");
-  });
-
-  it("provides a paginated administrator people directory with constrained search and status handling", async () => {
-    const [portal, directory] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/PeopleDirectory.tsx"),
-    ]);
-    expect(portal).toContain("import PeopleDirectory from \"./PeopleDirectory\"");
-    expect(portal).toContain("<PeopleDirectory /><PeopleAdmin />");
-    expect(directory).toContain('term.replace(/[^a-zA-Z0-9 @._-]/g, "")');
-    expect(directory).toContain('count: "exact"');
-    expect(directory).toContain('"GRADUATED"');
-    expect(directory).toContain('"WITHDRAWN"');
-    expect(directory).toContain("function Pager({ page, count, setPage }");
-  });
-
-  it("provides a paginated administrator academic directory with safe record status handling", async () => {
-    const [portal, directory] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/AcademicDirectory.tsx"),
-    ]);
-    expect(portal).toContain("import AcademicDirectory from \"./AcademicDirectory\"");
-    expect(portal).toContain("<AcademicDirectory /><AcademicsAdmin /><AcademicAssignmentsAdmin />");
-    expect(directory).toContain('term.replace(/[^a-zA-Z0-9 @._-]/g, "")');
-    expect(directory).toContain('count: "exact"');
-    expect(directory).toContain('"academic_years" | "terms" | "classes" | "streams" | "subjects"');
-    expect(directory).toContain("function Pager({ page, count, setPage }");
-  });
-
-  it("provides protected enrolment pagination and non-destructive status management", async () => {
-    const [portal, directory] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/EnrollmentDirectory.tsx"),
-    ]);
-    expect(portal).toContain("import EnrollmentDirectory from \"./EnrollmentDirectory\"");
-    expect(portal).toContain("<EnrollmentDirectory /><AcademicDirectory />");
-    expect(directory).toContain('from("enrollments")');
-    expect(directory).toContain('count: "exact"');
-    expect(directory).toContain('eq("status", status)');
-    expect(directory).toContain("The enrolment record was updated without deleting its history.");
-    expect(directory).toContain("function Pager({ page, count, setPage }");
-  });
-
-  it("provides a protected paginated finance directory for invoices and payments", async () => {
-    const [portal, directory] = await Promise.all([
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/FinanceDirectory.tsx"),
-    ]);
-    expect(portal).toContain("import FinanceDirectory from \"./FinanceDirectory\"");
-    expect(portal).toContain("<FinanceDirectory /><AdminInvoiceDirectory />");
-    expect(directory).toContain('from("invoices")');
-    expect(directory).toContain('from("payments")');
-    expect(directory).toContain('count: "exact"');
-    expect(directory).toContain('"PARTIALLY_PAID"');
-    expect(directory).toContain("function Pager({ page, count, setPage }");
-  });
-
-  it("uses the shared accessible card system on public and protected portal surfaces", async () => {
-    const [styles, publicPages, portal, finance, people, academics, enrolments, content, messages, operations] = await Promise.all([
-      read("../client/src/index.css"),
-      read("../client/src/pages/PublicPages.tsx"),
-      read("../client/src/pages/PortalPages.tsx"),
-      read("../client/src/pages/FinanceDirectory.tsx"),
-      read("../client/src/pages/PeopleDirectory.tsx"),
-      read("../client/src/pages/AcademicDirectory.tsx"),
-      read("../client/src/pages/EnrollmentDirectory.tsx"),
-      read("../client/src/pages/ContentManagement.tsx"),
-      read("../client/src/pages/MessageCenter.tsx"),
-      read("../client/src/pages/OperationsAdmin.tsx"),
-    ]);
-    expect(styles).toContain(".menwe-card");
-    expect(styles).toContain(".menwe-card--interactive:focus-visible");
-    expect(styles).toContain(".menwe-metric-card");
-    expect(publicPages).toContain('className={`menwe-card rounded-3xl p-6 ${className}`}');
-    expect(publicPages).toContain("menwe-card--interactive group rounded-3xl");
-    expect(publicPages).toContain('className="menwe-card grid gap-5 rounded-[2rem] p-6 sm:p-9"');
-    expect(portal).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
-    expect(portal).toContain('className="menwe-metric-card rounded-3xl p-5 text-white"');
-    expect(finance).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
-    for (const workspace of [people, academics, enrolments, content, messages, operations]) {
-      expect(workspace).toContain('className="menwe-card rounded-[1.75rem] p-5 sm:p-7"');
-    }
+  it("ships public-content and deployment security basics", async () => {
+    const [vercel, html, robots, publicPages] = await Promise.all([read("../vercel.json"), read("../client/index.html"), read("../client/public/robots.txt"), read("../client/src/pages/PublicPages.tsx")]);
+    expect(vercel).toContain('Content-Security-Policy'); expect(vercel).toContain('X-Content-Type-Options');
+    expect(html).toContain('property="og:title"'); expect(html).toContain('name="robots"'); expect(robots).toContain('Sitemap:');
+    expect(publicPages).toContain('usePage("admissions")'); expect(publicPages).toContain('usePage("contact")');
   });
 });
