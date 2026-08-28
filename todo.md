@@ -61,6 +61,8 @@
 - [x] Remove or fully disable the unused template MySQL and Manus-auth routes so active data and authentication paths demonstrably use Supabase only.
 - [x] Make the public portal login explicitly support email/password sign-in, password reset, and optional email-link sign-in.
 - [ ] Refine the Super Administrator invitation workflow with email status, resend guidance, and clear success or failure states.
+- [x] Bind invitation roles to the matching teacher, parent, or student record type in both the portal and active invitation function.
+- [ ] Verify invitation delivery, completion, and resend guidance only after email work is resumed.
 - [ ] Document and verify Supabase Auth email templates, sender configuration, redirect URLs, and delivery diagnostics.
 - [ ] Improve the invitation and email-access user experience across desktop and mobile layouts.
 - [ ] Visually validate Super Administrator invitation success, failure, and delivery guidance at desktop and mobile breakpoints after the first privileged account is created.

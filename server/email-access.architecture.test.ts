@@ -20,4 +20,16 @@ describe("email access and invitation controls", () => {
     expect(invitationFunction).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(invitationFunction).not.toContain("return response({ serviceKey");
   });
+
+  it("requires invitation roles to match the linked school record type", async () => {
+    const [invitationFunction, portal] = await Promise.all([
+      read("../supabase/functions/school-invite/index.ts"),
+      read("../client/src/pages/PortalPages.tsx"),
+    ]);
+    expect(invitationFunction).toContain('const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const');
+    expect(invitationFunction).toContain("The invitation role must match the selected school record type.");
+    expect(portal).toContain("const enforcedRole = recordType === \"teacher\" ? \"TEACHER\"");
+    expect(portal).toContain("role: enforcedRole, recordType, recordId: values.recordId");
+    expect(portal).toContain("Role assigned from the school record");
+  });
 });

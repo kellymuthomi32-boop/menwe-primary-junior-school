@@ -41,6 +41,10 @@ Deno.serve(async req => {
       return response({ error: "Provide a name, a valid email address, and an allowed school role." }, 400);
     }
     if (!payload.recordType || !payload.recordId) return response({ error: "Link the invited account to a school record before sending the invitation." }, 400);
+    const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const;
+    if (payload.role !== roleForRecord[payload.recordType]) {
+      return response({ error: "The invitation role must match the selected school record type." }, 400);
+    }
 
     const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: invitation, error: invitationError } = await serviceClient.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName } });
