@@ -1,85 +1,187 @@
-import { ArrowRight, Award, BookOpen, CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, Compass, GraduationCap, HeartHandshake, Images, LockKeyhole, MessageCircle, NotebookPen, Play, Quote, ShieldCheck, Sparkles, Star, UsersRound, WalletCards } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, ChevronRight, ClipboardCheck, Compass, GraduationCap, HeartHandshake, Images, LockKeyhole, MessageCircle, NotebookPen, Quote, ShieldCheck, Sparkles, Star, UsersRound, WalletCards } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { getPublishedPage, listPublished } from "@/lib/database";
 
 type Content = { title: string; headline: string | null; body: Record<string, unknown> } | null;
+type NewsItem = Record<string, unknown>;
 
 function usePage(slug: string) {
   const [content, setContent] = useState<Content>(null);
-  useEffect(() => { let active = true; void getPublishedPage(slug).then(value => active && setContent(value)).catch(() => {}); return () => { active = false; }; }, [slug]);
+  useEffect(() => {
+    let active = true;
+    void getPublishedPage(slug).then(value => active && setContent(value)).catch(() => {});
+    return () => { active = false; };
+  }, [slug]);
   return content;
 }
 
 const features = [
-  { icon: GraduationCap, number: "01", kicker: "Learning", title: "Every learner, fully connected", text: "Academics, homework, assessments, results and report cards flow together instead of living in separate systems.", path: "/academics" },
-  { icon: HeartHandshake, number: "02", kicker: "Family", title: "A better school–home rhythm", text: "Families get a calm, secure view of attendance, progress, fees, homework and the moments that matter.", path: "/portal/login" },
-  { icon: Compass, number: "03", kicker: "Operations", title: "Clarity behind every decision", text: "Admissions, enrolment, attendance, finance and staff workflows stay organised and accountable.", path: "/portal/login" },
-  { icon: MessageCircle, number: "04", kicker: "Community", title: "Communication with purpose", text: "Keep conversations, notifications and school updates moving to the right people without the noise.", path: "/portal/login" },
-  { icon: WalletCards, number: "05", kicker: "Finance", title: "Financial visibility", text: "Charges, payments, allocations and balances remain connected for authorised users.", path: "/portal/login" },
-  { icon: ShieldCheck, number: "06", kicker: "Trust", title: "Privacy by design", text: "Role-aware access helps protect student, family, academic and financial information.", path: "/about" },
+  { icon: GraduationCap, kicker: "Learning", title: "A connected learning journey", text: "Academics, homework, assessments and report cards share one clear source of truth.", path: "/academics" },
+  { icon: HeartHandshake, kicker: "Family", title: "A calmer school–home rhythm", text: "Families can follow attendance, progress, fees, homework and communication in one place.", path: "/portal/login" },
+  { icon: Compass, kicker: "Operations", title: "School operations, without the noise", text: "Admissions, enrolment, attendance and staff workflows stay structured and accountable.", path: "/portal/login" },
+  { icon: MessageCircle, kicker: "Communication", title: "The right message, to the right person", text: "Keep school conversations and notifications focused, private and easy to follow.", path: "/portal/login" },
+  { icon: WalletCards, kicker: "Finance", title: "Financial clarity", text: "Charges, payments, allocations and balances remain connected for authorised users.", path: "/portal/login" },
+  { icon: ShieldCheck, kicker: "Trust", title: "Privacy built into the experience", text: "Role-aware access helps protect student, family, academic and financial information.", path: "/about" },
+  { icon: ClipboardCheck, kicker: "Attendance", title: "Attendance that stays current", text: "Teachers record daily attendance against real enrolments, with a clear trail of changes.", path: "/portal/login" },
+  { icon: NotebookPen, kicker: "Homework", title: "From assignment to feedback", text: "Learning tasks can move from teacher creation to student submission and feedback without fragmentation.", path: "/portal/login" },
+  { icon: CalendarDays, kicker: "Timetable", title: "A shared rhythm for the week", text: "Classes, subjects and teachers come together in an organised timetable for each role.", path: "/portal/login" },
 ];
 
-function FeatureCard({ item }: { item: typeof features[number] }) {
-  const [, go] = useLocation(); const Icon = item.icon;
-  return <button onClick={() => go(item.path)} className="menwe-feature group relative overflow-hidden rounded-[2rem] border border-[var(--ink)]/8 bg-white p-6 text-left shadow-[0_16px_50px_rgba(29,43,37,.055)] transition duration-500 hover:-translate-y-2 hover:shadow-[0_28px_70px_rgba(29,43,37,.13)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:p-7">
-    <span className="menwe-feature-orb" />
-    <div className="relative flex items-start justify-between"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--mist)] text-[var(--accent)] transition duration-500 group-hover:rotate-6 group-hover:scale-110"><Icon size={21} strokeWidth={1.8} /></span><span className="font-mono text-[10px] font-bold tracking-[.18em] text-[var(--ink)]/25">{item.number}</span></div>
-    <p className="relative mt-10 text-[10px] font-extrabold uppercase tracking-[.22em] text-[var(--accent)]">{item.kicker}</p><h3 className="relative mt-2 font-serif text-[1.65rem] font-semibold leading-tight tracking-tight">{item.title}</h3><p className="relative mt-3 text-sm leading-6 text-[var(--ink)]/60">{item.text}</p>
-    <span className="relative mt-7 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[.12em] text-[var(--ink)]/45 transition group-hover:gap-3 group-hover:text-[var(--accent)]">Explore <ArrowRight size={14} /></span>
-  </button>;
+function FeatureCard({ item, featured = false }: { item: typeof features[number]; featured?: boolean }) {
+  const [, go] = useLocation();
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={() => go(item.path)}
+      className={`menwe-feature group relative overflow-hidden rounded-[1.6rem] border border-[var(--ink)]/9 bg-white p-6 text-left transition duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${featured ? "min-h-[310px] sm:p-8" : "min-h-[270px]"}`}
+    >
+      <span className="menwe-feature-orb" aria-hidden="true" />
+      <div className="relative flex items-start justify-between">
+        <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--mist)] text-[var(--accent)] transition duration-500 group-hover:scale-110 group-hover:rotate-3">
+          <Icon size={20} strokeWidth={1.8} />
+        </span>
+        <ChevronRight size={16} className="text-[var(--ink)]/20 transition duration-300 group-hover:translate-x-1 group-hover:text-[var(--accent)]" />
+      </div>
+      <p className="relative mt-9 text-[9px] font-extrabold uppercase tracking-[.22em] text-[var(--accent)]">{item.kicker}</p>
+      <h3 className={`relative mt-2 font-serif font-semibold leading-[1.05] tracking-tight ${featured ? "text-3xl sm:text-[2.1rem]" : "text-[1.55rem]"}`}>{item.title}</h3>
+      <p className="relative mt-3 max-w-md text-sm leading-6 text-[var(--ink)]/58">{item.text}</p>
+      <span className="relative mt-6 inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[.15em] text-[var(--ink)]/40 transition group-hover:gap-3 group-hover:text-[var(--accent)]">Explore <ArrowRight size={13} /></span>
+    </button>
+  );
 }
 
 function RoleCard({ icon: Icon, title, text, tag }: { icon: typeof GraduationCap; title: string; text: string; tag: string }) {
-  return <div className="menwe-role group relative overflow-hidden rounded-[1.8rem] border border-[var(--ink)]/8 bg-[var(--paper)] p-6 transition duration-500 hover:-translate-y-1 hover:bg-white hover:shadow-xl"><div className="flex items-center justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-[var(--accent)] shadow-sm transition group-hover:scale-110"><Icon size={19} /></span><span className="rounded-full bg-[var(--mist)] px-3 py-1 text-[9px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">{tag}</span></div><h3 className="mt-7 font-serif text-xl font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ink)]/58">{text}</p></div>;
+  return (
+    <div className="menwe-role group relative overflow-hidden rounded-[1.4rem] border border-[var(--ink)]/8 bg-white/70 p-6 transition duration-500 hover:-translate-y-1 hover:bg-white">
+      <div className="flex items-center justify-between gap-4">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mist)] text-[var(--accent)] transition group-hover:scale-105"><Icon size={18} /></span>
+        <span className="rounded-full bg-[var(--mist)] px-3 py-1 text-[9px] font-extrabold uppercase tracking-[.15em] text-[var(--accent)]">{tag}</span>
+      </div>
+      <h3 className="mt-6 font-serif text-xl font-semibold">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-[var(--ink)]/58">{text}</p>
+    </div>
+  );
 }
 
+const workflow = [
+  { step: "01", title: "Set the foundation", text: "Academic periods, terms, classes, subjects and staff establish the school's structure." },
+  { step: "02", title: "Connect people", text: "Students, parents and teachers are linked through real enrolments and authorised assignments." },
+  { step: "03", title: "Run the day", text: "Attendance, homework, timetable, communication and admissions support everyday school life." },
+  { step: "04", title: "See progress", text: "Exams, results, report cards and finance turn activity into useful, accountable records." },
+];
+
 export default function HomePagePremium() {
-  const [, go] = useLocation(); const home = usePage("home"); const [news, setNews] = useState<Record<string, unknown>[]>([]);
-  useEffect(() => { let active = true; void listPublished("news_articles", 0).then(result => active && setNews(result.data.slice(0, 3))).catch(() => {}); return () => { active = false; }; }, []);
+  const [, go] = useLocation();
+  const home = usePage("home");
+  const [news, setNews] = useState<NewsItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void listPublished("news_articles", 0).then(result => active && setNews(result.data.slice(0, 3))).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   const headline = home?.headline || "A beautiful beginning for every learner.";
-  const intro = typeof home?.body?.content === "string" ? home.body.content : "A modern school experience shaped around curiosity, belonging and confident progress — with the digital tools to keep the whole community connected.";
-  return <PublicLayout>
-    <main className="overflow-hidden">
-      <section className="menwe-hero relative isolate overflow-hidden bg-[var(--ink)] text-white">
-        <div className="menwe-grid pointer-events-none absolute inset-0 opacity-30" />
-        <div className="menwe-aurora menwe-aurora-one" /><div className="menwe-aurora menwe-aurora-two" /><div className="menwe-aurora menwe-aurora-three" />
-        <div className="relative mx-auto grid min-h-[760px] max-w-[1400px] items-center gap-14 px-5 py-24 lg:grid-cols-[1fr_.92fr] lg:px-10 lg:py-28">
-          <div className="relative z-10 menwe-reveal">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.07] px-4 py-2 text-[10px] font-extrabold uppercase tracking-[.22em] text-white/75 backdrop-blur-xl"><span className="menwe-live-dot" /> Menwe Primary & Junior School <Sparkles size={13} className="text-[var(--gold)]" /></div>
-            <h1 className="mt-7 max-w-4xl font-serif text-[3.55rem] font-semibold leading-[.91] tracking-[-.055em] sm:text-6xl lg:text-[6.35rem]">{headline}</h1>
-            <p className="mt-8 max-w-2xl text-base leading-7 text-white/62 sm:text-lg sm:leading-8">{intro}</p>
-            <div className="mt-10 flex flex-wrap gap-3"><button onClick={() => go("/admissions")} className="menwe-glow-button group inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] shadow-[0_12px_40px_rgba(213,185,92,.18)] transition hover:-translate-y-1">Start an application <ArrowRight size={17} className="transition group-hover:translate-x-1" /></button><button onClick={() => go("/about")} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.06] px-6 py-3.5 text-sm font-bold text-white backdrop-blur transition hover:bg-white/12">Discover Menwe</button></div>
-            <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-3 text-xs font-semibold text-white/48"><span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--gold)]" /> Secure by role</span><span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--gold)]" /> One connected school</span><span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--gold)]" /> Built for families</span></div>
-          </div>
-          <div className="relative mx-auto w-full max-w-[560px] lg:justify-self-end menwe-float">
-            <div className="menwe-orbit menwe-orbit-a" /><div className="menwe-orbit menwe-orbit-b" />
-            <div className="relative z-10 overflow-hidden rounded-[2.6rem] border border-white/15 bg-white/[.075] p-3 shadow-[0_45px_120px_rgba(0,0,0,.35)] backdrop-blur-2xl">
-              <div className="overflow-hidden rounded-[2.15rem] bg-[#f6f7f2] text-[var(--ink)]">
-                <div className="flex items-center justify-between border-b border-[var(--ink)]/8 px-6 py-5"><div><p className="font-serif text-xl font-semibold">The Menwe experience</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[.18em] text-[var(--ink)]/40">Learning · Family · Community</p></div><span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--ink)] text-[var(--gold)]"><Sparkles size={17} /></span></div>
-                <div className="grid gap-3 p-4 sm:grid-cols-2"><div className="menwe-mini-card bg-[var(--ink)] text-white"><BookOpen size={21} className="text-[var(--gold)]" /><p className="mt-8 font-serif text-xl">Learning</p><p className="mt-1 text-xs leading-5 text-white/50">Academics, homework & results</p><div className="mt-5 h-1 w-20 overflow-hidden rounded-full bg-white/10"><span className="block h-full w-2/3 rounded-full bg-[var(--gold)]" /></div></div><div className="menwe-mini-card"><UsersRound size={21} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Families</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/50">Attendance, fees & communication</p></div><div className="menwe-mini-card"><NotebookPen size={21} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Progress</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/50">Clear records that stay connected</p></div><div className="menwe-mini-card"><LockKeyhole size={21} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Protected</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/50">Access shaped by each role</p></div></div>
-                <div className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-[var(--mist)] px-4 py-3"><span className="text-[10px] font-extrabold uppercase tracking-[.17em] text-[var(--accent)]">One connected platform</span><span className="grid h-7 w-7 place-items-center rounded-full bg-white"><ArrowRight size={13} /></span></div>
+  const intro = typeof home?.body?.content === "string"
+    ? home.body.content
+    : "A modern school experience shaped around curiosity, belonging and confident progress — with the digital tools to keep the whole community connected.";
+
+  return (
+    <PublicLayout>
+      <main className="overflow-hidden bg-[var(--paper)]">
+        <section className="menwe-hero relative isolate overflow-hidden bg-[var(--ink)] text-white">
+          <div className="menwe-grid pointer-events-none absolute inset-0 opacity-30" />
+          <div className="menwe-aurora menwe-aurora-one" /><div className="menwe-aurora menwe-aurora-two" /><div className="menwe-aurora menwe-aurora-three" />
+          <div className="relative mx-auto grid min-h-[760px] max-w-[1440px] items-center gap-16 px-5 py-24 lg:grid-cols-[1fr_.9fr] lg:px-10 lg:py-28">
+            <div className="relative z-10 menwe-reveal">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.065] px-4 py-2 text-[9px] font-extrabold uppercase tracking-[.22em] text-white/72 backdrop-blur-xl">
+                <span className="menwe-live-dot" /> Menwe Primary & Junior School <Sparkles size={12} className="text-[var(--gold)]" />
+              </div>
+              <h1 className="mt-7 max-w-4xl font-serif text-[3.55rem] font-semibold leading-[.9] tracking-[-.06em] sm:text-6xl lg:text-[6.4rem]">{headline}</h1>
+              <p className="mt-8 max-w-2xl text-base leading-7 text-white/60 sm:text-lg sm:leading-8">{intro}</p>
+              <div className="mt-10 flex flex-wrap gap-3">
+                <button type="button" onClick={() => go("/admissions")} className="menwe-glow-button group inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)] transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Start an application <ArrowRight size={17} className="transition group-hover:translate-x-1" /></button>
+                <button type="button" onClick={() => go("/about")} className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[.055] px-6 py-3.5 text-sm font-bold text-white backdrop-blur transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Discover Menwe</button>
+              </div>
+              <div className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-3 text-[11px] font-semibold text-white/45">
+                <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-[var(--gold)]" /> Secure by role</span>
+                <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-[var(--gold)]" /> One connected school</span>
+                <span className="flex items-center gap-2"><CheckCircle2 size={14} className="text-[var(--gold)]" /> Built for families</span>
               </div>
             </div>
-            <div className="absolute -bottom-7 -left-5 z-20 hidden rounded-2xl border border-white/15 bg-white/[.1] px-4 py-3 shadow-2xl backdrop-blur-xl sm:block"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--gold)] text-[var(--ink)]"><ShieldCheck size={17} /></span><div><p className="text-xs font-bold text-white">Private by design</p><p className="text-[10px] text-white/45">Role-aware access</p></div></div></div>
+
+            <div className="relative mx-auto w-full max-w-[570px] lg:justify-self-end menwe-float">
+              <div className="menwe-orbit menwe-orbit-a" /><div className="menwe-orbit menwe-orbit-b" />
+              <div className="relative z-10 overflow-hidden rounded-[2.4rem] border border-white/14 bg-white/[.075] p-3 shadow-[0_45px_120px_rgba(0,0,0,.35)] backdrop-blur-2xl">
+                <div className="overflow-hidden rounded-[2rem] bg-[#f7f7f2] text-[var(--ink)]">
+                  <div className="flex items-center justify-between border-b border-[var(--ink)]/8 px-6 py-5">
+                    <div><p className="font-serif text-xl font-semibold">The Menwe experience</p><p className="mt-1 text-[9px] font-bold uppercase tracking-[.18em] text-[var(--ink)]/38">Learning · Family · Community</p></div>
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--ink)] text-[var(--gold)]"><Sparkles size={17} /></span>
+                  </div>
+                  <div className="grid gap-3 p-4 sm:grid-cols-2">
+                    <div className="menwe-mini-card bg-[var(--ink)] text-white"><BookOpen size={20} className="text-[var(--gold)]" /><p className="mt-8 font-serif text-xl">Learning</p><p className="mt-1 text-xs leading-5 text-white/48">Academics, homework & results</p><div className="mt-5 h-1 w-20 overflow-hidden rounded-full bg-white/10"><span className="menwe-progress block h-full w-2/3 rounded-full bg-[var(--gold)]" /></div></div>
+                    <div className="menwe-mini-card"><UsersRound size={20} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Families</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/48">Attendance, fees & communication</p></div>
+                    <div className="menwe-mini-card"><NotebookPen size={20} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Progress</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/48">Clear records that stay connected</p></div>
+                    <div className="menwe-mini-card"><LockKeyhole size={20} className="text-[var(--accent)]" /><p className="mt-8 font-serif text-xl">Protected</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/48">Access shaped by each role</p></div>
+                  </div>
+                  <div className="mx-4 mb-4 flex items-center justify-between rounded-2xl bg-[var(--mist)] px-4 py-3"><span className="text-[9px] font-extrabold uppercase tracking-[.17em] text-[var(--accent)]">One connected platform</span><span className="grid h-7 w-7 place-items-center rounded-full bg-white"><ArrowRight size={13} /></span></div>
+                </div>
+              </div>
+              <div className="absolute -bottom-7 -left-5 z-20 hidden rounded-2xl border border-white/14 bg-white/[.1] px-4 py-3 shadow-2xl backdrop-blur-xl sm:block"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--gold)] text-[var(--ink)]"><ShieldCheck size={17} /></span><div><p className="text-xs font-bold text-white">Private by design</p><p className="text-[10px] text-white/42">Role-aware access</p></div></div></div>
+            </div>
           </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 border-t border-white/8 bg-white/[.025]"><div className="menwe-marquee mx-auto flex max-w-[1400px] gap-10 overflow-hidden px-5 py-4 text-[9px] font-extrabold uppercase tracking-[.28em] text-white/35"><span>Learning</span><span>•</span><span>Belonging</span><span>•</span><span>Progress</span><span>•</span><span>Family</span><span>•</span><span>Community</span><span>•</span><span>Confidence</span><span>•</span><span>Learning</span><span>•</span><span>Belonging</span></div></div>
-      </section>
+          <div className="absolute bottom-0 left-0 right-0 border-t border-white/8 bg-white/[.025]"><div className="menwe-marquee mx-auto flex max-w-[1440px] gap-10 overflow-hidden px-5 py-4 text-[9px] font-extrabold uppercase tracking-[.28em] text-white/32"><span>Learning</span><span>•</span><span>Belonging</span><span>•</span><span>Progress</span><span>•</span><span>Family</span><span>•</span><span>Community</span><span>•</span><span>Confidence</span><span>•</span><span>Learning</span><span>•</span><span>Belonging</span></div></div>
+        </section>
 
-      <section className="mx-auto max-w-[1400px] px-5 py-24 lg:px-10 lg:py-32">
-        <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-end"><div><p className="text-[10px] font-extrabold uppercase tracking-[.24em] text-[var(--accent)]">Designed as a whole</p><h2 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight sm:text-6xl">Not just a website. A school experience.</h2></div><p className="max-w-xl text-base leading-7 text-[var(--ink)]/58 lg:pb-2">Menwe brings the public school story and the secure school workspace into one thoughtful product — so every interaction feels connected.</p></div>
-        <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{features.map(item => <FeatureCard key={item.title} item={item} />)}</div>
-      </section>
+        <section className="relative mx-auto max-w-[1440px] px-5 py-24 lg:px-10 lg:py-32">
+          <div className="grid gap-12 lg:grid-cols-[.7fr_1.3fr] lg:items-end">
+            <div><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--accent)]">The product, at a glance</p><h2 className="mt-4 max-w-xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-.035em] sm:text-6xl">Everything important, connected beautifully.</h2></div>
+            <p className="max-w-xl text-base leading-7 text-[var(--ink)]/55 lg:pb-2">A school should not have to feel like a collection of disconnected tools. Menwe gives each part of school life a clear place — while keeping the relationships between them intact.</p>
+          </div>
+          <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.map((item, index) => <FeatureCard key={item.title} item={item} featured={index === 0} />)}
+          </div>
+        </section>
 
-      <section className="relative overflow-hidden bg-[var(--mist)]"><div className="menwe-section-glow" /><div className="mx-auto grid max-w-[1400px] gap-14 px-5 py-24 lg:grid-cols-[.72fr_1.28fr] lg:px-10 lg:py-32"><div className="relative z-10"><p className="text-[10px] font-extrabold uppercase tracking-[.24em] text-[var(--accent)]">One community, four perspectives</p><h2 className="mt-4 font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">Everyone gets the view they need.</h2><p className="mt-6 max-w-md text-base leading-7 text-[var(--ink)]/58">A school feels better when information arrives at the right moment, for the right person.</p><button onClick={() => go("/portal/login")} className="mt-8 inline-flex items-center gap-2 text-sm font-extrabold text-[var(--accent)]">Enter the secure portal <ArrowRight size={16} /></button></div><div className="grid gap-4 sm:grid-cols-2"><RoleCard icon={GraduationCap} title="Students" tag="Learn" text="A focused home for learning, homework, attendance, results and timetable." /><RoleCard icon={HeartHandshake} title="Parents" tag="Connect" text="A calm view of children, progress, communication, fees and school life." /><RoleCard icon={UsersRound} title="Teachers" tag="Teach" text="The tools to teach, track attendance, manage learning and stay connected." /><RoleCard icon={Award} title="School leaders" tag="Lead" text="Clear oversight across people, academics, finance, admissions and operations." /></div></div></section>
+        <section className="relative overflow-hidden bg-[var(--mist)]">
+          <div className="menwe-section-glow" />
+          <div className="mx-auto max-w-[1440px] px-5 py-24 lg:px-10 lg:py-32">
+            <div className="grid gap-12 lg:grid-cols-[.72fr_1.28fr]">
+              <div className="relative z-10"><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--accent)]">Designed around people</p><h2 className="mt-4 font-serif text-4xl font-semibold leading-[1.02] tracking-[-.035em] sm:text-6xl">One platform. Different perspectives.</h2><p className="mt-6 max-w-md text-base leading-7 text-[var(--ink)]/55">The same school, thoughtfully reframed for the people who learn, teach, lead and care.</p><button type="button" onClick={() => go("/portal/login")} className="mt-8 inline-flex items-center gap-2 text-sm font-extrabold text-[var(--accent)] transition hover:gap-3">Enter the secure portal <ArrowRight size={16} /></button></div>
+              <div className="grid gap-4 sm:grid-cols-2"><RoleCard icon={GraduationCap} title="Students" tag="Learn" text="A focused home for learning, homework, attendance, results and timetable." /><RoleCard icon={HeartHandshake} title="Parents" tag="Connect" text="A calm view of children, progress, communication, fees and school life." /><RoleCard icon={UsersRound} title="Teachers" tag="Teach" text="Tools to teach, track attendance, manage learning and stay connected." /><RoleCard icon={Compass} title="School leaders" tag="Lead" text="Clear oversight across people, academics, finance, admissions and operations." /></div>
+            </div>
+          </div>
+        </section>
 
-      <section className="mx-auto max-w-[1400px] px-5 py-24 lg:px-10 lg:py-32"><div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr]"><div className="relative overflow-hidden rounded-[2.5rem] bg-[var(--ink)] p-8 text-white shadow-[0_30px_90px_rgba(29,43,37,.16)] sm:p-12"><div className="menwe-noise" /><div className="relative z-10"><div className="flex items-center justify-between"><span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-[.18em] text-white/55"><Play size={11} fill="currentColor" /> The Menwe story</span><span className="text-[10px] font-mono text-white/25">01 / 03</span></div><h2 className="mt-20 max-w-2xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">Where a child's next chapter begins.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-white/55">A school website should feel like an invitation — warm enough to welcome families, confident enough to reflect the people who teach here.</p><button onClick={() => go("/about")} className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[var(--ink)] transition hover:-translate-y-1">Meet the school <ArrowRight size={16} /></button></div><div className="absolute -bottom-24 -right-20 h-72 w-72 rounded-full border border-[var(--gold)]/25" /><div className="absolute -bottom-10 -right-6 h-48 w-48 rounded-full border border-white/10" /></div><div className="grid gap-4"><div className="menwe-value-card"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--mist)] text-[var(--accent)]"><Star size={19} /></span><div><p className="font-serif text-2xl font-semibold">A place to belong</p><p className="mt-2 text-sm leading-6 text-[var(--ink)]/55">Create a school identity that feels human, warm and unmistakably yours.</p></div></div><div className="menwe-value-card"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--mist)] text-[var(--accent)]"><Quote size={19} /></span><div><p className="font-serif text-2xl font-semibold">Your community's voice</p><p className="mt-2 text-sm leading-6 text-[var(--ink)]/55">Add authentic parent, student and staff stories through the CMS as your community shares them.</p></div></div><div className="menwe-value-card"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--mist)] text-[var(--accent)]"><Award size={19} /></span><div><p className="font-serif text-2xl font-semibold">Moments worth remembering</p><p className="mt-2 text-sm leading-6 text-[var(--ink)]/55">Turn published school news, events and gallery moments into a living story.</p></div></div></div></div></section>
+        <section className="mx-auto max-w-[1440px] px-5 py-24 lg:px-10 lg:py-32">
+          <div className="grid gap-14 lg:grid-cols-[.78fr_1.22fr] lg:items-start">
+            <div><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--accent)]">How it comes together</p><h2 className="mt-4 max-w-lg font-serif text-4xl font-semibold leading-[1.02] tracking-[-.035em] sm:text-6xl">From foundation to a living school record.</h2><p className="mt-6 max-w-md text-base leading-7 text-[var(--ink)]/55">Every workflow builds on the same relationships, so information can travel with the learner instead of being re-entered again and again.</p></div>
+            <div className="relative"><div className="absolute bottom-8 left-[19px] top-8 w-px bg-[var(--ink)]/10" />{workflow.map(item => <div key={item.step} className="group relative grid grid-cols-[40px_1fr] gap-6 pb-10 last:pb-0"><span className="relative z-10 grid h-10 w-10 place-items-center rounded-full border border-[var(--ink)]/10 bg-[var(--paper)] font-mono text-[9px] font-bold text-[var(--accent)] transition group-hover:border-[var(--accent)]/35 group-hover:bg-[var(--mist)]">{item.step}</span><div className="pt-1"><h3 className="font-serif text-2xl font-semibold">{item.title}</h3><p className="mt-2 max-w-xl text-sm leading-6 text-[var(--ink)]/55">{item.text}</p></div></div>)}</div>
+          </div>
+        </section>
 
-      <section className="border-y border-[var(--ink)]/7 bg-white"><div className="mx-auto max-w-[1400px] px-5 py-20 lg:px-10 lg:py-24"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-[10px] font-extrabold uppercase tracking-[.24em] text-[var(--accent)]">From the school</p><h2 className="mt-3 font-serif text-4xl font-semibold tracking-tight sm:text-5xl">Latest news & notices</h2></div><button onClick={() => go("/news")} className="inline-flex items-center gap-2 text-sm font-extrabold text-[var(--accent)]">View all updates <ArrowRight size={16} /></button></div>{news.length ? <div className="mt-9 grid gap-5 md:grid-cols-3">{news.map(item => <article key={String(item.id)} className="menwe-news-card"><div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-[.18em] text-[var(--accent)]"><span className="flex items-center gap-2"><CalendarDays size={14} /> School update</span><ArrowRight size={14} /></div><h3 className="mt-6 font-serif text-2xl font-semibold leading-tight">{String(item.title)}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--ink)]/58">{String(item.excerpt ?? item.description ?? "Read the latest published update from Menwe.")}</p></article>)}</div> : <div className="mt-9 rounded-[2rem] border border-dashed border-[var(--ink)]/12 bg-[var(--mist)] p-12 text-center"><Images className="mx-auto text-[var(--accent)]" size={28} /><p className="mt-4 font-serif text-2xl font-semibold">Your school story will appear here.</p><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--ink)]/55">Publish news and notices from the CMS and this space will come alive automatically.</p></div>}</div></section>
+        <section className="relative overflow-hidden bg-[var(--ink)] text-white">
+          <div className="menwe-noise" />
+          <div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-24 lg:grid-cols-[1fr_.72fr] lg:px-10 lg:py-32">
+            <div className="relative z-10"><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--gold)]">Built for trust</p><h2 className="mt-4 max-w-2xl font-serif text-4xl font-semibold leading-[1.02] tracking-[-.035em] sm:text-6xl">Quiet technology. Clear school life.</h2><p className="mt-6 max-w-xl text-base leading-7 text-white/52">Good software should disappear into the work. Menwe keeps the interface calm while the underlying records, permissions and workflows stay precise.</p><div className="mt-9 flex flex-wrap gap-3"><span className="menwe-trust-chip"><ShieldCheck size={15} /> Role-aware access</span><span className="menwe-trust-chip"><LockKeyhole size={15} /> Protected records</span><span className="menwe-trust-chip"><CheckCircle2 size={15} /> Connected workflows</span></div></div>
+            <div className="relative z-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><div className="menwe-dark-panel"><Star size={16} className="text-[var(--gold)]" /><div><p className="text-sm font-semibold">A product that respects attention</p><p className="mt-1 text-xs leading-5 text-white/42">Clear hierarchy, restrained motion and purposeful actions.</p></div></div><div className="menwe-dark-panel"><MessageCircle size={16} className="text-[var(--gold)]" /><div><p className="text-sm font-semibold">Communication with context</p><p className="mt-1 text-xs leading-5 text-white/42">Messages and notifications stay connected to the people who need them.</p></div></div><div className="menwe-dark-panel"><Images size={16} className="text-[var(--gold)]" /><div><p className="text-sm font-semibold">A public story, safely separated</p><p className="mt-1 text-xs leading-5 text-white/42">Published school content can shine without exposing private school records.</p></div></div></div>
+          </div>
+        </section>
 
-      <section className="px-5 py-24 lg:px-10 lg:py-32"><div className="mx-auto max-w-[1400px] overflow-hidden rounded-[2.8rem] bg-[var(--ink)] px-7 py-14 text-white shadow-[0_35px_90px_rgba(29,43,37,.18)] sm:px-12 lg:flex lg:items-center lg:justify-between lg:px-16"><div><p className="text-[10px] font-extrabold uppercase tracking-[.24em] text-[var(--gold)]">The next chapter starts here</p><h2 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">Give your family a school experience that feels as special as the school itself.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-white/55">Explore Menwe, start an application, or enter the secure school portal.</p></div><div className="mt-9 flex shrink-0 flex-wrap gap-3 lg:mt-0 lg:pl-10"><button onClick={() => go("/admissions")} className="menwe-glow-button inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-6 py-3.5 text-sm font-extrabold text-[var(--ink)]">Apply to Menwe <ArrowRight size={16} /></button><button onClick={() => go("/contact")} className="rounded-full border border-white/15 bg-white/8 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/12">Talk to the school</button></div></div></section>
-    </main>
-  </PublicLayout>;
+        {news.length > 0 && <section className="mx-auto max-w-[1440px] px-5 py-24 lg:px-10 lg:py-32">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--accent)]">From the school</p><h2 className="mt-4 font-serif text-4xl font-semibold tracking-[-.03em] sm:text-5xl">What’s happening at Menwe.</h2></div><button type="button" onClick={() => go("/news")} className="inline-flex items-center gap-2 text-sm font-extrabold text-[var(--accent)]">View all news <ArrowRight size={15} /></button></div>
+          <div className="mt-12 grid gap-4 md:grid-cols-3">{news.map((item, index) => <button type="button" key={String(item.id ?? index)} onClick={() => go("/news")} className="menwe-news-card group text-left"><div className="flex items-center justify-between"><span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-[var(--accent)]"><Quote size={15} /></span><span className="font-mono text-[9px] text-[var(--ink)]/30">0{index + 1}</span></div><p className="mt-8 line-clamp-2 font-serif text-2xl font-semibold leading-tight">{String(item.title ?? "School update")}</p><span className="mt-7 inline-flex items-center gap-2 text-[9px] font-extrabold uppercase tracking-[.16em] text-[var(--ink)]/40 transition group-hover:gap-3 group-hover:text-[var(--accent)]">Read story <ArrowRight size={13} /></span></button>)}</div>
+        </section>}
+
+        <section className="mx-auto max-w-[1440px] px-5 pb-24 lg:px-10 lg:pb-32">
+          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--ink)]/8 bg-white px-6 py-12 text-center shadow-[0_24px_70px_rgba(29,43,37,.06)] sm:px-12 sm:py-16">
+            <div className="menwe-cta-orb" aria-hidden="true" /><div className="relative z-10 mx-auto max-w-3xl"><p className="text-[9px] font-extrabold uppercase tracking-[.25em] text-[var(--accent)]">Begin the journey</p><h2 className="mt-4 font-serif text-4xl font-semibold leading-[1.03] tracking-[-.035em] sm:text-6xl">Ready to make school feel more connected?</h2><p className="mx-auto mt-5 max-w-xl text-base leading-7 text-[var(--ink)]/55">Learn about Menwe, explore admissions, or enter the secure school portal.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><button type="button" onClick={() => go("/admissions")} className="inline-flex items-center gap-2 rounded-full bg-[var(--ink)] px-6 py-3.5 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[var(--accent)]">Start an application <ArrowRight size={16} /></button><button type="button" onClick={() => go("/portal/login")} className="inline-flex items-center gap-2 rounded-full border border-[var(--ink)]/12 bg-white px-6 py-3.5 text-sm font-bold text-[var(--ink)] transition hover:-translate-y-0.5 hover:bg-[var(--mist)]">Open secure portal</button></div></div>
+          </div>
+        </section>
+      </main>
+    </PublicLayout>
+  );
 }
