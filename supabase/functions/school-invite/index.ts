@@ -47,15 +47,32 @@ Deno.serve(async req => {
     }
 
     const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const table = payload.recordType === "teacher" ? "teachers" : payload.recordType === "parent" ? "parents" : "students";
+    const { data: targetRecord, error: targetRecordError } = await serviceClient
+      .from(table)
+      .select("id")
+      .eq("id", payload.recordId)
+      .is("profile_id", null)
+      .maybeSingle();
+    if (targetRecordError || !targetRecord) {
+      return response({ error: "The selected school record is unavailable or already linked to an account." }, 400);
+    }
+
     const { data: invitation, error: invitationError } = await serviceClient.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName } });
     if (invitationError || !invitation.user) return response({ error: invitationError?.message || "The invitation could not be created." }, 400);
+    const removeNewAccount = async () => { await serviceClient.auth.admin.deleteUser(invitation.user.id); };
 
     const { error: profileError } = await serviceClient.from("profiles").update({ role: payload.role, full_name: fullName, email }).eq("id", invitation.user.id);
-    if (profileError) return response({ error: "The account was invited but the school role could not be assigned. Contact the system owner." }, 500);
+    if (profileError) {
+      await removeNewAccount();
+      return response({ error: "The account could not be prepared for the selected school role." }, 500);
+    }
 
-    const table = payload.recordType === "teacher" ? "teachers" : payload.recordType === "parent" ? "parents" : "students";
     const { error: recordError } = await serviceClient.from(table).update({ profile_id: invitation.user.id }).eq("id", payload.recordId).is("profile_id", null);
-    if (recordError) return response({ error: "The account was invited but could not be linked to the selected school record." }, 500);
+    if (recordError) {
+      await removeNewAccount();
+      return response({ error: "The account could not be linked to the selected school record." }, 500);
+    }
 
     await serviceClient.from("audit_logs").insert({ actor_id: user.id, action: "INVITE", entity_type: "profile", entity_id: invitation.user.id, metadata: { role: payload.role, recordType: payload.recordType, recordId: payload.recordId } });
     return response({ id: invitation.user.id, message: "Invitation issued. The account role is set before the first sign-in. Supabase has accepted the email request; ask the recipient to check their inbox and spam folder." });

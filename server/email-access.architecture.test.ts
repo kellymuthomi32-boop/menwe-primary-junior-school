@@ -28,6 +28,9 @@ describe("email access and invitation controls", () => {
     ]);
     expect(invitationFunction).toContain('const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const');
     expect(invitationFunction).toContain("The invitation role must match the selected school record type.");
+    expect(invitationFunction).toContain("The selected school record is unavailable or already linked to an account.");
+    expect(invitationFunction).toContain("const removeNewAccount = async () => { await serviceClient.auth.admin.deleteUser(invitation.user.id); };");
+    expect(invitationFunction).toContain("The account could not be linked to the selected school record.");
     expect(portal).toContain("const enforcedRole = recordType === \"teacher\" ? \"TEACHER\"");
     expect(portal).toContain("role: enforcedRole, recordType, recordId: values.recordId");
     expect(portal).toContain("Role assigned from the school record");

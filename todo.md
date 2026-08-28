@@ -62,6 +62,7 @@
 - [x] Make the public portal login explicitly support email/password sign-in, password reset, and optional email-link sign-in.
 - [ ] Refine the Super Administrator invitation workflow with email status, resend guidance, and clear success or failure states.
 - [x] Bind invitation roles to the matching teacher, parent, or student record type in both the portal and active invitation function.
+- [x] Verify the target school record before account creation and remove a newly created account if its profile or school-record link cannot be completed.
 - [ ] Verify invitation delivery, completion, and resend guidance only after email work is resumed.
 - [ ] Document and verify Supabase Auth email templates, sender configuration, redirect URLs, and delivery diagnostics.
 - [ ] Improve the invitation and email-access user experience across desktop and mobile layouts.
