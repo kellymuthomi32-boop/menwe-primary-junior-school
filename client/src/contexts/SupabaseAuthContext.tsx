@@ -5,7 +5,7 @@ import { getSupabase, supabase } from "@/lib/supabase";
 export type AppRole = "SUPER_ADMIN" | "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 type CanonicalRole = "admin" | "head_of_institution" | "deputy_hoi" | "teacher" | "class_teacher" | "classroom_teacher" | "staff" | "finance_officer" | "finance_approver" | "parent" | "student";
 
-export type SchoolProfile = { id: string; email: string | null; full_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null; };
+export type SchoolProfile = { id: string; email: string | null; display_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null; };
 function normalizeRole(role: CanonicalRole): AppRole { if (role === "parent") return "PARENT"; if (role === "student") return "STUDENT"; if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "TEACHER"; return "ADMIN"; }
 
 type AuthContextValue = { user: User | null; session: Session | null; profile: SchoolProfile | null; loading: boolean; error: string | null; signIn: (email: string, password: string) => Promise<{ error?: string }>; sendMagicLink: (email: string) => Promise<{ error?: string }>; sendPasswordReset: (email: string) => Promise<{ error?: string }>; updatePassword: (password: string) => Promise<{ error?: string }>; signOut: () => Promise<void>; refreshProfile: () => Promise<void>; };
@@ -19,7 +19,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     if (profileError) { setError("Your account was authenticated, but its school profile could not be loaded."); setProfile(null); return; }
     if (!data) { setProfile(null); return; }
     const canonicalRole = data.role as CanonicalRole;
-    setProfile({ id: data.id, email: data.email, full_name: data.display_name || null, phone: data.phone || null, canonical_role: canonicalRole, role: normalizeRole(canonicalRole), status: data.is_disabled ? "INACTIVE" : "ACTIVE", avatar_url: null });
+    setProfile({ id: data.id, email: data.email, display_name: data.display_name || null, phone: data.phone || null, canonical_role: canonicalRole, role: normalizeRole(canonicalRole), status: data.is_disabled ? "INACTIVE" : "ACTIVE", avatar_url: null });
   }, []);
   useEffect(() => {
     if (!supabase) { setError("The portal has not been configured with Supabase yet."); setLoading(false); return; }
