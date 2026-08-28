@@ -8,6 +8,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import MagicLinkPage from "./pages/MagicLinkPage";
 import PortalAccessPage from "./pages/PortalAccessPage";
 import AttendanceDirectory from "./pages/AttendanceDirectory";
+import AcademicManagementPage from "./pages/AcademicManagementPage";
+import ExamManagementPage from "./pages/ExamManagementPage";
 import { AdmissionsPage, ContactPage, EditorialPage, EventsPage, GalleryPage, HomePage, LoginPage, NewsPage } from "./pages/PublicPages";
 
 const PortalGuard = lazy(() => import("./pages/PortalPages"));
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/portal/login" component={PortalAccessPage} />
       <Route path="/portal/password" component={LoginPage} />
       <Route path="/portal/email-link" component={MagicLinkPage} />
+      <Route path="/portal/academics" component={AcademicManagementPage} />
+      <Route path="/portal/exams" component={ExamManagementPage} />
       <Route path="/portal/attendance" component={AttendanceDirectory} />
       <Route path="/portal/:rest*" component={PortalGuard} />
       <Route path="/portal" component={PortalGuard} />
