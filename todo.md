@@ -4,7 +4,7 @@
 - [x] Create versioned database migrations for school records, academic operations, finance, content, communications, and audit history.
 - [x] Implement secure server-side authorization for SUPER_ADMIN, ADMIN, TEACHER, STUDENT, and PARENT.
 - [x] Configure a secure first-super-admin onboarding mechanism without hard-coded production credentials.
-- [ ] Build editable public pages for Home, About, Academics, Admissions, News, Events, Gallery, Contact, and Portal Login.
+- [x] Build editable public pages for Home, About, Academics, Admissions, News, Events, Gallery, Contact, and Portal Login.
 - [x] Implement public admissions and contact forms backed by persistent database records.
 - [ ] Build database-backed administration for users, students, parents, teachers, classes, streams, subjects, enrollments, academic years, terms, and school settings.
 - [x] Add a paginated, administrator-only directory for students, teachers, and parents with authorised server-side search, contact editing, and non-destructive status controls.
@@ -64,3 +64,5 @@
 - [ ] Visually validate Super Administrator invitation success, failure, and delivery guidance at desktop and mobile breakpoints after the first privileged account is created.
 - [ ] Repair the invitation completion redirect so accepted Supabase invitations reach a deployed password-setup route instead of the current Vercel 404 page.
 - [ ] Return to owner password setup, invitation delivery verification, and final production redirect configuration after the remaining platform work is complete.
+- [x] Confirm the project will remain on the existing free tiers, without paid Supabase branches or upgrades.
+- [ ] Document the free-tier limitation that Supabase leaked-password protection cannot be enabled without a Pro plan or higher.

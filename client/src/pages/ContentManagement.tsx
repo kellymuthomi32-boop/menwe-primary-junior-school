@@ -22,7 +22,7 @@ function Table({ headers, rows }: { headers: string[]; rows: React.ReactNode[][]
 }
 
 export default function ContentManagement() {
-  const [tab, setTab] = useState<Tab>("pages"); const [page, setPage] = useState(0); const [rows, setRows] = useState<Row[]>([]); const [count, setCount] = useState(0); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("pages"); const [page, setPage] = useState(0); const [rows, setRows] = useState<Row[]>([]); const [count, setCount] = useState(0); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | null>(null); const [editingId, setEditingId] = useState<string | null>(null);
   const [values, setValues] = useState({ slug: "", title: "", headline: "", body: "", supporting: "", status: "DRAFT", excerpt: "", starts_at: "", ends_at: "", location: "" });
   const set = (key: keyof typeof values, item: string) => setValues(current => ({ ...current, [key]: item }));
 
@@ -30,8 +30,8 @@ export default function ContentManagement() {
     setLoading(true); setMessage(null); const client = getSupabase(); const from = page * pageSize; const to = from + pageSize - 1;
     try {
       const response = tab === "pages" ? await client.from("content_pages").select("id,slug,title,headline,body,status,updated_at", { count: "exact" }).order("updated_at", { ascending: false }).range(from, to)
-        : tab === "news" ? await client.from("news_articles").select("id,title,slug,status,published_at", { count: "exact" }).order("created_at", { ascending: false }).range(from, to)
-        : tab === "events" ? await client.from("events").select("id,title,starts_at,location,status", { count: "exact" }).order("starts_at", { ascending: false }).range(from, to)
+        : tab === "news" ? await client.from("news_articles").select("id,title,slug,excerpt,body,status,published_at", { count: "exact" }).order("created_at", { ascending: false }).range(from, to)
+        : tab === "events" ? await client.from("events").select("id,title,description,starts_at,ends_at,location,status", { count: "exact" }).order("starts_at", { ascending: false }).range(from, to)
         : tab === "admissions" ? await client.from("admission_applications").select("id,reference,student_first_name,student_last_name,guardian_name,status,created_at", { count: "exact" }).order("created_at", { ascending: false }).range(from, to)
         : await client.from("contact_submissions").select("id,name,email,subject,status,created_at,read_at", { count: "exact" }).order("created_at", { ascending: false }).range(from, to);
       if (response.error) throw response.error;
@@ -40,16 +40,17 @@ export default function ContentManagement() {
   }, [page, tab]);
   useEffect(() => { void refresh(); }, [refresh]);
 
-  const chooseTab = (next: Tab) => { setTab(next); setPage(0); setMessage(null); };
+  const chooseTab = (next: Tab) => { setTab(next); setPage(0); setMessage(null); setEditingId(null); setValues({ slug: "", title: "", headline: "", body: "", supporting: "", status: "DRAFT", excerpt: "", starts_at: "", ends_at: "", location: "" }); };
   const editPage = (row: Row) => { const body = row.body as Row | null; setValues({ slug: value(row.slug, ""), title: value(row.title, ""), headline: value(row.headline, ""), body: value(body?.content, ""), supporting: value(body?.supporting, ""), status: value(row.status, "DRAFT"), excerpt: "", starts_at: "", ends_at: "", location: "" }); };
+  const editContent = (row: Row) => { setEditingId(value(row.id)); setValues({ slug: value(row.slug, ""), title: value(row.title, ""), headline: "", body: value(tab === "events" ? row.description : row.body, ""), supporting: "", status: value(row.status, "DRAFT"), excerpt: value(row.excerpt, ""), starts_at: value(row.starts_at, "").slice(0, 16), ends_at: value(row.ends_at, "").slice(0, 16), location: value(row.location, "") }); };
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setMessage(null); const client = getSupabase();
     try {
       if (tab === "pages") { const { error } = await client.from("content_pages").upsert({ slug: values.slug, title: values.title, headline: values.headline || null, body: { content: values.body, supporting: values.supporting || undefined }, status: values.status }); if (error) throw error; }
-      if (tab === "news") { const slug = values.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); const { error } = await client.from("news_articles").insert({ title: values.title, slug, excerpt: values.excerpt || null, body: values.body, status: values.status, published_at: values.status === "PUBLISHED" ? new Date().toISOString() : null }); if (error) throw error; }
-      if (tab === "events") { const { error } = await client.from("events").insert({ title: values.title, description: values.body || null, starts_at: values.starts_at, ends_at: values.ends_at || null, location: values.location || null, status: values.status }); if (error) throw error; }
-      setValues({ slug: "", title: "", headline: "", body: "", supporting: "", status: "DRAFT", excerpt: "", starts_at: "", ends_at: "", location: "" }); setMessage("The content record was saved to Supabase."); await refresh();
+      if (tab === "news") { const slug = values.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); const payload = { title: values.title, slug, excerpt: values.excerpt || null, body: values.body, status: values.status, published_at: values.status === "PUBLISHED" ? new Date().toISOString() : null }; const { error } = editingId ? await client.from("news_articles").update(payload).eq("id", editingId) : await client.from("news_articles").insert(payload); if (error) throw error; }
+      if (tab === "events") { const payload = { title: values.title, description: values.body || null, starts_at: values.starts_at, ends_at: values.ends_at || null, location: values.location || null, status: values.status }; const { error } = editingId ? await client.from("events").update(payload).eq("id", editingId) : await client.from("events").insert(payload); if (error) throw error; }
+      setEditingId(null); setValues({ slug: "", title: "", headline: "", body: "", supporting: "", status: "DRAFT", excerpt: "", starts_at: "", ends_at: "", location: "" }); setMessage("The content record was saved to Supabase."); await refresh();
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : "The content record could not be saved."); } finally { setBusy(false); }
   };
 
@@ -59,11 +60,11 @@ export default function ContentManagement() {
   };
 
   const tabs: Record<Tab, string> = { pages: "Pages", news: "News", events: "Events", admissions: "Admissions", contacts: "Contacts" }; const isPublishing = tab === "pages" || tab === "news" || tab === "events";
-  const tableHeaders = tab === "pages" ? ["Slug", "Title", "Status", "Edit"] : tab === "news" ? ["Title", "Slug", "Status", "Published"] : tab === "events" ? ["Title", "Starts", "Location", "Status"] : tab === "admissions" ? ["Reference", "Applicant", "Guardian", "Status", "Review"] : ["Sender", "Subject", "Received", "Status", "Action"];
+  const tableHeaders = tab === "pages" ? ["Slug", "Title", "Status", "Edit"] : tab === "news" ? ["Title", "Slug", "Status", "Published", "Edit"] : tab === "events" ? ["Title", "Starts", "Location", "Status", "Edit"] : tab === "admissions" ? ["Reference", "Applicant", "Guardian", "Status", "Review"] : ["Sender", "Subject", "Received", "Status", "Action"];
   const tableRows = rows.map(row => {
     if (tab === "pages") return [value(row.slug), value(row.title), value(row.status), <button type="button" onClick={() => editPage(row)} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs font-semibold">Edit</button>];
-    if (tab === "news") return [value(row.title), value(row.slug), value(row.status), value(row.published_at)];
-    if (tab === "events") return [value(row.title), value(row.starts_at), value(row.location), value(row.status)];
+    if (tab === "news") return [value(row.title), value(row.slug), value(row.status), value(row.published_at), <button type="button" onClick={() => editContent(row)} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs font-semibold">Edit</button>];
+    if (tab === "events") return [value(row.title), value(row.starts_at), value(row.location), value(row.status), <button type="button" onClick={() => editContent(row)} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs font-semibold">Edit</button>];
     if (tab === "admissions") return [value(row.reference), `${value(row.student_first_name, "")} ${value(row.student_last_name, "")}`.trim(), value(row.guardian_name), value(row.status), <select value={value(row.status)} disabled={busy} onChange={event => void updateIntake("admission_applications", value(row.id), event.target.value)} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs"><option value="PENDING">Pending</option><option value="UNDER_REVIEW">Under review</option><option value="ACCEPTED">Accepted</option><option value="REJECTED">Rejected</option><option value="WAITLISTED">Waitlisted</option></select>];
     return [value(row.name), value(row.subject), value(row.created_at), value(row.status), <div className="flex gap-2"><button type="button" disabled={busy} onClick={() => void updateIntake("contact_submissions", value(row.id), "INACTIVE")} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs">Mark read</button><button type="button" disabled={busy} onClick={() => void updateIntake("contact_submissions", value(row.id), "ARCHIVED")} className="rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs">Archive</button></div>];
   });

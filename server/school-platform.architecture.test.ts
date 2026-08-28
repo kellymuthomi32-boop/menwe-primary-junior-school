@@ -229,6 +229,15 @@ describe("school platform database architecture", () => {
     expect(contentManagement).toContain("function Pager({ page, count, setPage }");
   });
 
+  it("keeps existing public news and events editable through the protected content workspace", async () => {
+    const contentManagement = await read("../client/src/pages/ContentManagement.tsx");
+    expect(contentManagement).toContain("const [editingId, setEditingId] = useState<string | null>(null)");
+    expect(contentManagement).toContain("const editContent = (row: Row)");
+    expect(contentManagement).toContain('client.from("news_articles").update(payload).eq("id", editingId)');
+    expect(contentManagement).toContain('client.from("events").update(payload).eq("id", editingId)');
+    expect(contentManagement).toContain('tab === "news" ? ["Title", "Slug", "Status", "Published", "Edit"]');
+  });
+
   it("binds portal-login CMS copy to the actual public portal access chooser", async () => {
     const chooser = await read("../client/src/pages/PortalAccessPage.tsx");
     expect(chooser).toContain('getPublishedPage("portal-login")');
