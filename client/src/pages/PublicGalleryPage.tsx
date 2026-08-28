@@ -1,0 +1,10 @@
+import { Loader2, School } from "lucide-react";
+import { useEffect, useState } from "react";
+import PublicLayout from "@/components/PublicLayout";
+import { getSupabase } from "@/lib/supabase";
+
+export default function PublicGalleryPage() {
+  const [albums, setAlbums] = useState<Array<{ id: string; title: string; description: string | null }>>([]); const [loading, setLoading] = useState(true);
+  useEffect(() => { let active = true; void getSupabase().from("gallery_albums").select("id,title,description").eq("status","Published").order("created_at", { ascending: false }).then(({data}) => { if(active) setAlbums(data ?? []); }).finally(()=>active&&setLoading(false)); return()=>{active=false;}; }, []);
+  return <PublicLayout><section className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-24"><p className="text-xs font-bold uppercase tracking-[.2em] text-[var(--accent)]">School life</p><h1 className="mt-4 font-serif text-5xl font-semibold">Gallery</h1><p className="mt-5 max-w-2xl text-lg text-[var(--ink)]/65">Published school galleries appear here. Only media deliberately approved for public viewing is shown.</p>{loading?<div className="py-20 text-center"><Loader2 className="mx-auto animate-spin text-[var(--accent)]"/></div>:albums.length===0?<div className="menwe-card mt-10 rounded-3xl border-dashed p-10 text-center"><School className="mx-auto text-[var(--accent)]"/><h2 className="mt-4 font-serif text-2xl font-semibold">No published gallery albums yet.</h2><p className="mt-2 text-sm text-[var(--ink)]/60">The school can publish approved albums when media is ready.</p></div>:<div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{albums.map(a=><article key={a.id} className="menwe-card rounded-3xl p-6"><p className="text-xs font-bold uppercase tracking-[.15em] text-[var(--accent)]">Published album</p><h2 className="mt-3 font-serif text-2xl font-semibold">{a.title}</h2>{a.description&&<p className="mt-3 text-sm leading-6 text-[var(--ink)]/65">{a.description}</p>}</article>)}</div>}</section></PublicLayout>;
+}
