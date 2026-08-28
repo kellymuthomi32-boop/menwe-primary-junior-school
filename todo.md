@@ -45,6 +45,8 @@
 - [ ] Extend clear next/previous pagination controls to the remaining high-volume administration and operations tables.
 - [x] Add bounded next/previous pagination to the protected administrator audit-history view.
 - [ ] Add equivalent database-backed pagination to the remaining people, finance, admissions, and reporting lists.
+- [x] Add a protected 25-record finance directory with exact invoice and payment totals plus status filters.
+- [ ] Add equivalent pagination to remaining admission and reporting tables not covered by their dedicated views.
 - [x] Constrain shared browser record lists to a fixed Supabase table allowlist, supported order fields, safe select expressions, and bounded page sizes.
 - [ ] Add test cases using real authorised Supabase accounts for end-to-end role-boundary verification before production launch.
 - [x] Implement and verify the one-time first-SUPER_ADMIN bootstrap mechanism with a real school-controlled owner account.

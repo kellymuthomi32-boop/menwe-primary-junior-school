@@ -293,4 +293,18 @@ describe("school platform database architecture", () => {
     expect(directory).toContain("The enrolment record was updated without deleting its history.");
     expect(directory).toContain("function Pager({ page, count, setPage }");
   });
+
+  it("provides a protected paginated finance directory for invoices and payments", async () => {
+    const [portal, directory] = await Promise.all([
+      read("../client/src/pages/PortalPages.tsx"),
+      read("../client/src/pages/FinanceDirectory.tsx"),
+    ]);
+    expect(portal).toContain("import FinanceDirectory from \"./FinanceDirectory\"");
+    expect(portal).toContain("<FinanceDirectory /><AdminInvoiceDirectory />");
+    expect(directory).toContain('from("invoices")');
+    expect(directory).toContain('from("payments")');
+    expect(directory).toContain('count: "exact"');
+    expect(directory).toContain('"PARTIALLY_PAID"');
+    expect(directory).toContain("function Pager({ page, count, setPage }");
+  });
 });
