@@ -237,6 +237,13 @@ describe("school platform database architecture", () => {
     expect(chooser).toContain("const supportingCopy = typeof content?.body?.supporting");
   });
 
+  it("uses current CMS primary and supporting copy on the home page", async () => {
+    const publicPages = await read("../client/src/pages/PublicPages.tsx");
+    expect(publicPages).toContain('const primaryCopy = pageText(content, "content") ||');
+    expect(publicPages).toContain('const supportingCopy = pageText(content, "supporting")');
+    expect(publicPages).toContain("{primaryCopy || \"Explore a clear, secure school experience");
+  });
+
   it("provides a paginated administrator people directory with constrained search and status handling", async () => {
     const [portal, directory] = await Promise.all([
       read("../client/src/pages/PortalPages.tsx"),
