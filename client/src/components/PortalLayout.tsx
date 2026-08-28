@@ -47,7 +47,7 @@ export function PortalLayout({ role, children }: { role: AppRole; children: Reac
         </nav>
       </div>
       <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-3">
-        <p className="truncate text-sm font-semibold">{profile?.full_name || profile?.email || "School account"}</p>
+        <p className="truncate text-sm font-semibold">{profile?.display_name || profile?.email || "School account"}</p>
         <p className="mt-1 text-xs text-white/50">{role.replaceAll("_", " ")}</p>
         <button onClick={() => void signOut()} className="mt-4 flex w-full items-center gap-2 rounded-xl px-2 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"><LogOut size={16} />Sign out</button>
       </div>
