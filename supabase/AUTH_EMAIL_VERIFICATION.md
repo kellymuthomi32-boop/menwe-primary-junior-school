@@ -1,14 +1,31 @@
-# Supabase Authentication Email Configuration
+# Auth email delivery verification
 
-**Verified on 27 August 2026 through the connected Supabase dashboard.**
+## Current production finding
 
-| Setting | Verified state | Release implication |
-|---|---|---|
-| Email provider | Enabled | Password, reset, invite, and email-link flows are available to authorised accounts. |
-| Allow new users to sign up | Disabled | The public application cannot create arbitrary school accounts through self-registration. |
-| Allow anonymous sign-ins | Disabled | Anonymous sessions cannot be used to access the portal. |
-| Confirm email | Enabled | Invited accounts must complete email confirmation before first sign-in. |
-| `school-invite` Edge Function | Active, version 1 | The client invokes the clean replacement endpoint; server-side Super Administrator checks remain required. |
-| Custom SMTP | Not configured | Use the default sender only for controlled development checks. Branded production delivery remains dependent on a school-controlled SMTP provider configured directly in Supabase. |
+Supabase Auth logs showed OTP requests reaching `/auth/v1/otp`, but the project is not configured with a production SMTP provider. Supabase's built-in SMTP service is intended for development/testing and does not reliably deliver production authentication messages; it can also restrict delivery to project/team addresses.
 
-The Supabase Site URL and redirect allowlist were configured earlier for the intended Vercel address and the current development preview. A controlled test with an actual school-owned Super Administrator account is still required before claiming that any email reached a mailbox.
+The portal also intentionally uses `shouldCreateUser: false` for magic-link sign-in, so a magic-link request must never be treated as public registration.
+
+## First real administrator
+
+While SMTP is unavailable, the first real school administrator can use the one-time route:
+
+`/portal/setup/first-admin`
+
+It creates one real administrator with a password, marks the email as confirmed, creates the canonical profile, and locks the one-time bootstrap path after use. The private bootstrap code is issued separately to the school owner and is not stored in the repository or frontend.
+
+## Production email action still required
+
+For normal invitations, password resets, and magic links, configure a real SMTP provider in:
+
+**Supabase → Authentication → Emails → SMTP Settings**
+
+Recommended requirements:
+
+- SMTP credentials from a transactional email provider
+- verified sending domain or approved sender
+- link tracking disabled for Supabase Auth links
+- Supabase Site URL set to the production domain
+- production portal URLs added to Redirect URLs
+
+No SMTP password, API key, or service-role key is stored in this repository.
