@@ -1,0 +1,68 @@
+/* Menwe mobile experience layer
+   Intentional overrides for narrow viewports; desktop styling remains unchanged. */
+
+@media (max-width: 767px) {
+  html { overflow-x: hidden; }
+  body { overflow-x: hidden; min-width: 320px; }
+
+  /* Public hero: keep the visual identity, but remove the oversized desktop art footprint. */
+  .menwe-hero { min-height: auto; overflow: hidden; }
+  .menwe-hero::after { top: 22%; right: -24%; width: 78vw; height: 48%; opacity: .32; border-radius: 24px; mask-image: linear-gradient(90deg, transparent, black 45%, black); }
+  .menwe-grid { background-size: 32px 32px; }
+  .menwe-aurora { width: 20rem; height: 20rem; filter: blur(55px); opacity: .18; }
+  .menwe-aurora-one { top: -8rem; right: -9rem; }
+  .menwe-aurora-two { bottom: -10rem; left: -8rem; }
+  .menwe-aurora-three { width: 13rem; height: 13rem; left: 42%; }
+
+  /* Prevent long content from widening the viewport. */
+  pre, code { max-width: 100%; overflow-x: auto; }
+  img, video, svg { max-width: 100%; }
+  textarea { max-width: 100%; }
+
+  /* Tables stay data-dense and become horizontally scrollable instead of breaking the page. */
+  .overflow-x-auto { max-width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .overflow-x-auto > table { min-width: 620px; }
+
+  /* Dialogs/popovers should never exceed the phone viewport. */
+  [role="dialog"] { max-width: calc(100vw - 1rem) !important; }
+
+  /* Keep common cards comfortable on phones without making them oversized. */
+  .menwe-card,
+  .menwe-surface,
+  .menwe-glass { max-width: 100%; }
+  .menwe-mini-card { min-height: 0; padding: 1rem; border-radius: 1rem; }
+  .menwe-value-card { padding: 1rem; border-radius: 1.15rem; }
+  .menwe-news-card { min-height: 0; padding: 1.1rem; border-radius: 1.1rem; }
+
+  /* Touch targets: compact but reliably tappable. */
+  button, [role="button"] { min-height: 40px; }
+  input, select, textarea { min-height: 42px; }
+
+  /* Disable hover-only movement on touch layouts. */
+  .menwe-feature:hover,
+  .menwe-interactive:hover,
+  .menwe-mini-card:hover,
+  .menwe-value-card:hover,
+  .menwe-news-card:hover { transform: none; box-shadow: inherit; }
+  .menwe-feature:hover .menwe-feature-orb { transform: none; }
+
+  /* Reduce motion for users who request it and for lower-powered mobile devices. */
+  .menwe-stagger > * { animation-delay: 0ms !important; }
+}
+
+@media (max-width: 430px) {
+  .menwe-hero::after { display: none; }
+  .menwe-orbit { display: none; }
+  .menwe-cta-orb { width: 18rem; height: 18rem; top: -7rem; }
+  .menwe-section-glow { width: 20rem; height: 20rem; top: -6rem; right: -9rem; opacity: .55; }
+  .menwe-trust-chip { padding: .55rem .7rem; font-size: .68rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
