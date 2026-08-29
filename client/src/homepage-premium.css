@@ -2,11 +2,8 @@
    Keeps the existing Menwe structure and interactions, while tightening hierarchy,
    card composition, responsive rhythm and motion. */
 
-.menwe-home-grid {
-  align-items: stretch;
-}
+.menwe-home-grid { align-items: stretch; }
 
-/* Feature cards: quiet editorial surfaces with a stronger interactive hierarchy. */
 .menwe-feature {
   min-width: 0;
   isolation: isolate;
@@ -20,9 +17,7 @@
   position: absolute;
   inset: 0;
   z-index: -2;
-  background:
-    radial-gradient(circle at 90% 8%, rgba(213,185,92,.14), transparent 28%),
-    linear-gradient(145deg, rgba(255,255,255,.98), rgba(248,250,247,.94));
+  background: radial-gradient(circle at 90% 8%, rgba(213,185,92,.14), transparent 28%), linear-gradient(145deg, rgba(255,255,255,.98), rgba(248,250,247,.94));
 }
 
 .menwe-feature::after {
@@ -36,9 +31,7 @@
   transition: opacity .35s ease, transform .45s ease;
 }
 
-.menwe-feature-orb {
-  opacity: .75;
-}
+.menwe-feature-orb { opacity: .75; }
 
 .menwe-feature > div:first-of-type span:first-child {
   box-shadow: 0 8px 20px rgba(29,43,37,.055), inset 0 1px rgba(255,255,255,.9);
@@ -50,47 +43,50 @@
   box-shadow: 0 28px 65px rgba(29,43,37,.105), 0 1px 0 rgba(255,255,255,.95) inset;
 }
 
-.menwe-feature:hover::after {
-  opacity: .85;
-  transform: scaleX(1.04);
-}
+.menwe-feature:hover::after { opacity: .85; transform: scaleX(1.04); }
 
-/* Make the feature section feel designed rather than like a repeated card grid. */
 @media (min-width: 1024px) {
-  .menwe-feature:first-child {
-    grid-column: span 2;
-    min-height: 330px;
-  }
-
-  .menwe-feature:first-child h3 {
-    max-width: 34rem;
-    font-size: clamp(2rem, 3vw, 2.65rem);
-  }
-
-  .menwe-feature:nth-child(2),
-  .menwe-feature:nth-child(3) {
-    min-height: 330px;
-  }
-
-  .menwe-feature:nth-child(n+4) {
-    min-height: 250px;
-  }
+  .menwe-feature:first-child { grid-column: span 2; min-height: 330px; }
+  .menwe-feature:first-child h3 { max-width: 34rem; font-size: clamp(2rem, 3vw, 2.65rem); }
+  .menwe-feature:nth-child(2), .menwe-feature:nth-child(3) { min-height: 330px; }
+  .menwe-feature:nth-child(n+4) { min-height: 250px; }
 }
 
-/* Give the hero content a clearer premium rhythm on smaller screens. */
+/* Richer visual rhythm for the rest of the homepage without changing content or routes. */
+.menwe-role,
+.menwe-value-card,
+.menwe-news-card,
+.menwe-dark-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.menwe-role::after,
+.menwe-value-card::after,
+.menwe-news-card::after {
+  content: "";
+  position: absolute;
+  width: 8rem;
+  height: 8rem;
+  right: -5rem;
+  top: -5rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(213,185,92,.13), transparent 68%);
+  pointer-events: none;
+  transition: transform .5s cubic-bezier(.16,1,.3,1);
+}
+
+.menwe-role:hover::after,
+.menwe-value-card:hover::after,
+.menwe-news-card:hover::after { transform: scale(1.45); }
+
+.menwe-mini-card { box-shadow: inset 0 1px rgba(255,255,255,.42); }
+
+/* Hero becomes easier to scan on compact screens. */
 @media (max-width: 767px) {
-  .menwe-hero .relative.mx-auto {
-    min-height: auto;
-  }
-
-  .menwe-hero h1 {
-    max-width: 11ch;
-    text-wrap: balance;
-  }
-
-  .menwe-hero p {
-    text-wrap: pretty;
-  }
+  .menwe-hero .relative.mx-auto { min-height: auto; }
+  .menwe-hero h1 { max-width: 11ch; text-wrap: balance; }
+  .menwe-hero p { text-wrap: pretty; }
 
   .menwe-feature,
   .menwe-feature:first-child,
@@ -98,24 +94,14 @@
   .menwe-feature:nth-child(3),
   .menwe-feature:nth-child(n+4) {
     grid-column: auto;
-    min-height: 0;
     min-height: 245px;
     padding: 1.25rem;
     border-radius: 1.35rem;
   }
 
-  .menwe-feature:first-child {
-    min-height: 270px;
-  }
-
-  .menwe-feature p:last-of-type {
-    max-width: 34rem;
-  }
-
-  .menwe-feature > div:first-of-type span:first-child {
-    width: 2.75rem;
-    height: 2.75rem;
-  }
+  .menwe-feature:first-child { min-height: 270px; }
+  .menwe-feature p:last-of-type { max-width: 34rem; }
+  .menwe-feature > div:first-of-type span:first-child { width: 2.75rem; height: 2.75rem; }
 }
 
 @media (max-width: 430px) {
@@ -128,24 +114,11 @@
     padding: 1.15rem;
   }
 
-  .menwe-feature:first-child {
-    min-height: 245px;
-  }
-
-  .menwe-feature h3,
-  .menwe-feature:first-child h3 {
-    max-width: 100%;
-    font-size: 1.5rem;
-    line-height: 1.08;
-  }
-
-  .menwe-feature p:last-of-type {
-    font-size: .84rem;
-    line-height: 1.55rem;
-  }
+  .menwe-feature:first-child { min-height: 245px; }
+  .menwe-feature h3, .menwe-feature:first-child h3 { max-width: 100%; font-size: 1.5rem; line-height: 1.08; }
+  .menwe-feature p:last-of-type { font-size: .84rem; line-height: 1.55rem; }
 }
 
-/* Motion should feel tactile, not theatrical. */
 @media (prefers-reduced-motion: no-preference) {
   .menwe-feature:nth-child(2) { transition-delay: 20ms; }
   .menwe-feature:nth-child(3) { transition-delay: 40ms; }
@@ -157,20 +130,9 @@
   .menwe-feature:nth-child(9) { transition-delay: 160ms; }
 }
 
-/* Premium section headings: slightly more editorial and easier to scan. */
-main > section:not(.menwe-hero) h2 {
-  text-wrap: balance;
-}
-
-main > section:not(.menwe-hero) p {
-  text-wrap: pretty;
-}
-
-/* Prevent decorative effects from ever becoming a source of horizontal overflow. */
-.menwe-hero,
-main > section {
-  max-width: 100%;
-}
+main > section:not(.menwe-hero) h2 { text-wrap: balance; }
+main > section:not(.menwe-hero) p { text-wrap: pretty; }
+.menwe-hero, main > section { max-width: 100%; }
 
 @media (max-width: 767px) {
   .menwe-feature:hover {
