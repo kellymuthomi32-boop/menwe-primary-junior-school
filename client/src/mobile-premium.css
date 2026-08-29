@@ -1,0 +1,89 @@
+/* Menwe mobile experience: preserve the desktop system while fixing narrow-screen hierarchy. */
+@media (max-width: 1023px) {
+  .menwe-hero { min-height: auto; }
+  .menwe-hero::after { top: 8%; right: -18%; width: 92vw; height: 58%; opacity: .3; mask-image: linear-gradient(180deg, transparent 0%, black 28%, transparent 92%); }
+  .menwe-float { animation-duration: 9s; }
+}
+
+@media (max-width: 767px) {
+  html { scroll-padding-top: 76px; }
+  body { overflow-x: hidden; }
+
+  /* The feature grid must never squeeze cards into phone-width columns. */
+  .menwe-feature {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    min-width: 0;
+    min-height: 0 !important;
+    padding: 1.35rem !important;
+    border-radius: 1.35rem !important;
+  }
+  .menwe-feature h3 { max-width: 19rem; font-size: 1.7rem !important; line-height: 1.04; }
+  .menwe-feature p { max-width: 34rem; }
+  .menwe-feature .menwe-feature-orb { width: 9rem; height: 9rem; top: -3.5rem; right: -3.5rem; }
+
+  .menwe-hero .mx-auto { padding-left: 1rem; padding-right: 1rem; }
+  .menwe-hero h1 { font-size: clamp(3rem, 15vw, 4.25rem); line-height: .9; letter-spacing: -.055em; }
+  .menwe-hero p { font-size: .98rem; line-height: 1.65; }
+  .menwe-hero .menwe-glow-button,
+  .menwe-hero button:not([aria-label]) { min-height: 48px; }
+
+  .menwe-mini-card { min-height: 132px; padding: 1rem; border-radius: 1.05rem; }
+  .menwe-mini-card p.mt-8 { margin-top: 1.2rem; }
+
+  .menwe-value-card,
+  .menwe-news-card,
+  .menwe-role { border-radius: 1.2rem; }
+
+  /* Keep all public sections inside the viewport and give touch targets breathing room. */
+  section > .mx-auto,
+  footer > .mx-auto { max-width: 100%; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button { touch-action: manipulation; }
+
+  /* Premium sticky mobile header: compact, legible and safely above content. */
+  header.sticky {
+    position: sticky !important;
+    top: 0;
+    z-index: 100;
+    padding-top: env(safe-area-inset-top);
+    background: color-mix(in srgb, var(--paper) 91%, transparent) !important;
+    box-shadow: 0 8px 30px rgba(29,43,37,.07);
+  }
+  header.sticky > div:not([role]) { min-height: 64px; }
+  header.sticky .grid.h-11 { width: 40px; height: 40px; border-radius: .85rem; }
+  header.sticky .grid.h-11 span { font-size: 1.05rem; }
+  header.sticky button[aria-expanded] { width: 42px; height: 42px; border-radius: .9rem; }
+
+  /* Mobile menu feels like a sheet rather than a cramped dropdown. */
+  header.sticky > div.absolute {
+    max-height: calc(100svh - 64px);
+    padding: .6rem .85rem 1rem;
+    border-radius: 0 0 1.4rem 1.4rem;
+  }
+  header.sticky > div.absolute nav { width: 100%; }
+  header.sticky > div.absolute nav > button { min-height: 50px; }
+  header.sticky > div.absolute .grid-cols-3 { grid-template-columns: 1fr; }
+
+  /* Avoid hover transforms causing visual jumps on touch devices. */
+  .menwe-feature:hover,
+  .menwe-role:hover,
+  .menwe-value-card:hover,
+  .menwe-news-card:hover,
+  .menwe-interactive:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menwe-feature,
+  .menwe-feature-orb,
+  .menwe-float,
+  .menwe-reveal,
+  .menwe-aurora,
+  .menwe-orbit,
+  .menwe-progress,
+  .menwe-marquee { animation: none !important; transition: none !important; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .menwe-feature { min-height: 260px; }
+}
