@@ -1,10 +1,16 @@
-import { ArrowRight, ArrowUpRight, Check, ChevronRight, Facebook, Instagram, Mail, MapPin, Menu, ShieldCheck, Sparkles, X, Youtube } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, Facebook, Instagram, Mail, MapPin, Menu, ShieldCheck, Sparkles, X, Youtube, BookOpen, HeartHandshake, GraduationCap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 const links = [["Home", "/"], ["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"], ["Gallery", "/gallery"], ["Contact", "/contact"]] as const;
 const discoverLinks = [["School life", "/school-life"], ["For families", "/families"], ["How it works", "/how-it-works"]] as const;
 const legalLinks = [["Terms & conditions", "/terms"], ["Privacy", "/privacy"], ["Cookies", "/cookies"]] as const;
+
+const footerPrinciples = [
+  { label: "Learning", title: "A clear path through school", copy: "Keep academics, attendance and everyday school life connected in one experience.", icon: BookOpen },
+  { label: "Families", title: "Closer communication", copy: "Make it easier for families to stay informed and connected with the school.", icon: HeartHandshake },
+  { label: "Growth", title: "Built around the learner", copy: "A thoughtful digital experience for the people who teach, learn and support children.", icon: GraduationCap },
+] as const;
 
 export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
   return <div className="flex items-center gap-3"><div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-[1rem] bg-[var(--ink)] text-white shadow-[0_10px_24px_rgba(29,43,37,.18)] ring-1 ring-white/20"><div className="absolute inset-[3px] rounded-[.78rem] border border-[var(--gold)]/45" /><span className="relative font-serif text-xl font-bold leading-none">M</span></div>{!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}</div>;
@@ -42,6 +48,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
 
+        <section className="mb-12 grid gap-3 md:grid-cols-3" aria-label="What the Menwe experience is designed around">
+          {footerPrinciples.map(({ label, title, copy, icon: Icon }, index) => <div key={label} className="menwe-footer-principle group relative overflow-hidden rounded-[1.45rem] border border-white/8 bg-white/[.035] p-5 transition duration-500 hover:-translate-y-1 hover:border-[var(--gold)]/25 hover:bg-white/[.06]"><div className="absolute -right-12 -top-12 h-28 w-28 rounded-full border border-white/6 transition duration-700 group-hover:scale-150" /><div className="relative flex gap-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--gold)]/20 bg-[var(--gold)]/[.07] text-[var(--gold)]"><Icon size={19} strokeWidth={1.7} /></span><div><p className="text-[9px] font-extrabold uppercase tracking-[.22em] text-[var(--gold)]">{String(index + 1).padStart(2, "0")} · {label}</p><h3 className="mt-1.5 font-serif text-lg font-semibold text-white">{title}</h3><p className="mt-1.5 text-xs leading-5 text-white/45">{copy}</p></div></div></div>)}
+        </section>
+
         <div className="mb-12 grid gap-4 sm:grid-cols-3">
           {[
             { eyebrow: "Explore", title: "See school life", copy: "Discover the public side of Menwe, from learning to community life.", path: "/school-life", icon: Sparkles },
@@ -51,7 +61,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
 
         <div className="grid gap-12 lg:grid-cols-[1.15fr_.75fr_.75fr_1fr]">
-          <div><SchoolMark inverted /><p className="mt-6 max-w-md text-sm leading-7 text-white/50">A calm public home for Menwe Primary & Junior School — bringing learning, families and school operations into one thoughtful experience.</p><div className="mt-7 flex flex-wrap gap-2"><span className="menwe-trust-chip"><ShieldCheck size={13} /> Role-aware access</span><span className="menwe-trust-chip"><Sparkles size={13} /> Built for school life</span></div><button onClick={() => go("/contact")} className="mt-7 inline-flex items-center gap-2 text-xs font-bold text-white/62 transition hover:text-white">Get in touch <ArrowRight size={14} className="transition group-hover:translate-x-1" /></button></div>
+          <div><SchoolMark inverted /><p className="mt-6 max-w-md text-sm leading-7 text-white/50">A calm public home for Menwe Primary & Junior School — bringing learning, families and school operations into one thoughtful experience.</p><div className="mt-7 flex flex-wrap gap-2"><span className="menwe-trust-chip"><ShieldCheck size={13} /> Role-aware access</span><span className="menwe-trust-chip"><Sparkles size={13} /> Built for school life</span></div><button onClick={() => go("/contact")} className="mt-7 inline-flex items-center gap-2 text-xs font-bold text-white/62 transition hover:text-white">Get in touch <ArrowRight size={14} /></button></div>
 
           <div><p className="text-[9px] font-extrabold uppercase tracking-[.24em] text-[var(--gold)]">School</p><div className="mt-5 grid gap-3">{links.slice(1,6).map(([label,path]) => <button key={path} onClick={() => go(path)} className="menwe-footer-link group flex w-fit items-center gap-2 text-left text-sm">{label}<ArrowUpRight size={12} className="opacity-40 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" /></button>)}<button onClick={() => go("/gallery")} className="menwe-footer-link group flex w-fit items-center gap-2 text-left text-sm">Gallery <ArrowUpRight size={12} className="opacity-40 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" /></button></div></div>
 
