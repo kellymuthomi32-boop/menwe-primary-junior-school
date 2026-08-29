@@ -22,12 +22,13 @@ const GalleryManagementPage = lazy(() => import("./pages/GalleryManagementPage")
 const SchoolSetupPage = lazy(() => import("./pages/SchoolSetupPage"));
 const FirstAdminPage = lazy(() => import("./pages/FirstAdminPage"));
 const PortalGuard = lazy(() => import("./pages/PortalPages"));
-const EditorialPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.EditorialPage })));
 const AdmissionsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.AdmissionsPage })));
 const NewsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.NewsPage })));
 const EventsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.EventsPage })));
 const ContactPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.ContactPage })));
 const LoginPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.LoginPage })));
+const RichAboutPage = lazy(() => import("./pages/RichPublicPages").then(module => ({ default: module.RichAboutPage })));
+const RichAcademicsPage = lazy(() => import("./pages/RichPublicPages").then(module => ({ default: module.RichAcademicsPage })));
 const SchoolLifePage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.SchoolLifePage })));
 const FamiliesPage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.FamiliesPage })));
 const HowItWorksPage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.HowItWorksPage })));
@@ -35,8 +36,8 @@ const LegalPage = lazy(() => import("./pages/LegalPages").then(module => ({ defa
 
 function Router() { return <Switch>
 <Route path="/" component={HomePagePremium} />
-<Route path="/about">{() => <EditorialPage slug="about" eyebrow="Our school" defaultTitle="About Menwe" description="School leaders can publish the school’s history, mission, vision, values, leadership message, teaching approach, and facilities information here." />}</Route>
-<Route path="/academics">{() => <EditorialPage slug="academics" eyebrow="Learning" defaultTitle="Academics" description="Academic programmes, subjects, curriculum information, and co-curricular activities are published by authorised school administrators." />}</Route>
+<Route path="/about" component={RichAboutPage} />
+<Route path="/academics" component={RichAcademicsPage} />
 <Route path="/school-life" component={SchoolLifePage} /><Route path="/families" component={FamiliesPage} /><Route path="/how-it-works" component={HowItWorksPage} />
 <Route path="/admissions" component={AdmissionsPage} /><Route path="/news" component={NewsPage} /><Route path="/events" component={EventsPage} /><Route path="/gallery" component={PublicGalleryPage} /><Route path="/contact" component={ContactPage} />
 <Route path="/terms">{() => <LegalPage type="terms" />}</Route><Route path="/privacy">{() => <LegalPage type="privacy" />}</Route><Route path="/cookies">{() => <LegalPage type="cookies" />}</Route>
