@@ -6,6 +6,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import HomePagePremium from "./pages/HomePagePremium";
+import "./mobile-premium.css";
 
 const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
 const PortalAccessPage = lazy(() => import("./pages/PortalAccessPage"));
