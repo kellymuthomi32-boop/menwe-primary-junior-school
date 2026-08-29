@@ -5,25 +5,33 @@ import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import MagicLinkPage from "./pages/MagicLinkPage";
-import PortalAccessPage from "./pages/PortalAccessPage";
-import AttendanceDirectory from "./pages/AttendanceDirectory";
-import AcademicManagementPage from "./pages/AcademicManagementPage";
-import ExamManagementPage from "./pages/ExamManagementPage";
-import FinanceDirectory from "./pages/FinanceDirectory";
-import HomeworkDirectory from "./pages/HomeworkDirectory";
-import NotificationCenter from "./pages/NotificationCenter";
-import ReportCardsDirectory from "./pages/ReportCardsDirectory";
-import TimetableDirectory from "./pages/TimetableDirectory";
-import PublicGalleryPage from "./pages/PublicGalleryPage";
-import GalleryManagementPage from "./pages/GalleryManagementPage";
-import SchoolSetupPage from "./pages/SchoolSetupPage";
-import FirstAdminPage from "./pages/FirstAdminPage";
 import HomePagePremium from "./pages/HomePagePremium";
-import { FamiliesPage, HowItWorksPage, SchoolLifePage } from "./pages/DiscoverPages";
-import { AdmissionsPage, ContactPage, EditorialPage, EventsPage, LoginPage, NewsPage } from "./pages/PublicPages";
 
+const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
+const PortalAccessPage = lazy(() => import("./pages/PortalAccessPage"));
+const AttendanceDirectory = lazy(() => import("./pages/AttendanceDirectory"));
+const AcademicManagementPage = lazy(() => import("./pages/AcademicManagementPage"));
+const ExamManagementPage = lazy(() => import("./pages/ExamManagementPage"));
+const FinanceDirectory = lazy(() => import("./pages/FinanceDirectory"));
+const HomeworkDirectory = lazy(() => import("./pages/HomeworkDirectory"));
+const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
+const ReportCardsDirectory = lazy(() => import("./pages/ReportCardsDirectory"));
+const TimetableDirectory = lazy(() => import("./pages/TimetableDirectory"));
+const PublicGalleryPage = lazy(() => import("./pages/PublicGalleryPage"));
+const GalleryManagementPage = lazy(() => import("./pages/GalleryManagementPage"));
+const SchoolSetupPage = lazy(() => import("./pages/SchoolSetupPage"));
+const FirstAdminPage = lazy(() => import("./pages/FirstAdminPage"));
 const PortalGuard = lazy(() => import("./pages/PortalPages"));
+const EditorialPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.EditorialPage })));
+const AdmissionsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.AdmissionsPage })));
+const NewsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.NewsPage })));
+const EventsPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.EventsPage })));
+const ContactPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.ContactPage })));
+const LoginPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.LoginPage })));
+const SchoolLifePage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.SchoolLifePage })));
+const FamiliesPage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.FamiliesPage })));
+const HowItWorksPage = lazy(() => import("./pages/DiscoverPages").then(module => ({ default: module.HowItWorksPage })));
+
 function Router() { return <Switch>
 <Route path="/" component={HomePagePremium} />
 <Route path="/about">{() => <EditorialPage slug="about" eyebrow="Our school" defaultTitle="About Menwe" description="School leaders can publish the school’s history, mission, vision, values, leadership message, teaching approach, and facilities information here." />}</Route>
@@ -33,4 +41,4 @@ function Router() { return <Switch>
 <Route path="/login" component={PortalAccessPage} /><Route path="/portal/login" component={PortalAccessPage} /><Route path="/portal/password" component={LoginPage} /><Route path="/portal/email-link" component={MagicLinkPage} /><Route path="/portal/setup/first-admin" component={FirstAdminPage} /><Route path="/portal/setup" component={SchoolSetupPage} />
 <Route path="/portal/academics" component={AcademicManagementPage} /><Route path="/portal/exams" component={ExamManagementPage} /><Route path="/portal/attendance" component={AttendanceDirectory} /><Route path="/portal/report-cards" component={ReportCardsDirectory} /><Route path="/portal/finance" component={FinanceDirectory} /><Route path="/portal/homework" component={HomeworkDirectory} /><Route path="/portal/timetable" component={TimetableDirectory} /><Route path="/portal/notifications" component={NotificationCenter} /><Route path="/portal/gallery" component={GalleryManagementPage} />
 <Route path="/portal/:rest*" component={PortalGuard} /><Route path="/portal" component={PortalGuard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>; }
-export default function App(){return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster/><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[#f4f5f1] text-sm text-[var(--ink)]/60">Loading secure portal…</div>}><Router/></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;}
+export default function App(){return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster/><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router/></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;}
