@@ -1,0 +1,120 @@
+/* Menwe public footer — premium visual layer. Content and routing remain in PublicLayout. */
+footer {
+  position: relative;
+  isolation: isolate;
+  border-top: 1px solid rgba(213,185,92,.14);
+}
+
+footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(213,185,92,.09), transparent 25%),
+    radial-gradient(circle at 88% 72%, rgba(91,130,105,.12), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,.025), transparent 30%);
+  z-index: -1;
+}
+
+footer h2 {
+  color: rgba(255,255,255,.98) !important;
+  text-wrap: balance;
+}
+
+footer p {
+  text-wrap: pretty;
+}
+
+/* Lead conversion panel */
+footer .menwe-glow-button {
+  box-shadow: 0 10px 28px rgba(213,185,92,.18), inset 0 1px rgba(255,255,255,.28);
+}
+
+footer .menwe-glow-button:hover {
+  box-shadow: 0 16px 36px rgba(213,185,92,.25), inset 0 1px rgba(255,255,255,.34);
+}
+
+/* Make the three discovery cards feel like deliberate product tiles. */
+footer .menwe-interactive {
+  will-change: transform;
+}
+
+footer .menwe-interactive:hover {
+  box-shadow: 0 22px 55px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.08);
+}
+
+footer .menwe-interactive:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+footer .menwe-interactive span:first-child {
+  box-shadow: inset 0 1px rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.12);
+}
+
+/* The current footer copy was too faint on the dark surface. */
+footer .text-white\/52 { color: rgba(255,255,255,.68) !important; }
+footer .text-white\/50 { color: rgba(255,255,255,.64) !important; }
+footer .text-white\/45 { color: rgba(255,255,255,.61) !important; }
+footer .text-white\/40 { color: rgba(255,255,255,.58) !important; }
+footer .text-white\/62 { color: rgba(255,255,255,.76) !important; }
+footer .text-white\/55 { color: rgba(255,255,255,.68) !important; }
+footer .text-white\/70 { color: rgba(255,255,255,.82) !important; }
+
+/* Link columns: stronger contrast, larger hit area, clearer grouping. */
+footer .menwe-footer-link {
+  min-height: 30px;
+  align-items: center;
+  color: rgba(255,255,255,.76);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+footer .menwe-footer-link:hover {
+  color: #fff;
+}
+
+footer .menwe-footer-link::before {
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(213,185,92,.35);
+}
+
+/* Social card gets a stronger "official channels" treatment. */
+footer .menwe-trust-chip {
+  color: rgba(255,255,255,.82);
+  border-color: rgba(255,255,255,.14);
+  background: rgba(255,255,255,.065);
+}
+
+footer a[aria-label^="Menwe"] {
+  color: rgba(255,255,255,.82) !important;
+  background: rgba(255,255,255,.07) !important;
+  border-color: rgba(255,255,255,.14) !important;
+}
+
+footer a[aria-label^="Menwe"]:hover {
+  color: #fff !important;
+  background: rgba(213,185,92,.10) !important;
+  border-color: rgba(213,185,92,.38) !important;
+  transform: translateY(-2px);
+}
+
+/* Make the footer's quiet utility text readable without becoming loud. */
+footer .text-white\/30 { color: rgba(255,255,255,.55) !important; }
+
+/* Give the bottom legal bar a crisp finishing line. */
+footer hr,
+footer [class*="border-white\/8"] {
+  border-color: rgba(255,255,255,.12) !important;
+}
+
+@media (max-width: 640px) {
+  footer .menwe-interactive:hover { transform: translateY(-2px); }
+  footer .menwe-footer-link { min-height: 34px; font-size: .9rem; }
+  footer h2 { font-size: 1.8rem; line-height: 1.15; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  footer *, footer::before { animation: none !important; transition-duration: .01ms !important; }
+}
