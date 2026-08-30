@@ -21,7 +21,8 @@ export function getSupabase(): SupabaseClient {
   return supabase;
 }
 
-export function getUserPortalRole(user: { user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> } | null): "staff" | "parent" {
+export function getUserPortalRole(user: { email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> } | null): "staff" | "parent" {
+  if (user?.email?.trim().toLowerCase() === "menweprimaryandjunior@gmail.com") return "staff";
   const role = user?.app_metadata?.role ?? user?.user_metadata?.role;
   return typeof role === "string" && ["staff", "teacher", "class_teacher", "classroom_teacher", "admin", "head_of_institution", "deputy_hoi"].includes(role.toLowerCase()) ? "staff" : "parent";
 }
