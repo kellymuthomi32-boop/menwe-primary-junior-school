@@ -16,11 +16,12 @@ function friendlyError(error: unknown) {
 function Guard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useSchoolAuth();
   const [, go] = useLocation();
+  const authorized = Boolean(user && profile && profile.status === "ACTIVE" && (isAdministrator(profile.role) || profile.role === "TEACHER"));
   useEffect(() => {
-    if (!loading && (!user || !profile || (!isAdministrator(profile.role) && profile.role !== "TEACHER"))) go("/portal/login");
-  }, [loading, profile, user, go]);
+    if (!loading && !authorized) go("/portal/login");
+  }, [authorized, loading, go]);
   if (loading) return <div className="grid min-h-screen place-items-center">Loading teacher workspace…</div>;
-  if (!user || !profile || (!isAdministrator(profile.role) && profile.role !== "TEACHER")) return null;
+  if (!authorized) return null;
   return <>{children}</>;
 }
 
