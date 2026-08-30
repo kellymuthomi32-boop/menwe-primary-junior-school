@@ -5,8 +5,14 @@ import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
-import { AcademicsPage, AdmissionsPage, NewsEventsPage, GalleryPage, ContactPage, AboutPage } from "./pages/CorePublicPages";
 import "./mobile-premium.css";
+
+const AcademicsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AcademicsPage })));
+const AdmissionsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AdmissionsPage })));
+const NewsEventsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })));
+const GalleryPage = lazy(() => import("./pages/GalleryPage"));
+const ContactPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })));
+const AboutPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AboutPage })));
 const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
 const PortalAccessPage = lazy(() => import("./pages/PortalAccessPage"));
 const AttendanceDirectory = lazy(() => import("./pages/AttendanceDirectory"));
@@ -45,6 +51,7 @@ function Router() {
     };
     document.title = titles[location] ?? "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County";
   }, [location]);
+
   return <Switch>
     <Route path="/" component={MenweHeroHome} />
     <Route path="/about" component={AboutPage} />
@@ -84,4 +91,6 @@ function Router() {
   </Switch>;
 }
 
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() {
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
+}
