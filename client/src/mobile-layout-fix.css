@@ -1,0 +1,177 @@
+/* Mobile layout hardening for the public landing page.
+   Keep every content card readable below the md breakpoint. */
+
+@media (max-width: 767px) {
+  .menwe-exact-page,
+  .menwe-exact-page main,
+  .menwe-section,
+  .menwe-section-inner,
+  .menwe-hero-inner,
+  .menwe-features,
+  .menwe-program-grid,
+  .menwe-news-grid,
+  .menwe-news-cards,
+  .menwe-contact-grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .menwe-exact-page {
+    overflow-x: hidden;
+  }
+
+  /* Strict single-column stacking for landing-page card groups. */
+  .menwe-features,
+  .menwe-program-grid,
+  .menwe-news-cards,
+  .menwe-contact-grid,
+  .menwe-values {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1rem;
+  }
+
+  .menwe-feature-card,
+  .menwe-program-card,
+  .menwe-news-card,
+  .menwe-contact-item,
+  .menwe-value,
+  .menwe-event {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .menwe-feature-card {
+    min-height: 0;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    align-items: flex-start;
+  }
+
+  .menwe-feature-card h2,
+  .menwe-program-card h3,
+  .menwe-news-card h3 {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .menwe-feature-card h2 {
+    margin-bottom: .5rem;
+    font-size: 1.25rem;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+  }
+
+  .menwe-feature-card p,
+  .menwe-program-card p,
+  .menwe-news-card p,
+  .menwe-contact-item p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: .875rem;
+    line-height: 1.6;
+  }
+
+  .menwe-feature-icon,
+  .menwe-program-icon,
+  .menwe-contact-item > span {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .menwe-program-card,
+  .menwe-news-card {
+    padding: 1.25rem;
+    border-radius: 1rem;
+  }
+
+  .menwe-program-card p {
+    min-height: 0;
+    margin-bottom: 1.25rem;
+  }
+
+  .menwe-heading-row,
+  .menwe-news-heading,
+  .menwe-contact-heading,
+  .menwe-banner-inner {
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .menwe-section,
+  .menwe-admissions-banner,
+  .menwe-hero-exact {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .menwe-section-inner,
+  .menwe-banner-inner {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Prevent absolutely-positioned About imagery/stat cards from widening the page. */
+  .menwe-about-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .menwe-about-visual,
+  .menwe-image-tile,
+  .menwe-image-caption {
+    max-width: 100%;
+  }
+
+  .menwe-welcome-card,
+  .menwe-news-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .menwe-principal-photo {
+    min-height: 300px;
+  }
+
+  .menwe-quote {
+    min-width: 0;
+    padding: 2rem 1.25rem;
+  }
+
+  .menwe-events {
+    min-width: 0;
+    padding-left: 0;
+  }
+
+  .menwe-event {
+    grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  }
+
+  .menwe-banner-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .menwe-banner-primary,
+  .menwe-banner-outline,
+  .menwe-banner-actions > * {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .menwe-features {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
