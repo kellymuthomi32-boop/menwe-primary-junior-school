@@ -1,10 +1,11 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
+import { supabase } from "./lib/supabase";
 import "./mobile-premium.css";
 
 const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
@@ -32,7 +33,6 @@ const SchoolLifePage = lazy(() => import("./pages/SchoolLifePage"));
 const ForFamiliesPage = lazy(() => import("./pages/ForFamiliesPage"));
 const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
 const PortalLoginPage = lazy(() => import("./pages/PortalLoginPage"));
-const PortalDashboardPage = lazy(() => import("./pages/PortalDashboardPage"));
 const PortalAdminPage = lazy(() => import("./pages/PortalAdminPage"));
 const PortalTeacherPage = lazy(() => import("./pages/PortalTeacherPage"));
 const PortalParentPage = lazy(() => import("./pages/PortalParentPage"));
@@ -41,6 +41,50 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+
+const MASTER_ADMIN_EMAIL = "menweprimaryandjunior@gmail.com";
+type PortalRole = "admin" | "teacher" | "parent";
+
+function resolvePortalRole(user: { email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }): PortalRole {
+  if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) return "admin";
+  const raw = user.app_metadata?.role ?? user.user_metadata?.role;
+  const role = typeof raw === "string" ? raw.toLowerCase() : "";
+  if (["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
+  if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
+  return "parent";
+}
+
+function PortalRouteGuard({ allowedRoles, children }: { allowedRoles: PortalRole[]; children: ReactNode }) {
+  const [, navigate] = useLocation();
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    let active = true;
+    if (!supabase) { navigate("/portal/login"); return () => { active = false; }; }
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const user = data.session?.user;
+      if (!user) { setChecking(false); navigate("/portal/login"); return; }
+      const role = resolvePortalRole(user);
+      if (allowedRoles.includes(role)) { setChecking(false); return; }
+      setChecking(false);
+      navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      const user = session?.user;
+      if (!user) { navigate("/portal/login"); return; }
+      const role = resolvePortalRole(user);
+      if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, [allowedRoles, navigate]);
+  if (checking) return <div className="grid min-h-screen place-items-center bg-[#061229] text-sm text-white">Checking portal access…</div>;
+  return <>{children}</>;
+}
+
+function AdminPortalRoute() { return <PortalRouteGuard allowedRoles={["admin"]}><PortalAdminPage /></PortalRouteGuard>; }
+function TeacherPortalRoute() { return <PortalRouteGuard allowedRoles={["admin", "teacher"]}><PortalTeacherPage /></PortalRouteGuard>; }
+function ParentPortalRoute() { return <PortalRouteGuard allowedRoles={["parent"]}><PortalParentPage /></PortalRouteGuard>; }
 
 function Router() {
   const [location] = useLocation();
@@ -62,10 +106,10 @@ function Router() {
     <Route path="/families" component={ForFamiliesPage} />
     <Route path="/how-it-works" component={HowItWorksPage} />
     <Route path="/portal/login" component={PortalLoginPage} />
-    <Route path="/portal/admin" component={PortalAdminPage} />
-    <Route path="/portal/teacher" component={PortalTeacherPage} />
-    <Route path="/portal/parent" component={PortalParentPage} />
-    <Route path="/portal/dashboard" component={PortalParentPage} />
+    <Route path="/portal/admin" component={AdminPortalRoute} />
+    <Route path="/portal/teacher" component={TeacherPortalRoute} />
+    <Route path="/portal/parent" component={ParentPortalRoute} />
+    <Route path="/portal/dashboard" component={ParentPortalRoute} />
     <Route path="/portal/admin/academics" component={AcademicManagementPage} />
     <Route path="/portal/admin/attendance" component={AttendanceDirectory} />
     <Route path="/portal/admin/content" component={ContentManagementRoute} />
