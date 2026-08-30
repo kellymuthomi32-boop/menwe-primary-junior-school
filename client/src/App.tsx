@@ -12,7 +12,7 @@ const AdmissionsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({
 const NewsEventsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })));
-const AboutPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AboutPage })));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
 const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
 const PortalAccessPage = lazy(() => import("./pages/PortalAccessPage"));
 const AttendanceDirectory = lazy(() => import("./pages/AttendanceDirectory"));
@@ -45,6 +45,7 @@ function Router() {
   useEffect(() => {
     const titles: Record<string, string> = {
       "/": "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County",
+      "/about": "About Menwe | Menwe Primary & Junior School",
       "/academics": "Academics & CBC Learning | Menwe Primary & Junior School",
       "/admissions": "Admissions | Menwe Primary & Junior School",
       "/contact": "Contact Menwe Primary & Junior School",
