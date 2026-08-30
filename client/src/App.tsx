@@ -7,7 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
-const AcademicsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AcademicsPage })));
+const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
 const AdmissionsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AdmissionsPage })));
 const NewsEventsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
