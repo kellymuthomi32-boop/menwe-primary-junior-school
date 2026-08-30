@@ -8,7 +8,7 @@ import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
 const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
-const AdmissionsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.AdmissionsPage })));
+const AdmissionsPage = lazy(() => import("./pages/AdmissionsPage"));
 const NewsEventsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const ContactPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })));
@@ -43,18 +43,9 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 function Router() {
   const [location] = useLocation();
   useEffect(() => {
-    const titles: Record<string, string> = {
-      "/": "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County",
-      "/about": "About Menwe | Menwe Primary & Junior School",
-      "/academics": "Academics & CBC Learning | Menwe Primary & Junior School",
-      "/admissions": "Admissions | Menwe Primary & Junior School",
-      "/contact": "Contact Menwe Primary & Junior School",
-      "/portal/dashboard": "Learner Portal Dashboard | Menwe Primary & Junior School",
-      "/portal/admin": "Staff & Admin Command Center | Menwe Primary & Junior School",
-    };
+    const titles: Record<string, string> = { "/": "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County", "/about": "About Menwe | Menwe Primary & Junior School", "/academics": "Academics & CBC Learning | Menwe Primary & Junior School", "/admissions": "Admissions | Menwe Primary & Junior School", "/contact": "Contact Menwe Primary & Junior School", "/portal/dashboard": "Learner Portal Dashboard | Menwe Primary & Junior School", "/portal/admin": "Staff & Admin Command Center | Menwe Primary & Junior School" };
     document.title = titles[location] ?? "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County";
   }, [location]);
-
   return <Switch>
     <Route path="/" component={MenweHeroHome} />
     <Route path="/about" component={AboutPage} />
@@ -102,6 +93,4 @@ function Router() {
 const ContentManagementRoute = lazy(() => import("./pages/ContentManagement"));
 const AcademicDirectoryRoute = lazy(() => import("./pages/AcademicDirectory"));
 
-export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
-}
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>; }
