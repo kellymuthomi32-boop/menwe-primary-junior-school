@@ -7,11 +7,31 @@ import "@/styles/menwe-hero-exact.css";
 import "@/mobile-layout-fix.css";
 
 const slides = [
-  { src: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=88", alt: "Learner reading in a school library" },
-  { src: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=900&q=88", alt: "Learner writing in a notebook" },
-  { src: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=900&q=88", alt: "Learner exploring a science experiment" },
-  { src: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=88", alt: "Learner playing sport" },
-  { src: "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=900&q=88", alt: "Students performing music" },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/AHS_Uniform.jpg",
+    alt: "Kenyan school learners in uniform; Menwe Primary learners wear sky-blue dresses with white-and-blue checked collars, while boys wear navy-blue shorts with sky-blue shirts",
+    caption: "Primary learners · Sky-blue and navy uniform",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/African%20girl%20in%20her%20school%20uniform%20riding%20her%20bicycle%20barefooted.jpg",
+    alt: "African school learner in uniform; Menwe primary uniform visual identity uses sky-blue, white-and-blue checks, and navy-blue shorts",
+    caption: "Primary school · Everyday learner life",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Bishop%20Gatimu%20Girls%20Scouts.jpg",
+    alt: "Kenyan junior school learners; Menwe Junior learners wear maroon sweaters with navy-blue shirts or blouses",
+    caption: "Junior learners · Maroon and navy uniform",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Kids%20receiving%20ball%20-%20Winneba%20School-Ghana%20Keri%20Oberly.jpg",
+    alt: "African school sports scene with learners handling a rugby-style ball, representing Menwe's rugby and wider sports culture",
+    caption: "Sports culture · Rugby, teamwork and fitness",
+  },
+  {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/A%20playful%20African%20school%20boy.jpg",
+    alt: "African school learner enjoying school life; Menwe celebrates confident, active learners across classroom and co-curricular experiences",
+    caption: "School life · Confidence beyond the classroom",
+  },
 ];
 
 const programs = [
@@ -47,6 +67,8 @@ function HeroGallery() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const activeSlide = slides[active];
+
   return (
     <div className="relative min-w-0 h-[300px] sm:h-[390px] lg:h-[500px] flex items-center">
       <div className="absolute inset-0 rounded-[2rem] bg-[#D89B28]/10 blur-3xl pointer-events-none" aria-hidden="true" />
@@ -57,13 +79,18 @@ function HeroGallery() {
               key={slide.src}
               type="button"
               onClick={() => setActive(index)}
-              aria-label={`Show image ${index + 1}`}
+              aria-label={`Show image ${index + 1}: ${slide.caption}`}
               className={`relative h-[78%] flex-1 min-w-0 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all duration-500 ${index === active ? "scale-105 z-10 opacity-100" : "opacity-65"}`}
             >
-              <img src={slide.src} alt={slide.alt} className="h-full w-full object-cover" />
-              <span className="absolute inset-0 bg-gradient-to-t from-[#061229]/50 to-transparent" />
+              <img src={slide.src} alt={slide.alt} loading={index === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061229]/90 via-[#061229]/35 to-transparent px-3 pb-3 pt-10 text-left text-[11px] sm:text-xs font-semibold text-white leading-tight">
+                {slide.caption}
+              </span>
             </button>
           ))}
+        </div>
+        <div className="absolute left-4 top-4 z-20 max-w-[80%] rounded-full border border-white/15 bg-[#061229]/75 px-3 py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+          {activeSlide.caption}
         </div>
         <button type="button" onClick={() => move(-1)} aria-label="Previous image" className="absolute left-2 sm:left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-[#061229]/85 text-white backdrop-blur-sm active:scale-[0.98] transition-all">
           <ChevronLeft size={18} />
@@ -88,22 +115,9 @@ function HomeNavigationCards() {
     <div className="relative z-20 mx-auto mt-6 w-full max-w-7xl px-0" aria-label="Explore Menwe">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 w-full">
         {homeNavigation.map(([title, path, text, Icon]) => (
-          <button
-            key={path}
-            type="button"
-            onClick={() => navigate(path)}
-            aria-label={`Open ${title}`}
-            className="group w-full min-w-0 min-h-12 rounded-2xl p-6 bg-white border border-slate-200/80 shadow-sm text-left hover:border-[#D89B28]/50 hover:shadow-xl transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D89B28]"
-          >
-            <span className="w-12 h-12 rounded-xl bg-amber-50 text-[#D89B28] flex items-center justify-center font-bold text-lg mb-4">
-              <Icon size={21} />
-            </span>
-            <span className="flex items-center justify-between gap-4">
-              <span className="min-w-0 text-lg sm:text-xl font-bold text-slate-900 break-words">{title}</span>
-              <span className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-slate-50 text-slate-500 transition-transform group-hover:translate-x-1">
-                <ArrowRight size={17} />
-              </span>
-            </span>
+          <button key={path} type="button" onClick={() => navigate(path)} aria-label={`Open ${title}`} className="group w-full min-w-0 min-h-12 rounded-2xl p-6 bg-white border border-slate-200/80 shadow-sm text-left hover:border-[#D89B28]/50 hover:shadow-xl transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D89B28]">
+            <span className="w-12 h-12 rounded-xl bg-amber-50 text-[#D89B28] flex items-center justify-center font-bold text-lg mb-4"><Icon size={21} /></span>
+            <span className="flex items-center justify-between gap-4"><span className="min-w-0 text-lg sm:text-xl font-bold text-slate-900 break-words">{title}</span><span className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-slate-50 text-slate-500 transition-transform group-hover:translate-x-1"><ArrowRight size={17} /></span></span>
             <span className="mt-2 block text-sm sm:text-base text-slate-600 leading-relaxed break-words">{text}</span>
           </button>
         ))}
@@ -123,89 +137,37 @@ export default function MenweHeroHome() {
           <div className="absolute right-0 top-1/3 h-80 w-80 rounded-full bg-[#D89B28]/10 blur-3xl pointer-events-none" aria-hidden="true" />
           <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
             <div className="min-w-0 lg:col-span-5">
-              <span className="inline-flex max-w-full flex-wrap items-center rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs sm:text-sm font-semibold tracking-wide uppercase text-[#D89B28]">
-                Est. 1961 • Excellence in CBC Education
-              </span>
+              <span className="inline-flex max-w-full flex-wrap items-center rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs sm:text-sm font-semibold tracking-wide uppercase text-[#D89B28]">Est. 1961 • Excellence in CBC Education</span>
               <p className="mt-6 text-xs sm:text-sm font-semibold tracking-[0.22em] uppercase text-[#D89B28]">WELCOME TO</p>
-              <h1 id="hero-title" className="mt-3 max-w-3xl text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight break-words">
-                Menwe Primary &amp; Junior School
-              </h1>
+              <h1 id="hero-title" className="mt-3 max-w-3xl text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight break-words">Menwe Primary &amp; Junior School</h1>
               <p className="mt-4 text-xl sm:text-2xl font-bold text-[#D89B28]">Inspire. Empower. Thrive.</p>
-              <p className="mt-5 max-w-2xl text-sm sm:text-base text-white/70 leading-relaxed">
-                Nurture every learner to learn, grow and succeed in a caring environment that builds character and confidence for a brighter future.
-              </p>
+              <p className="mt-5 max-w-2xl text-sm sm:text-base text-white/70 leading-relaxed">Nurture every learner to learn, grow and succeed in a caring environment that builds character and confidence for a brighter future.</p>
               <div className="mt-7 flex flex-col sm:flex-row gap-3 w-full">
-                <button type="button" onClick={() => navigate("/admissions")} className="w-full sm:w-auto min-h-12 bg-[#D89B28] hover:bg-[#c28920] text-[#061229] font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg active:scale-[0.98] inline-flex items-center justify-center gap-2">
-                  Apply for 2026 Admissions <ArrowRight size={17} />
-                </button>
-                <button type="button" onClick={() => navigate("/login")} className="w-full sm:w-auto min-h-12 border border-white/20 hover:bg-white/10 text-white font-medium px-6 py-3.5 rounded-xl transition-all backdrop-blur-sm inline-flex items-center justify-center gap-2 active:scale-[0.98]">
-                  Explore Student Portal <UsersRound size={17} />
-                </button>
+                <button type="button" onClick={() => navigate("/admissions")} className="w-full sm:w-auto min-h-12 bg-[#D89B28] hover:bg-[#c28920] text-[#061229] font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg active:scale-[0.98] inline-flex items-center justify-center gap-2">Apply for 2026 Admissions <ArrowRight size={17} /></button>
+                <button type="button" onClick={() => navigate("/login")} className="w-full sm:w-auto min-h-12 border border-white/20 hover:bg-white/10 text-white font-medium px-6 py-3.5 rounded-xl transition-all backdrop-blur-sm inline-flex items-center justify-center gap-2 active:scale-[0.98]">Explore Student Portal <UsersRound size={17} /></button>
               </div>
             </div>
-            <div className="min-w-0 lg:col-span-7">
-              <HeroGallery />
-            </div>
+            <div className="min-w-0 lg:col-span-7"><HeroGallery /></div>
           </div>
           <HomeNavigationCards />
           <div className="relative z-20 mx-auto mt-6 w-full max-w-7xl rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-md">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[["1961", "Founded"], ["23+", "TSC & BOM Faculty"], ["100%", "CBC Pathway Integration"], ["0142550882", "Direct Admissions Hotline"]].map(([value, label]) => (
-                <div key={label} className="min-w-0 text-center sm:text-left">
-                  <div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white break-words">{value}</div>
-                  <div className="mt-1 text-xs sm:text-sm text-white/55 leading-relaxed">{label}</div>
-                </div>
-              ))}
+              {[["1961", "Founded"], ["23+", "TSC & BOM Faculty"], ["100%", "CBC Pathway Integration"], ["0142550882", "Direct Admissions Hotline"]].map(([value, label]) => <div key={label} className="min-w-0 text-center sm:text-left"><div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white break-words">{value}</div><div className="mt-1 text-xs sm:text-sm text-white/55 leading-relaxed">{label}</div></div>)}
             </div>
           </div>
         </section>
 
         <AboutSection />
 
-        <section id="academics" className="menwe-section menwe-programs-section">
-          <div className="menwe-section-inner">
-            <div className="menwe-heading-row">
-              <div><p className="menwe-section-kicker">ACADEMIC PROGRAMS &amp; CURRICULUM</p><h2>Learning Designed for Every Stage</h2></div>
-              <p>From early foundations to junior secondary and talent pathways, we connect knowledge with confidence, character and practical skills.</p>
-            </div>
-            <div className="menwe-program-grid">
-              {programs.map(([Icon, title, text]) => (
-                <article className="menwe-program-card" key={title}>
-                  <span className="menwe-program-icon"><Icon size={23} /></span><h3>{title}</h3><p>{text}</p>
-                  <button onClick={() => navigate("/academics")} className="menwe-text-link min-h-12">Learn More <ArrowRight size={15} /></button>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <section id="academics" className="menwe-section menwe-programs-section"><div className="menwe-section-inner"><div className="menwe-heading-row"><div><p className="menwe-section-kicker">ACADEMIC PROGRAMS &amp; CURRICULUM</p><h2>Learning Designed for Every Stage</h2></div><p>From early foundations to junior secondary and talent pathways, we connect knowledge with confidence, character and practical skills.</p></div><div className="menwe-program-grid">{programs.map(([Icon, title, text]) => <article className="menwe-program-card" key={title}><span className="menwe-program-icon"><Icon size={23} /></span><h3>{title}</h3><p>{text}</p><button onClick={() => navigate("/academics")} className="menwe-text-link min-h-12">Learn More <ArrowRight size={15} /></button></article>)}</div></div></section>
 
-        <section className="menwe-section bg-white">
-          <div className="menwe-section-inner">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center bg-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-2xl overflow-hidden">
-              <div className="lg:col-span-4 min-w-0 overflow-hidden rounded-2xl">
-                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=700&q=88" alt="School Principal Mr. Simon Muriungi Muthemba" className="w-full h-72 lg:h-96 object-cover" />
-              </div>
-              <div className="lg:col-span-8 min-w-0">
-                <p className="text-xs font-bold tracking-[0.2em] uppercase text-[#D89B28]">A MESSAGE FROM THE PRINCIPAL</p>
-                <h2 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight break-words">Welcome to Menwe Primary &amp; Junior School.</h2>
-                <p className="mt-5 text-base text-white/70 leading-relaxed">“We warmly welcome parents and guardians to Menwe. Our promise is to provide a safe, purposeful learning environment where children are known, supported and challenged to grow. When school and family work together, learners gain the confidence and character to thrive.”</p>
-                <p className="mt-6 text-lg font-semibold text-[#D89B28] italic">“Nurturing holistic, self-reliant learners through values and CBC excellence.”</p>
-                <div className="mt-6 flex items-center gap-3"><span className="h-px w-10 bg-[#D89B28]" /><div><strong className="block">Mr. Simon Muriungi Muthemba</strong><small className="text-white/50">School Principal</small></div></div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <section className="menwe-section bg-white"><div className="menwe-section-inner"><div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center bg-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-2xl overflow-hidden"><div className="lg:col-span-4 min-w-0 overflow-hidden rounded-2xl"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=700&q=88" alt="School Principal Mr. Simon Muriungi Muthemba" className="w-full h-72 lg:h-96 object-cover" /></div><div className="lg:col-span-8 min-w-0"><p className="text-xs font-bold tracking-[0.2em] uppercase text-[#D89B28]">A MESSAGE FROM THE PRINCIPAL</p><h2 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight break-words">Welcome to Menwe Primary &amp; Junior School.</h2><p className="mt-5 text-base text-white/70 leading-relaxed">“We warmly welcome parents and guardians to Menwe. Our promise is to provide a safe, purposeful learning environment where children are known, supported and challenged to grow. When school and family work together, learners gain the confidence and character to thrive.”</p><p className="mt-6 text-lg font-semibold text-[#D89B28] italic">“Nurturing holistic, self-reliant learners through values and CBC excellence.”</p><div className="mt-6 flex items-center gap-3"><span className="h-px w-10 bg-[#D89B28]" /><div><strong className="block">Mr. Simon Muriungi Muthemba</strong><small className="text-white/50">School Principal</small></div></div></div></div></div></section>
 
-        <section id="news-events" className="menwe-section menwe-news-section">
-          <div className="menwe-section-inner menwe-news-grid">
-            <div><p className="menwe-section-kicker">LATEST FROM MENWE</p><div className="menwe-news-heading"><h2>News, Announcements &amp; Events</h2><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>View all news <ArrowRight size={15} /></button></div><div className="menwe-news-cards">{news.map(([tag, title, text]) => <article key={title} className="menwe-news-card"><span>{tag}</span><h3>{title}</h3><p>{text}</p><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>Read story <ArrowRight size={14} /></button></article>)}</div></div>
-            <div className="menwe-events"><p className="menwe-section-kicker">UPCOMING</p><h2>What’s Next</h2>{events.map(([month, day, title, meta]) => <button className="menwe-event min-h-12" key={title} onClick={() => navigate("/events")}><span className="menwe-date"><b>{month}</b><strong>{day}</strong></span><span><b>{title}</b><small>{meta}</small></span><ArrowRight size={16} /></button>)}</div>
-          </div>
-        </section>
+        <section id="news-events" className="menwe-section menwe-news-section"><div className="menwe-section-inner menwe-news-grid"><div><p className="menwe-section-kicker">LATEST FROM MENWE</p><div className="menwe-news-heading"><h2>News, Announcements &amp; Events</h2><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>View all news <ArrowRight size={15} /></button></div><div className="menwe-news-cards">{news.map(([tag, title, text]) => <article key={title} className="menwe-news-card"><span>{tag}</span><h3>{title}</h3><p>{text}</p><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>Read story <ArrowRight size={14} /></button></article>)}</div></div><div className="menwe-events"><p className="menwe-section-kicker">UPCOMING</p><h2>What’s Next</h2>{events.map(([month, day, title, meta]) => <button className="menwe-event min-h-12" key={title} onClick={() => navigate("/events")}><span className="menwe-date"><b>{month}</b><strong>{day}</strong></span><span><b>{title}</b><small>{meta}</small></span><ArrowRight size={16} /></button>)}</div></div></section>
 
         <section className="menwe-admissions-banner"><div className="menwe-banner-inner"><div><p className="menwe-section-kicker">ADMISSIONS ARE OPEN</p><h2>Ready to Give Your Child a Brighter Future?</h2><p>Admissions are currently open for the upcoming academic term. Join the Menwe Primary &amp; Junior School family today.</p></div><div className="menwe-banner-actions"><button onClick={() => navigate("/admissions")} className="menwe-banner-primary min-h-12 active:scale-[0.98] transition-all">Apply Now <ArrowRight size={16} /></button><button onClick={() => navigate("/admissions")} className="menwe-banner-outline min-h-12 active:scale-[0.98] transition-all">Download Fee Structure / Prospectus</button></div></div></section>
 
-        <section id="contact" className="menwe-section menwe-contact-section"><div className="menwe-section-inner"><div className="menwe-contact-heading"><div><p className="menwe-section-kicker">COME AND VISIT</p><h2>Let’s stay connected</h2><p>Have a question about admissions, learning or school life? Reach out to our team or plan a visit to our Kionyo campus.</p></div><button className="menwe-cta primary min-h-12 active:scale-[0.98] transition-all" onClick={() => navigate("/contact")}>Contact the School <ArrowRight size={16} /></button></div><div className="menwe-contact-grid"><div className="menwe-contact-item"><span><MapPin size={20} /></span><div><b>Address</b><p>P.O. Box 19, Kionyo</p></div></div><div className="menwe-contact-item"><span><Phone size={20} /></span><div><b>Call us</b><p>0142550882</p></div></div><div className="menwe-contact-item"><span><CalendarDays size={20} /></span><div><b>School hours</b><p>Monday – Friday · 7:30 AM – 4:30 PM</p></div></div><a className="menwe-map" href="https://www.google.com/maps/search/?api=1&query=Kionyo%2C%20Kenya" target="_blank" rel="noreferrer"><div className="menwe-map-grid" /><span><MapPin size={17} /> Open Kionyo location in Google Maps <ArrowRight size={15} /></span></a></div></div></section>
+        <section id="contact" className="menwe-section menwe-contact-section"><div className="menwe-section-inner"><div className="menwe-contact-heading"><div><p className="menwe-section-kicker">COME AND VISIT</p><h2>Let’s stay connected</h2><p>Have a question about admissions, learning or school life? Reach out to our team or plan a visit to our Igoki campus.</p></div><button className="menwe-cta primary min-h-12 active:scale-[0.98] transition-all" onClick={() => navigate("/contact")}>Contact the School <ArrowRight size={16} /></button></div><div className="menwe-contact-grid"><div className="menwe-contact-item"><span><MapPin size={20} /></span><div><b>Address</b><p>Igoki, Abogeta Division, Meru Central</p></div></div><div className="menwe-contact-item"><span><Phone size={20} /></span><div><b>Call us</b><p>0142550882</p></div></div><div className="menwe-contact-item"><span><CalendarDays size={20} /></span><div><b>School hours</b><p>Monday – Friday · 7:30 AM – 4:30 PM</p></div></div><a className="menwe-map" href="https://www.google.com/maps/search/?api=1&query=-0.099245555%2C37.58121778" target="_blank" rel="noreferrer"><div className="menwe-map-grid" /><span><MapPin size={17} /> Open Menwe location in Google Maps <ArrowRight size={15} /></span></a></div></div></section>
       </div>
     </PublicLayout>
   );
