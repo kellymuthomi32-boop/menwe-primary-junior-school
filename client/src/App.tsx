@@ -31,13 +31,46 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
-function Router(){return <Switch>
-<Route path="/" component={MenweHeroHome}/>
-<Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/>
-<Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsEventsPage}/><Route path="/events" component={NewsEventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/>
-<Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
-<Route path="/portal/login" component={PortalLoginPage}/><Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/>
-<Route path="/login" component={PortalAccessPage}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/portal/setup/first-admin" component={FirstAdminPage}/><Route path="/portal/setup" component={SchoolSetupPage}/>
-<Route path="/portal/academics" component={AcademicManagementPage}/><Route path="/portal/exams" component={ExamManagementPage}/><Route path="/portal/attendance" component={AttendanceDirectory}/><Route path="/portal/report-cards" component={ReportCardsDirectory}/><Route path="/portal/finance" component={FinanceDirectory}/><Route path="/portal/homework" component={HomeworkDirectory}/><Route path="/portal/timetable" component={TimetableDirectory}/><Route path="/portal/notifications" component={NotificationCenter}/><Route path="/portal/gallery" component={GalleryManagementPage}/>
-<Route path="/portal/:rest*" component={PortalGuard}/><Route path="/portal" component={PortalGuard}/><Route path="*" component={NotFoundPage}/></Switch>}
-export default function App(){return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster/><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router/></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>}
+
+function Router() {
+  return <Switch>
+    <Route path="/" component={MenweHeroHome} />
+    <Route path="/about" component={AboutPage} />
+    <Route path="/academics" component={AcademicsPage} />
+    <Route path="/admissions" component={AdmissionsPage} />
+    <Route path="/news-events" component={NewsEventsPage} />
+    <Route path="/news" component={NewsEventsPage} />
+    <Route path="/events" component={NewsEventsPage} />
+    <Route path="/gallery" component={GalleryPage} />
+    <Route path="/contact" component={ContactPage} />
+    <Route path="/school-life" component={SchoolLifePage} />
+    <Route path="/families" component={ForFamiliesPage} />
+    <Route path="/how-it-works" component={HowItWorksPage} />
+    <Route path="/portal/login" component={PortalLoginPage} />
+    <Route path="/portal" component={PortalGuard} />
+    <Route path="/calendar" component={CalendarPage} />
+    <Route path="/terms" component={TermsPage} />
+    <Route path="/privacy" component={PrivacyPage} />
+    <Route path="/cookies" component={CookiesPage} />
+    <Route path="/login" component={PortalAccessPage} />
+    <Route path="/portal/password" component={LoginPage} />
+    <Route path="/portal/email-link" component={MagicLinkPage} />
+    <Route path="/portal/setup/first-admin" component={FirstAdminPage} />
+    <Route path="/portal/setup" component={SchoolSetupPage} />
+    <Route path="/portal/academics" component={AcademicManagementPage} />
+    <Route path="/portal/exams" component={ExamManagementPage} />
+    <Route path="/portal/attendance" component={AttendanceDirectory} />
+    <Route path="/portal/report-cards" component={ReportCardsDirectory} />
+    <Route path="/portal/finance" component={FinanceDirectory} />
+    <Route path="/portal/homework" component={HomeworkDirectory} />
+    <Route path="/portal/timetable" component={TimetableDirectory} />
+    <Route path="/portal/notifications" component={NotificationCenter} />
+    <Route path="/portal/gallery" component={GalleryManagementPage} />
+    <Route path="/portal/:rest*" component={PortalGuard} />
+    <Route path="*" component={NotFoundPage} />
+  </Switch>;
+}
+
+export default function App() {
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
+}
