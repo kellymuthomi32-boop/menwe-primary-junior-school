@@ -1,7 +1,7 @@
 /* Mobile layout hardening for the public landing page.
    Keep every content card readable below the md breakpoint. */
 
-@media (max-width: 767px) {
+@media (max-width: 639px) {
   .menwe-exact-page,
   .menwe-exact-page main,
   .menwe-section,
@@ -11,17 +11,27 @@
   .menwe-program-grid,
   .menwe-news-grid,
   .menwe-news-cards,
-  .menwe-contact-grid {
+  .menwe-contact-grid,
+  .menwe-exact-page [aria-label="Explore Menwe"],
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    box-sizing: border-box;
   }
 
   .menwe-exact-page {
     overflow-x: hidden;
   }
 
-  /* Strict single-column stacking for landing-page card groups. */
+  /* Strict single-column stacking for the four primary home navigation cards. */
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1rem;
+  }
+
+  /* Strict single-column stacking for every public landing-page card group. */
   .menwe-features,
   .menwe-program-grid,
   .menwe-news-cards,
@@ -32,6 +42,7 @@
     gap: 1rem;
   }
 
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid > *,
   .menwe-feature-card,
   .menwe-program-card,
   .menwe-news-card,
@@ -44,6 +55,11 @@
     box-sizing: border-box;
   }
 
+  /* Never allow fixed/fractional child widths to recreate the mobile sliver bug. */
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid > * {
+    flex: none;
+  }
+
   .menwe-feature-card {
     min-height: 0;
     padding: 1.25rem;
@@ -53,7 +69,9 @@
 
   .menwe-feature-card h2,
   .menwe-program-card h3,
-  .menwe-news-card h3 {
+  .menwe-news-card h3,
+  .menwe-exact-page [aria-label="Explore Menwe"] h2,
+  .menwe-exact-page [aria-label="Explore Menwe"] h3 {
     overflow-wrap: anywhere;
     word-break: normal;
   }
@@ -65,10 +83,23 @@
     letter-spacing: -.02em;
   }
 
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid > * {
+    border-radius: 1rem;
+    padding: 1.25rem;
+  }
+
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid > * > span,
+  .menwe-feature-icon,
+  .menwe-program-icon,
+  .menwe-contact-item > span {
+    max-width: 100%;
+  }
+
   .menwe-feature-card p,
   .menwe-program-card p,
   .menwe-news-card p,
-  .menwe-contact-item p {
+  .menwe-contact-item p,
+  .menwe-exact-page [aria-label="Explore Menwe"] p {
     max-width: 100%;
     overflow-wrap: anywhere;
     font-size: .875rem;
@@ -167,6 +198,36 @@
   .menwe-banner-outline,
   .menwe-banner-actions > * {
     width: 100%;
+  }
+
+  /* Protect every descendant from accidental fixed-width overflow on phones. */
+  .menwe-exact-page img,
+  .menwe-exact-page button,
+  .menwe-exact-page a,
+  .menwe-exact-page input,
+  .menwe-exact-page textarea,
+  .menwe-exact-page select {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+  .menwe-exact-page,
+  .menwe-exact-page main,
+  .menwe-section,
+  .menwe-section-inner,
+  .menwe-exact-page [aria-label="Explore Menwe"],
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .menwe-exact-page [aria-label="Explore Menwe"] > .grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem;
   }
 }
 
