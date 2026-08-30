@@ -33,6 +33,7 @@ const ForFamiliesPage = lazy(() => import("./pages/ForFamiliesPage"));
 const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
 const PortalLoginPage = lazy(() => import("./pages/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("./pages/PortalDashboardPage"));
+const AdminDashboardHubPage = lazy(() => import("./pages/AdminDashboardHubPage"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -48,6 +49,7 @@ function Router() {
       "/admissions": "Admissions | Menwe Primary & Junior School",
       "/contact": "Contact Menwe Primary & Junior School",
       "/portal/dashboard": "Learner Portal Dashboard | Menwe Primary & Junior School",
+      "/portal/admin": "Staff & Admin Command Center | Menwe Primary & Junior School",
     };
     document.title = titles[location] ?? "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County";
   }, [location]);
@@ -67,6 +69,11 @@ function Router() {
     <Route path="/how-it-works" component={HowItWorksPage} />
     <Route path="/portal/login" component={PortalLoginPage} />
     <Route path="/portal/dashboard" component={PortalDashboardPage} />
+    <Route path="/portal/admin" component={AdminDashboardHubPage} />
+    <Route path="/portal/admin/academics" component={AcademicManagementPage} />
+    <Route path="/portal/admin/attendance" component={AttendanceDirectory} />
+    <Route path="/portal/admin/content" component={ContentManagementRoute} />
+    <Route path="/portal/admin/directory" component={AcademicDirectoryRoute} />
     <Route path="/portal" component={PortalGuard} />
     <Route path="/calendar" component={CalendarPage} />
     <Route path="/terms" component={TermsPage} />
@@ -90,6 +97,9 @@ function Router() {
     <Route path="*" component={NotFoundPage} />
   </Switch>;
 }
+
+const ContentManagementRoute = lazy(() => import("./pages/ContentManagement"));
+const AcademicDirectoryRoute = lazy(() => import("./pages/AcademicDirectory"));
 
 export default function App() {
   return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
