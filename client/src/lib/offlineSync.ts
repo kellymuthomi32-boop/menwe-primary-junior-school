@@ -43,26 +43,30 @@ async function remove(id: string) {
 }
 
 export async function syncOfflineQueue() {
-  if (!navigator.onLine) return { synced: 0, pending: (await readAll()).length };
-  const supabase = getSupabase();
-  let synced = 0;
-  for (const item of await readAll()) {
-    try {
-      const conflict = item.table === "daily_attendance" ? "date,learner_upi" : item.table === "cbc_grades" ? "learner_upi,grade_level,learning_area,term" : "learner_upi,grade_level,term,learning_area,strand,substrand,sba_title";
-      const { error } = await supabase.from(item.table).upsert(item.payload, { onConflict: conflict });
-      if (error) throw error;
-      await remove(item.id);
-      synced++;
-    } catch {
-      // Keep failed records queued for the next online retry.
+  try {
+    if (!navigator.onLine) return { synced: 0, pending: (await readAll()).length };
+    const supabase = getSupabase();
+    let synced = 0;
+    for (const item of await readAll()) {
+      try {
+        const conflict = item.table === "daily_attendance" ? "date,learner_upi" : item.table === "cbc_grades" ? "learner_upi,grade_level,learning_area,term" : "learner_upi,grade_level,term,learning_area,strand,substrand,sba_title";
+        const { error } = await supabase.from(item.table).upsert(item.payload, { onConflict: conflict });
+        if (error) throw error;
+        await remove(item.id);
+        synced++;
+      } catch {
+        // Keep failed records queued for the next online retry.
+      }
     }
+    return { synced, pending: (await readAll()).length };
+  } catch {
+    return { synced: 0, pending: 0 };
   }
-  return { synced, pending: (await readAll()).length };
 }
 
 export function installOfflineSync() {
-  const handler = () => void syncOfflineQueue();
+  const handler = () => void syncOfflineQueue().catch(() => undefined);
   window.addEventListener("online", handler);
-  void syncOfflineQueue();
+  void syncOfflineQueue().catch(() => undefined);
   return () => window.removeEventListener("online", handler);
 }
