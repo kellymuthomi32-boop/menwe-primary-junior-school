@@ -1,76 +1,43 @@
-import { BookOpen, FlaskConical, Laptop, Music, Trophy, Sprout } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { ArrowRight, BookOpen, Calculator, CheckCircle2, ChevronRight, Cpu, FlaskConical, Globe2, Leaf, Music2, Sparkles } from "lucide-react";
 import PublicLayout from "@/components/PublicLayout";
 
-const pathways = [
-  { title: "Early Years & Primary", level: "PP1–PP2 and Grades 1–6", copy: "Foundational literacy, numeracy, creative expression, environmental awareness and social-emotional development.", icon: BookOpen },
-  { title: "Junior Secondary", level: "Grades 7–9", copy: "Science laboratory learning, digital literacy, languages, mathematics and pre-technical studies within the CBC framework.", icon: FlaskConical },
-  { title: "Talent & Co-curricular", level: "Learning beyond the classroom", copy: "Football and athletics, music and band, drama, agriculture, STEM clubs and leadership opportunities.", icon: Trophy },
+type GradeFilter = "All Grades" | "Pre-Primary (PP1-PP2)" | "Lower Primary (Grades 1-3)" | "Upper Primary (Grades 4-6)" | "Junior Secondary (Grades 7-9)";
+type Subject = { icon: typeof BookOpen; title: string; grades: GradeFilter[]; levels: string; focus: string; competencies: string };
+const filters: GradeFilter[] = ["All Grades", "Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"];
+const subjects: Subject[] = [
+  { icon: Cpu, title: "Pre-Technical Studies & ICT Hub", grades: ["Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "Grades 4–9", focus: "Digital literacy, design thinking, coding awareness, safe technology use and practical problem solving.", competencies: "Digital literacy · Creativity · Problem solving" },
+  { icon: FlaskConical, title: "Integrated Science & Health Education", grades: ["Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "PP1–JSS 3", focus: "Observation, inquiry, health, environment and scientific investigation progressing from guided discovery to practical experiments.", competencies: "Critical thinking · Self-efficacy · Collaboration" },
+  { icon: Leaf, title: "Agriculture & Nutrition Practical Plot", grades: ["Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "PP1–JSS 3", focus: "Learners connect food, soil, sustainability and healthy living through practical school-based experiences.", competencies: "Citizenship · Creativity · Responsibility" },
+  { icon: Globe2, title: "Languages (English, Kiswahili, Mother Tongue)", grades: ["Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "PP1–JSS 3", focus: "Reading, writing, listening, speaking and cultural expression build confident communication across learning contexts.", competencies: "Communication · Collaboration · Cultural awareness" },
+  { icon: Calculator, title: "Mathematics & Financial Literacy", grades: ["Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "PP1–JSS 3", focus: "Numeracy develops from concrete exploration to reasoning, measurement, data, financial literacy and applied mathematics.", competencies: "Critical thinking · Problem solving · Self-management" },
+  { icon: Music2, title: "Creative Arts & Sports Science", grades: ["Pre-Primary (PP1-PP2)", "Lower Primary (Grades 1-3)", "Upper Primary (Grades 4-6)", "Junior Secondary (Grades 7-9)"], levels: "PP1–JSS 3", focus: "Music, visual arts, movement and sport give learners practical outlets for expression, fitness, teamwork and discipline.", competencies: "Creativity · Collaboration · Self-efficacy" },
 ];
+const assessments = [
+  ["EE", "Exceeding Expectations", "4", "Learner consistently demonstrates the targeted competency beyond the expected level and can transfer learning independently."],
+  ["ME", "Meeting Expectations", "3", "Learner demonstrates the targeted competency at the expected level with appropriate independence and accuracy."],
+  ["AE", "Approaching Expectations", "2", "Learner is developing the competency and benefits from additional practice, feedback and guided support."],
+  ["BE", "Below Expectations", "1", "Learner needs focused intervention and structured support to demonstrate the targeted competency."],
+] as const;
+const terms = [
+  ["Term 1", "Opening & closing", "Official school calendar dates", "Mid-term assessment break", "School-set assessment window", "Parent-teacher consultation day"],
+  ["Term 2", "Opening & closing", "Official school calendar dates", "Mid-term assessment break", "School-set assessment window", "Parent-teacher consultation day"],
+  ["Term 3", "Opening & closing", "Official school calendar dates", "Mid-term assessment break", "KNEC/KPSEA preparation & examination windows where applicable", "Parent-teacher consultation day"],
+] as const;
 
-const focusAreas = [
-  { icon: Laptop, label: "Digital literacy" },
-  { icon: FlaskConical, label: "Science discovery" },
-  { icon: Music, label: "Music & band" },
-  { icon: Sprout, label: "Agriculture & STEM" },
-];
-
-const card = "rounded-2xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900";
-const iconContainer = "flex h-12 w-12 items-center justify-center rounded-xl bg-[#061229]/5 text-[#061229]";
+function Hero() {
+  return <section className="relative overflow-hidden bg-gradient-to-br from-[#061229] via-[#0b1d3a] to-[#061229] text-white"><div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#D89B28]/10 blur-3xl"/><div className="pointer-events-none absolute -bottom-24 left-1/4 h-64 w-64 rounded-full bg-blue-400/10 blur-3xl"/><div className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24"><span className="inline-flex max-w-full items-center rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#D89B28] sm:text-sm">Est. 1961 • CBC & JSS Academic Center of Excellence</span><h1 className="mt-6 max-w-4xl break-words text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">Academic Excellence & Competency-Based Curriculum</h1><p className="mt-6 max-w-3xl text-sm leading-7 text-white/70 sm:text-lg">Menwe Primary & Junior School supports holistic learning from Early Years through Primary and Junior Secondary School. Our CBC approach connects strong foundations in literacy and numeracy with science, technology, creativity, practical experiences, values and the confidence to apply learning in real life.</p></div></section>;
+}
 
 export default function AcademicsPage() {
-  return (
-    <PublicLayout>
-      <section className="mx-auto max-w-7xl px-5 pb-14 pt-16 lg:px-8 lg:pt-24">
-        <p className="text-xs font-bold uppercase tracking-[.2em] text-[#D89B28]">Academic excellence</p>
-        <h1 className="mt-4 max-w-4xl font-serif text-4xl font-semibold tracking-tight text-[#061229] sm:text-6xl">Learning pathways designed for every stage of growth.</h1>
-        <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600">At Menwe Primary &amp; Junior School, the Competency-Based Curriculum is brought to life through purposeful teaching, practical discovery and strong character formation.</p>
-      </section>
-
-      <section className="bg-[#F8F9FA]">
-        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="grid gap-5 lg:grid-cols-3">
-            {pathways.map((pathway) => {
-              const Icon = pathway.icon;
-              return (
-                <article key={pathway.title} className={`${card} p-7`}>
-                  <div className={iconContainer}><Icon size={21} /></div>
-                  <p className="mt-7 inline-block rounded-full bg-[#D89B28]/10 px-3 py-1 text-xs font-bold uppercase text-[#D89B28]">{pathway.level}</p>
-                  <h2 className="mt-3 font-serif text-2xl font-semibold text-[#061229] dark:text-white">{pathway.title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{pathway.copy}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr]">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[.2em] text-[#D89B28]">Our methodology</p>
-            <h2 className="mt-3 font-serif text-3xl font-semibold text-[#061229]">CBC with purpose, practice and personal attention.</h2>
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-600">Our 23 TSC/BOM certified educators use learner-centred approaches that connect classroom concepts with practical skills, collaboration, creativity and responsible decision-making.</p>
-            <p className="mt-4 text-sm font-semibold text-[#061229]">CBC Framework: PP1–PP2 · Grades 1–6 · Grades 7–9 with Science &amp; Computer Labs</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {focusAreas.map((area) => {
-              const Icon = area.icon;
-              return (
-                <div key={area.label} className={`${card} p-5`}>
-                  <div className={iconContainer}><Icon size={19} /></div>
-                  <p className="mt-8 text-sm font-semibold text-[#061229] dark:text-white">{area.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-10 rounded-2xl border border-gray-100 bg-[#061229] p-7 text-white shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl dark:border-slate-800">
-          <p className="inline-block rounded-full bg-[#D89B28]/10 px-3 py-1 text-xs font-bold uppercase text-[#D89B28]">History &amp; leadership</p>
-          <p className="mt-4 text-sm leading-6 text-white/75">Established in 1961, Menwe is guided by Principal Mr. Simon Muriungi Muthemba and Deputy Principal Mr. Patrick Kimathi, working alongside our 23 TSC/BOM certified educators.</p>
-          <p className="mt-3 text-sm leading-6 text-white/75">Location: Kionyo, Abogeta Sub-County, Meru County.</p>
-        </div>
-      </section>
-    </PublicLayout>
-  );
+  const [, go] = useLocation();
+  const [filter, setFilter] = useState<GradeFilter>("All Grades");
+  const filteredSubjects = useMemo(() => filter === "All Grades" ? subjects : subjects.filter(subject => subject.grades.includes(filter)), [filter]);
+  return <PublicLayout><Hero/><main className="mx-auto w-full max-w-7xl overflow-hidden px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+    <section aria-labelledby="explorer-title"><div className="max-w-3xl"><span className="inline-flex rounded-full bg-[#D89B28]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#D89B28]">CBC subject explorer</span><h2 id="explorer-title" className="mt-4 break-words text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Learning areas built around competencies.</h2><p className="mt-4 text-sm leading-7 text-slate-600 sm:text-base">Choose a grade band to see the learning emphasis, practical focus and core competencies learners develop at Menwe.</p></div><div className="mt-8 flex max-w-full gap-2 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Grade filters">{filters.map(item => <button key={item} type="button" role="tab" aria-selected={filter === item} onClick={() => setFilter(item)} className={`min-h-12 shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition-all active:scale-[0.98] sm:text-sm ${filter === item ? "border-[#D89B28] bg-[#D89B28] text-[#061229]" : "border-slate-200 bg-white text-slate-600 hover:border-[#D89B28]/50 hover:text-[#061229]"}`}>{item}</button>)}</div><div className="mt-7 grid w-full grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">{filteredSubjects.map(({ icon: Icon, title, levels, focus, competencies }) => <article key={title} className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"><div className="mb-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-[#D89B28]"><Icon size={21}/></div><p className="text-[11px] font-bold uppercase tracking-wider text-[#D89B28]">Target levels · {levels}</p><h3 className="mt-3 break-words text-lg font-bold tracking-tight text-slate-900 sm:text-xl">{title}</h3><p className="mt-3 text-sm leading-relaxed text-slate-600">{focus}</p><div className="mt-5 flex items-start gap-2 border-t border-slate-100 pt-4 text-xs font-semibold leading-5 text-slate-500"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#D89B28]"/>{competencies}</div></article>)}</div></section>
+    <section className="mt-16 grid w-full grid-cols-1 gap-6 lg:grid-cols-[1.1fr_.9fr]" aria-labelledby="assessment-title"><div className="box-border w-full min-w-0 max-w-full rounded-3xl bg-slate-900 p-6 text-white sm:p-8"><span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#D89B28]">CBC assessment framework</span><h2 id="assessment-title" className="mt-4 break-words text-2xl font-bold tracking-tight sm:text-3xl">Assessment that makes progress visible.</h2><p className="mt-4 text-sm leading-7 text-white/65">CBC assessment focuses on demonstrated competencies, practical application, feedback and learner growth. Teachers use evidence from classwork, projects, observation and structured assessments to guide the next learning step.</p><div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">{assessments.map(([code,title,score,text]) => <div key={code} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between gap-3"><span className="text-sm font-extrabold text-[#D89B28]">{code}</span><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#D89B28] text-sm font-extrabold text-[#061229]">{score}</span></div><h3 className="mt-3 text-sm font-bold text-white">{title}</h3><p className="mt-2 text-xs leading-5 text-white/55">{text}</p></div>)}</div></div><div className="box-border w-full min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-[#D89B28]"><Sparkles size={22}/></div><h2 className="mt-5 break-words text-2xl font-bold tracking-tight text-slate-900">Preparing Grade 6 learners for KPSEA.</h2><p className="mt-4 text-sm leading-7 text-slate-600">The Kenya Primary School Education Assessment (KPSEA) is part of the Grade 6 transition journey. Menwe supports learners through consistent competency tracking, revision, examination practice, reading confidence, numeracy fluency and guidance on the transition into JSS.</p><ul className="mt-6 space-y-3 text-sm text-slate-600">{["Continuous formative assessment and feedback","Targeted revision and examination-readiness practice","Literacy, numeracy and problem-solving reinforcement","Learner wellbeing, confidence and transition guidance"].map(item => <li key={item} className="flex gap-3"><CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={17}/><span>{item}</span></li>)}</ul></div></section>
+    <section className="mt-16" aria-labelledby="calendar-title"><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><span className="inline-flex rounded-full bg-[#D89B28]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#D89B28]">Academic calendar</span><h2 id="calendar-title" className="mt-4 break-words text-3xl font-bold tracking-tight text-slate-900">Term rhythm & academic schedule.</h2></div><p className="max-w-xl text-sm leading-6 text-slate-500">Exact opening, closing and examination dates follow the official school and KNEC calendars released for the academic year.</p></div><div className="mt-7 grid w-full grid-cols-1 gap-4 md:grid-cols-3">{terms.map(([term,opening,dates,mid,exams,parents]) => <article key={term} className="box-border w-full min-w-0 max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-center justify-between gap-4"><h3 className="text-xl font-bold text-slate-900">{term}</h3><BookOpen className="shrink-0 text-[#D89B28]" size={20}/></div><dl className="mt-5 space-y-4 text-sm"><div><dt className="font-bold text-slate-900">{opening}</dt><dd className="mt-1 leading-6 text-slate-500">{dates}</dd></div><div><dt className="font-bold text-slate-900">{mid}</dt><dd className="mt-1 leading-6 text-slate-500">Published in the term circular and learner diary.</dd></div><div><dt className="font-bold text-slate-900">{exams}</dt><dd className="mt-1 leading-6 text-slate-500">Published by the school when the applicable assessment window is confirmed.</dd></div><div><dt className="font-bold text-slate-900">{parents}</dt><dd className="mt-1 leading-6 text-slate-500">Families receive consultation schedules through school communication channels.</dd></div></dl></article>)}</div></section>
+    <section className="mt-16 box-border w-full min-w-0 max-w-full overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-[#0b1d3a] p-6 text-white sm:p-10"><div className="max-w-3xl"><span className="inline-flex rounded-full bg-[#D89B28]/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#D89B28]">Learn more</span><h2 className="mt-4 break-words text-2xl font-bold sm:text-3xl">Talk to Menwe about the right learning pathway.</h2><p className="mt-3 text-sm leading-6 text-white/65">Our academic team can help families understand grade placement, learning areas, assessment expectations and the transition into JSS.</p></div><div className="mt-7 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"><button type="button" onClick={() => go("/contact")} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 py-3 text-sm font-extrabold text-[#061229] transition-all active:scale-[0.98] sm:w-auto">Contact the academic team <ArrowRight size={16}/></button><button type="button" onClick={() => go("/admissions")} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-white/10 active:scale-[0.98] sm:w-auto">Explore admissions <ChevronRight size={16}/></button></div></section>
+  </main></PublicLayout>;
 }
