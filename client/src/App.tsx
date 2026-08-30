@@ -33,7 +33,9 @@ const ForFamiliesPage = lazy(() => import("./pages/ForFamiliesPage"));
 const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
 const PortalLoginPage = lazy(() => import("./pages/PortalLoginPage"));
 const PortalDashboardPage = lazy(() => import("./pages/PortalDashboardPage"));
-const AdminDashboardHubPage = lazy(() => import("./pages/AdminDashboardHubPage"));
+const PortalAdminPage = lazy(() => import("./pages/PortalAdminPage"));
+const PortalTeacherPage = lazy(() => import("./pages/PortalTeacherPage"));
+const PortalParentPage = lazy(() => import("./pages/PortalParentPage"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -60,8 +62,10 @@ function Router() {
     <Route path="/families" component={ForFamiliesPage} />
     <Route path="/how-it-works" component={HowItWorksPage} />
     <Route path="/portal/login" component={PortalLoginPage} />
-    <Route path="/portal/dashboard" component={PortalDashboardPage} />
-    <Route path="/portal/admin" component={AdminDashboardHubPage} />
+    <Route path="/portal/admin" component={PortalAdminPage} />
+    <Route path="/portal/teacher" component={PortalTeacherPage} />
+    <Route path="/portal/parent" component={PortalParentPage} />
+    <Route path="/portal/dashboard" component={PortalParentPage} />
     <Route path="/portal/admin/academics" component={AcademicManagementPage} />
     <Route path="/portal/admin/attendance" component={AttendanceDirectory} />
     <Route path="/portal/admin/content" component={ContentManagementRoute} />
