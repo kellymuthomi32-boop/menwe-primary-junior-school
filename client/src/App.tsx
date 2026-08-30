@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense } from "react";
-import { Route, Switch } from "wouter";
+import { lazy, Suspense, useEffect } from "react";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
@@ -26,6 +26,7 @@ const SchoolLifePage = lazy(() => import("./pages/SchoolLifePage"));
 const ForFamiliesPage = lazy(() => import("./pages/ForFamiliesPage"));
 const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
 const PortalLoginPage = lazy(() => import("./pages/PortalLoginPage"));
+const PortalDashboardPage = lazy(() => import("./pages/PortalDashboardPage"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
@@ -33,6 +34,17 @@ const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function Router() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/": "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County",
+      "/academics": "Academics & CBC Learning | Menwe Primary & Junior School",
+      "/admissions": "Admissions | Menwe Primary & Junior School",
+      "/contact": "Contact Menwe Primary & Junior School",
+      "/portal/dashboard": "Learner Portal Dashboard | Menwe Primary & Junior School",
+    };
+    document.title = titles[location] ?? "Menwe Primary & Junior School | Kionyo, Abogeta Sub-County";
+  }, [location]);
   return <Switch>
     <Route path="/" component={MenweHeroHome} />
     <Route path="/about" component={AboutPage} />
@@ -47,6 +59,7 @@ function Router() {
     <Route path="/families" component={ForFamiliesPage} />
     <Route path="/how-it-works" component={HowItWorksPage} />
     <Route path="/portal/login" component={PortalLoginPage} />
+    <Route path="/portal/dashboard" component={PortalDashboardPage} />
     <Route path="/portal" component={PortalGuard} />
     <Route path="/calendar" component={CalendarPage} />
     <Route path="/terms" component={TermsPage} />
@@ -71,6 +84,4 @@ function Router() {
   </Switch>;
 }
 
-export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
-}
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>; }
