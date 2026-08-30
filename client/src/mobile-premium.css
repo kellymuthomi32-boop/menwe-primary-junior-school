@@ -9,7 +9,6 @@
   html { scroll-padding-top: 76px; }
   body { overflow-x: hidden; padding-bottom: env(safe-area-inset-bottom); }
 
-  /* The feature grid must never squeeze cards into phone-width columns. */
   .menwe-feature {
     grid-column: 1 / -1 !important;
     width: 100%;
@@ -65,20 +64,62 @@
   header.sticky > div.absolute nav > button { min-height: 50px; }
   header.sticky > div.absolute .grid-cols-3 { grid-template-columns: 1fr; }
 
-  /* Give the public header a little more hierarchy on small screens. */
   header.sticky .text-\[9px\] { letter-spacing: .13em; }
 
-  /* Avoid hover transforms causing visual jumps on touch devices. */
   .menwe-feature:hover,
   .menwe-role:hover,
   .menwe-value-card:hover,
   .menwe-news-card:hover,
   .menwe-interactive:hover { transform: none; }
 
-  /* Prevent wide decorative layers from creating accidental horizontal scroll. */
   .menwe-grid,
   .menwe-aurora,
   .menwe-orbit { max-width: 100vw; }
+}
+
+/* Sticky header polish: keep the navigation visually anchored while preventing
+   layout jumps, accidental clipping and inaccessible touch targets. */
+@media (max-width: 1023px) {
+  header.sticky {
+    isolation: isolate;
+    overflow: visible;
+    -webkit-backdrop-filter: blur(22px) saturate(1.08);
+  }
+
+  header.sticky > div:not(.absolute) {
+    min-height: 64px;
+  }
+
+  header.sticky > div.absolute {
+    z-index: 2;
+    width: 100%;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  header.sticky button[aria-expanded] {
+    flex: 0 0 auto;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  header.sticky button[aria-expanded]:focus-visible,
+  header.sticky a:focus-visible,
+  header.sticky button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+}
+
+@media (max-width: 389px) {
+  header.sticky > div:not(.absolute) { padding-left: .85rem; padding-right: .85rem; }
+  header.sticky .grid.h-11 { width: 38px; height: 38px; }
+  header.sticky .leading-tight p:first-child { font-size: 15px; }
+  header.sticky .leading-tight p:last-child { font-size: 8px; letter-spacing: .095em; }
+}
+
+@media (min-width: 390px) and (max-width: 767px) {
+  header.sticky > div:not(.absolute) { padding-left: 1rem; padding-right: 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
