@@ -1,3 +1,4 @@
+// Menwe admin analytics: live operational metrics with mobile-safe visual bars.
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Loader2 } from "lucide-react";
 import { getSupabase } from "@/lib/supabase";
