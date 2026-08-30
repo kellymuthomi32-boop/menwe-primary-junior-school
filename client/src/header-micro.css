@@ -1,0 +1,27 @@
+/* Menwe public header: strict micro-typography and compact rhythm. */
+header .menwe-utility-bar{height:36px;min-height:36px;background:#061229;color:#E2E8F0;font-family:Inter,Plus Jakarta Sans,ui-sans-serif,system-ui,sans-serif}
+header .menwe-utility-bar>div{min-height:36px;height:36px;padding-top:4px;padding-bottom:4px}
+header .menwe-utility-link,header .menwe-utility-location{font-size:11px!important;line-height:16px;font-weight:500!important;color:#E2E8F0!important;gap:6px!important;white-space:nowrap}
+header .menwe-utility-link svg,header .menwe-utility-location svg,header .menwe-social-icon svg{width:14px!important;height:14px!important;flex:none}
+header .menwe-utility-bar .menwe-social-icon{width:24px;height:24px;display:grid;place-items:center;border-radius:999px;color:#E2E8F0;transition:color .2s ease,background .2s ease}
+header .menwe-utility-bar .menwe-social-icon:hover{color:#D89B28;background:rgba(216,155,40,.1)}
+header .menwe-utility-bar .flex.items-center.gap-1\.5{gap:6px!important}
+header>div.mx-auto{height:68px!important;min-height:68px!important;padding-top:10px!important;padding-bottom:10px!important}
+header .menwe-focus-ring.group>div{gap:10px}
+header .menwe-focus-ring.group>div>div:first-child{width:40px!important;height:40px!important;border-radius:12px!important}
+header .menwe-focus-ring.group>div>div:first-child span{font-size:18px!important}
+header .menwe-focus-ring.group>div>div:first-child+div p:first-child{font-size:14px!important;line-height:16px!important;font-family:Inter,Plus Jakarta Sans,ui-sans-serif,system-ui,sans-serif;font-weight:700!important;letter-spacing:-.02em!important}
+header .menwe-focus-ring.group>div>div:first-child+div p:last-child{font-size:9px!important;line-height:12px!important;letter-spacing:.14em!important;font-weight:600!important}
+header nav[aria-label="Public navigation"]{gap:0!important}
+header nav[aria-label="Public navigation"]>button,header nav[aria-label="Public navigation"]>div>button{padding:8px 10px!important;font-size:13px!important;line-height:18px!important;font-weight:500!important;color:#475569!important}
+header nav[aria-label="Public navigation"]>button:hover,header nav[aria-label="Public navigation"]>div>button:hover{color:#0B1A30!important}
+header nav[aria-label="Public navigation"]>button[aria-current="page"],header nav[aria-label="Public navigation"]>div>button[aria-expanded="true"]{font-weight:600!important;color:#0B1A30!important}
+header nav[aria-label="Public navigation"] svg{width:13px!important;height:13px!important}
+header .hidden.items-center.gap-2.lg\:flex>button{padding:6px 14px!important;font-size:12px!important;line-height:18px!important;font-weight:600!important}
+header .hidden.items-center.gap-2.lg\:flex>button:first-child{order:2;background:#0B1A30!important;border-color:#0B1A30!important;border-radius:999px!important}
+header .hidden.items-center.gap-2.lg\:flex>button:last-child{order:1;border-radius:999px!important;background:#fff!important;border-color:#CBD5E1!important}
+header .hidden.items-center.gap-2.lg\:flex>button:last-child>span{width:22px!important;height:22px!important}
+header .hidden.items-center.gap-2.lg\:flex svg{width:13px!important;height:13px!important}
+@media(max-width:1023px){header .menwe-utility-bar{display:none}header>div.mx-auto{height:64px!important;min-height:64px!important;padding-top:8px!important;padding-bottom:8px!important}header .menwe-focus-ring.group>div>div:first-child{width:38px!important;height:38px!important}}
+@media(min-width:1024px){header .menwe-utility-bar .utility-email.secondary{display:inline-flex}header .menwe-utility-bar .utility-email{max-width:250px;overflow:hidden;text-overflow:ellipsis}}
+@media(max-width:1180px) and (min-width:1024px){header nav[aria-label="Public navigation"]>button,header nav[aria-label="Public navigation"]>div>button{padding-left:7px!important;padding-right:7px!important;font-size:12px!important}header .hidden.items-center.gap-2.lg\:flex>button{padding-left:10px!important;padding-right:10px!important}}
