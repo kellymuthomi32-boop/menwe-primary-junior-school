@@ -43,12 +43,12 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const MASTER_ADMIN_EMAIL = "menweprimaryandjunior@gmail.com";
 type PortalRole = "admin" | "teacher" | "parent";
 
-function resolvePortalRole(user: { email?: string | null; app_metadata?: Record<string, unknown> }): PortalRole {
+function resolvePortalRole(user: { email?: string | null; app_metadata?: Record<string, unknown> }, profileRole?: unknown, profileActive = false): PortalRole {
   if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) return "admin";
-  const raw = user.app_metadata?.role;
-  const role = typeof raw === "string" ? raw.toLowerCase() : "";
-  if (["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
-  if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
+  const role = typeof profileRole === "string" ? profileRole.toLowerCase() : "";
+  if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
+  if (profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
+  // Do not use client-writable user_metadata/app_metadata as a privilege fallback.
   return "parent";
 }
 
@@ -58,20 +58,29 @@ function PortalRouteGuard({ allowedRoles, children }: { allowedRoles: PortalRole
   useEffect(() => {
     let active = true;
     if (!supabase) { setChecking(false); navigate("/portal/login"); return () => { active = false; }; }
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
+    const authorize = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
       const user = data.session?.user;
-      if (!user) { setChecking(false); navigate("/portal/login"); return; }
-      const role = resolvePortalRole(user);
-      setChecking(false);
-      if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
-    }).catch(() => { if (active) { setChecking(false); navigate("/portal/login"); } });
+      if (!user) { if (active) { setChecking(false); navigate("/portal/login"); } return; }
+      if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) {
+        if (active) { setChecking(false); if (!allowedRoles.includes("admin")) navigate("/portal/admin"); }
+        return;
+      }
+      const { data: profile, error: profileError } = await supabase.from("profiles").select("role,is_approved,is_disabled").eq("id", user.id).maybeSingle();
+      if (profileError || !profile || profile.is_disabled || !profile.is_approved) {
+        if (active) { setChecking(false); navigate("/portal/login"); }
+        return;
+      }
+      const role = resolvePortalRole(user, profile.role, true);
+      if (active) { setChecking(false); if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent"); }
+    };
+    void authorize().catch(() => { if (active) { setChecking(false); navigate("/portal/login"); } });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
-      const user = session?.user;
-      if (!user) { navigate("/portal/login"); return; }
-      const role = resolvePortalRole(user);
-      if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
+      if (!session?.user) { navigate("/portal/login"); return; }
+      // Session changes trigger a fresh profile authorization check instead of trusting JWT metadata.
+      void authorize().catch(() => { if (active) navigate("/portal/login"); });
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, [allowedRoles, navigate]);
