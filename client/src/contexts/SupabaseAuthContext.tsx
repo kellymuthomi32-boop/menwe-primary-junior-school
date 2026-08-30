@@ -6,7 +6,7 @@ export type AppRole = "SUPER_ADMIN" | "ADMIN" | "TEACHER" | "STUDENT" | "PARENT"
 type CanonicalRole = "admin" | "head_of_institution" | "deputy_hoi" | "teacher" | "class_teacher" | "classroom_teacher" | "staff" | "finance_officer" | "finance_approver" | "parent" | "student";
 export type SchoolProfile = { id: string; email: string | null; display_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null; };
 function normalizeRole(role: CanonicalRole): AppRole { if (role === "parent") return "PARENT"; if (role === "student") return "STUDENT"; if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "TEACHER"; return "ADMIN"; }
-function metadataRole(user: User): CanonicalRole | null { const role = user.user_metadata?.role ?? user.app_metadata?.role; if (typeof role !== "string") return null; const normalized = role.toLowerCase() as CanonicalRole; return normalized; }
+function metadataRole(user: User): CanonicalRole | null { const role = user.app_metadata?.role; if (typeof role !== "string") return null; return role.toLowerCase() as CanonicalRole; }
 
 type AuthContextValue = { user: User | null; session: Session | null; profile: SchoolProfile | null; loading: boolean; error: string | null; signIn: (email: string, password: string) => Promise<{ error?: string }>; sendMagicLink: (email: string) => Promise<{ error?: string }>; sendPasswordReset: (email: string) => Promise<{ error?: string }>; updatePassword: (password: string) => Promise<{ error?: string }>; signOut: () => Promise<void>; refreshProfile: () => Promise<void>; };
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -15,7 +15,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const [session, setSession] = useState<Session | null>(null); const [profile, setProfile] = useState<SchoolProfile | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const loadProfile = useCallback(async (userId: string | null) => {
     if (!userId || !supabase) { setProfile(null); return; }
-    const { data, error: profileError } = await supabase.from("profiles").select("id,email,display_name,phone,role,is_disabled").eq("id", userId).maybeSingle();
+    const { data, error: profileError } = await supabase.from("profiles").select("id,email,display_name,phone,role,is_disabled,is_approved").eq("id", userId).maybeSingle();
     if (profileError) { setError("Your account was authenticated, but its school profile could not be loaded."); setProfile(null); return; }
     if (!data) { setProfile(null); return; }
     const canonicalRole = data.role as CanonicalRole;
@@ -24,7 +24,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!supabase) { setError("The portal has not been configured with Supabase yet."); setLoading(false); return; }
     let active = true;
-    void supabase.auth.getSession().then(async ({ data }) => { if (!active) return; setSession(data.session); await loadProfile(data.session?.user.id ?? null); if (active) setLoading(false); });
+    void supabase.auth.getSession().then(async ({ data }) => { if (!active) return; setSession(data.session); await loadProfile(data.session?.user.id ?? null); if (active) setLoading(false); }).catch(() => { if (active) { setError("Unable to restore your school session."); setLoading(false); } });
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => { setSession(nextSession); void loadProfile(nextSession?.user.id ?? null); setLoading(false); });
     return () => { active = false; subscription.subscription.unsubscribe(); };
   }, [loadProfile]);
@@ -40,4 +40,4 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 }
 export function useSchoolAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider"); return context; }
 export function isAdministrator(role: AppRole | undefined) { return role === "SUPER_ADMIN" || role === "ADMIN"; }
-export function getPortalRedirect(user: User | null): "/portal/admin" | "/portal/dashboard" { const role = user ? metadataRole(user) : null; return role === "staff" || role === "teacher" || role === "class_teacher" || role === "classroom_teacher" || role === "admin" || role === "head_of_institution" || role === "deputy_hoi" ? "/portal/admin" : "/portal/dashboard"; }
+export function getPortalRedirect(user: User | null): "/portal/admin" | "/portal/teacher" | "/portal/dashboard" { if (!user) return "/portal/dashboard"; const role = metadataRole(user); if (user.email?.trim().toLowerCase() === "menweprimaryandjunior@gmail.com" || role === "admin" || role === "head_of_institution" || role === "deputy_hoi") return "/portal/admin"; if (role === "teacher" || role === "class_teacher" || role === "classroom_teacher" || role === "staff") return "/portal/teacher"; return "/portal/dashboard"; }
