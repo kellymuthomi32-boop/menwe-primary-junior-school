@@ -5,7 +5,7 @@ import { lazy, Suspense } from "react";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import HomePagePremium from "./pages/HomePagePremium";
+import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
 const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
@@ -36,7 +36,7 @@ const HowItWorksPage = lazy(() => import("./pages/DiscoverPages").then(module =>
 const LegalPage = lazy(() => import("./pages/LegalPages").then(module => ({ default: module.LegalPage })));
 
 function Router() { return <Switch>
-<Route path="/" component={HomePagePremium} />
+<Route path="/" component={MenweHeroHome} />
 <Route path="/about" component={RichAboutPage} />
 <Route path="/academics" component={RichAcademicsPage} />
 <Route path="/school-life" component={SchoolLifePage} /><Route path="/families" component={FamiliesPage} /><Route path="/how-it-works" component={HowItWorksPage} />
