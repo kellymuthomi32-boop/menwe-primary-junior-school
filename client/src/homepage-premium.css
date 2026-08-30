@@ -152,6 +152,18 @@
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
 
+/* Final interaction polish: depth without visual noise. */
+.menwe-hero .menwe-float > div:nth-child(3) {
+  transition: transform .7s cubic-bezier(.16,1,.3,1), box-shadow .7s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menwe-hero .menwe-float > div:nth-child(3) { animation: menwe-hero-float 7s ease-in-out infinite; }
+  .menwe-hero .menwe-mini-card:nth-child(2) { animation: menwe-card-breathe 6s ease-in-out 1s infinite; }
+  .menwe-hero .menwe-mini-card:nth-child(3) { animation: menwe-card-breathe 6s ease-in-out 2s infinite; }
+  .menwe-hero .menwe-mini-card:nth-child(4) { animation: menwe-card-breathe 6s ease-in-out 3s infinite; }
+}
+
 @keyframes menwe-hero-sheen {
   0%, 65%, 100% { transform: translateX(-30%); opacity: .45; }
   78% { transform: translateX(30%); opacity: .9; }
@@ -166,6 +178,16 @@
 @keyframes menwe-progress {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
+}
+
+@keyframes menwe-hero-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -8px, 0) rotate(.35deg); }
+}
+
+@keyframes menwe-card-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 /* Hero becomes easier to scan on compact screens. */
@@ -208,6 +230,8 @@
   .menwe-feature p:last-of-type { font-size: .84rem; line-height: 1.55rem; }
   .menwe-hero .menwe-reveal { padding-top: .5rem; }
   .menwe-hero .menwe-glow-button, .menwe-hero .menwe-reveal button { width: 100%; justify-content: center; }
+  .menwe-hero .menwe-float > div:nth-child(3) { border-radius: 1.55rem; padding: .65rem; }
+  .menwe-hero .menwe-mini-card { min-height: 148px; padding: 1rem; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -224,7 +248,9 @@
 @media (prefers-reduced-motion: reduce) {
   .menwe-hero::before,
   .menwe-hero .menwe-live-dot,
-  .menwe-hero .menwe-progress { animation: none; }
+  .menwe-hero .menwe-progress,
+  .menwe-hero .menwe-float > div:nth-child(3),
+  .menwe-hero .menwe-mini-card { animation: none; }
 }
 
 main > section:not(.menwe-hero) h2 { text-wrap: balance; }
