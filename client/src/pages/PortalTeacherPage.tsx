@@ -17,9 +17,7 @@ function Guard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useSchoolAuth();
   const [, go] = useLocation();
   const authorized = Boolean(user && profile && profile.status === "ACTIVE" && (isAdministrator(profile.role) || profile.role === "TEACHER"));
-  useEffect(() => {
-    if (!loading && !authorized) go("/portal/login");
-  }, [authorized, loading, go]);
+  useEffect(() => { if (!loading && !authorized) go("/portal/login"); }, [authorized, loading, go]);
   if (loading) return <div className="grid min-h-screen place-items-center">Loading teacher workspace…</div>;
   if (!authorized) return null;
   return <>{children}</>;
@@ -43,13 +41,15 @@ function TeacherContent() {
     if (!upi.trim()) { setMessage("Enter the learner UPI number."); return; }
     setBusy(true); setMessage("");
     try {
-      const { error } = await getSupabase().from("cbc_grades").insert([{ learner_upi: upi.trim(), grade_level: grade, learning_area: area, rubric_score: score, term: "2026 Term 1", teacher_remarks: remarks.trim() || null, recorded_by_email: auth.user?.email ?? null }]);
+      const { error } = await getSupabase().from("cbc_grades").upsert([{
+        learner_upi: upi.trim(), grade_level: grade, learning_area: area, rubric_score: score,
+        term: "2026 Term 1", teacher_remarks: remarks.trim() || null, recorded_by_email: auth.user?.email ?? null,
+      }], { onConflict: "learner_upi,grade_level,learning_area,term" });
       if (error) throw error;
       setMessage("CBC assessment saved successfully.");
       setRemarks("");
-    } catch (error) {
-      setMessage(friendlyError(error));
-    } finally { setBusy(false); }
+    } catch (error) { setMessage(friendlyError(error)); }
+    finally { setBusy(false); }
   };
 
   return <PortalLayout role={auth.profile!.role}><main className="mx-auto w-full max-w-7xl box-border min-w-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
