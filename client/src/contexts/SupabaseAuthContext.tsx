@@ -4,9 +4,9 @@ import { getSupabase, supabase } from "@/lib/supabase";
 
 export type AppRole = "SUPER_ADMIN" | "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 type CanonicalRole = "admin" | "head_of_institution" | "deputy_hoi" | "teacher" | "class_teacher" | "classroom_teacher" | "staff" | "finance_officer" | "finance_approver" | "parent" | "student";
-
 export type SchoolProfile = { id: string; email: string | null; display_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null; };
 function normalizeRole(role: CanonicalRole): AppRole { if (role === "parent") return "PARENT"; if (role === "student") return "STUDENT"; if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "TEACHER"; return "ADMIN"; }
+function metadataRole(user: User): CanonicalRole | null { const role = user.user_metadata?.role ?? user.app_metadata?.role; if (typeof role !== "string") return null; const normalized = role.toLowerCase() as CanonicalRole; return normalized; }
 
 type AuthContextValue = { user: User | null; session: Session | null; profile: SchoolProfile | null; loading: boolean; error: string | null; signIn: (email: string, password: string) => Promise<{ error?: string }>; sendMagicLink: (email: string) => Promise<{ error?: string }>; sendPasswordReset: (email: string) => Promise<{ error?: string }>; updatePassword: (password: string) => Promise<{ error?: string }>; signOut: () => Promise<void>; refreshProfile: () => Promise<void>; };
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -30,9 +30,9 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   }, [loadProfile]);
   const value = useMemo<AuthContextValue>(() => ({
     user: session?.user ?? null, session, profile, loading, error,
-    signIn: async (email, password) => { const { error: signInError } = await getSupabase().auth.signInWithPassword({ email, password }); return signInError ? { error: signInError.message } : {}; },
-    sendMagicLink: async email => { const { error: magicLinkError } = await getSupabase().auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/portal/overview`, shouldCreateUser: false } }); return magicLinkError ? { error: magicLinkError.message } : {}; },
-    sendPasswordReset: async email => { const { error: resetError } = await getSupabase().auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/portal/password?mode=update-password` }); return resetError ? { error: resetError.message } : {}; },
+    signIn: async (email, password) => { const { error: signInError } = await getSupabase().auth.signInWithPassword({ email: email.trim().toLowerCase(), password }); return signInError ? { error: signInError.message } : {}; },
+    sendMagicLink: async email => { const { error: magicLinkError } = await getSupabase().auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: `${window.location.origin}/portal/dashboard`, shouldCreateUser: false } }); return magicLinkError ? { error: magicLinkError.message } : {}; },
+    sendPasswordReset: async email => { const { error: resetError } = await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/portal/password?mode=update-password` }); return resetError ? { error: resetError.message } : {}; },
     updatePassword: async password => { const { error: updateError } = await getSupabase().auth.updateUser({ password }); return updateError ? { error: updateError.message } : {}; },
     signOut: async () => { await getSupabase().auth.signOut(); }, refreshProfile: async () => loadProfile(session?.user.id ?? null),
   }), [error, loadProfile, loading, profile, session]);
@@ -40,3 +40,4 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 }
 export function useSchoolAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider"); return context; }
 export function isAdministrator(role: AppRole | undefined) { return role === "SUPER_ADMIN" || role === "ADMIN"; }
+export function getPortalRedirect(user: User | null): "/portal/admin" | "/portal/dashboard" { const role = user ? metadataRole(user) : null; return role === "staff" || role === "teacher" || role === "class_teacher" || role === "classroom_teacher" || role === "admin" || role === "head_of_institution" || role === "deputy_hoi" ? "/portal/admin" : "/portal/dashboard"; }
