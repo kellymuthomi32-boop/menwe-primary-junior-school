@@ -26,7 +26,8 @@ export default function PortalLoginPage() {
   const [magicLinkMode, setMagicLinkMode] = useState(false);
 
   useEffect(() => {
-    if (!supabase) return;
+    // Guard against running redirect before profile resolution
+    if (!supabase || !auth.profile) return;
     let active = true;
 
     void supabase.auth.getSession().then(({ data }) => {
@@ -106,8 +107,10 @@ export default function PortalLoginPage() {
         setMessage(friendlyError(result.error));
         return;
       }
-      await auth.refreshProfile();
-      go(getPortalRedirect(auth.profile, auth.user));
+      // Await fresh profile resolution to prevent using stale closure state
+      const freshProfile = await auth.refreshProfile();
+      const targetProfile = freshProfile || auth.profile;
+      go(getPortalRedirect(targetProfile, auth.user));
     } catch (error) {
       setMessage(friendlyError(error));
     } finally {
@@ -324,7 +327,7 @@ export default function PortalLoginPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-500">{tab === "staff" ? "Create your Menwe teacher / staff portal account using your official details." : "Create a portal account by verifying a learner record already held by Menwe."}</p>
                 {tab === "staff" && (
                   <>
-                    <label className="mt-5 block text-sm font-bold text-[#061229] dark:text-white">Full Name<input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Teacher full name" className={inputClass} /></label>
+                    <label className="mt-5 block text-sm font-bold text-[#061229] dark:text-[#white]">Full Name<input required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Teacher full name" className={inputClass} /></label>
                     <label className="mt-5 block text-sm font-bold text-[#061229] dark:text-white">Staff ID / TSC Number<input required value={staffId} onChange={e => setStaffId(e.target.value)} placeholder="TSC-123456" className={inputClass} /></label>
                     <label className="mt-5 block text-sm font-bold text-[#061229] dark:text-white">School Authorization Code<input required type="password" autoComplete="off" value={schoolCode} onChange={e => setSchoolCode(e.target.value)} placeholder="Enter school authorization code" className={inputClass} /></label>
                   </>
