@@ -116,22 +116,17 @@ jobs:
           echo " VERIFYING LIVE VERCEL PRODUCTION DEPLOYMENT"
           echo "============================================================"
 
-          echo "Production domain: $PRODUCTION_DOMAIN"
-          echo "Expected Git SHA:  $EXPECTED_SHA"
+          DEPLOYMENT_JSON="$({
+            curl --fail-with-body -sS \
+              --get \
+              "https://api.vercel.com/v6/deployments" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              --data-urlencode "projectId=$VERCEL_PROJECT_ID" \
+              --data-urlencode "target=production" \
+              --data-urlencode "limit=20"
+          })"
 
-          echo "==> Searching Vercel production deployments..."
-
-          DEPLOYMENT_JSON="$(${HOME}/.npm/_npx/$(ls -dt ${HOME}/.npm/_npx/*/node_modules/vercel 2>/dev/null | head -n1 | xargs -r dirname 2>/dev/null)/node_modules/vercel/dist/index.js 2>/dev/null || true)"
-
-          DEPLOYMENT_JSON="$((curl --fail-with-body -sS \
-            --get \
-            "https://api.vercel.com/v6/deployments" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            --data-urlencode "projectId=$VERCEL_PROJECT_ID" \
-            --data-urlencode "target=production" \
-            --data-urlencode "limit=20"))"
-
-          DEPLOYMENT_ID="$([
+          DEPLOYMENT_ID="$({
             echo "$DEPLOYMENT_JSON" |
               jq -r --arg sha "$EXPECTED_SHA" '
                 .deployments[]
@@ -139,7 +134,7 @@ jobs:
                 | .uid
               ' |
               head -n 1
-          ])"
+          })"
 
           if [ -z "$DEPLOYMENT_ID" ] || [ "$DEPLOYMENT_ID" = "null" ]; then
             echo "ERROR: No Vercel production deployment matches $EXPECTED_SHA"
@@ -151,9 +146,11 @@ jobs:
             exit 1
           fi
 
-          EXACT_DEPLOYMENT="$((curl --fail-with-body -sS \
-            "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID" \
-            -H "Authorization: Bearer $VERCEL_TOKEN"))"
+          EXACT_DEPLOYMENT="$({
+            curl --fail-with-body -sS \
+              "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN"
+          })"
 
           LIVE_SHA="$(echo "$EXACT_DEPLOYMENT" | jq -r '.meta.githubCommitSha // empty')"
           LIVE_STATE="$(echo "$EXACT_DEPLOYMENT" | jq -r '.readyState // empty')"
