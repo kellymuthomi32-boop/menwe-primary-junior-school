@@ -34,7 +34,7 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: TypeScript verification
         run: npx tsc --noEmit
@@ -92,7 +92,7 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: TypeScript verification before release
         run: npx tsc --noEmit
