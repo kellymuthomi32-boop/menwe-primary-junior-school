@@ -56,8 +56,32 @@ function normalizeRole(role: string | null | undefined): AppRole {
 }
 
 function metadataRole(user: User): CanonicalRole | null {
-  const role = user.app_metadata?.role;
+  // Registration stores role in user_metadata. app_metadata is also supported
+  // for accounts provisioned administratively.
+  const role = user.app_metadata?.role ?? user.user_metadata?.role;
   return typeof role === "string" ? role.toLowerCase() as CanonicalRole : null;
+}
+
+function profileFromUserMetadata(user: User): SchoolProfile | null {
+  const canonicalRole = metadataRole(user);
+  if (!canonicalRole) return null;
+
+  const displayName =
+    (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name) ||
+    (typeof user.user_metadata?.name === "string" && user.user_metadata.name) ||
+    user.email?.split("@")[0] ||
+    null;
+
+  return {
+    id: user.id,
+    email: user.email ?? null,
+    display_name: displayName,
+    phone: typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null,
+    role: normalizeRole(canonicalRole),
+    canonical_role: canonicalRole,
+    status: "ACTIVE",
+    avatar_url: typeof user.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null,
+  };
 }
 
 type AuthContextValue = {
@@ -89,43 +113,71 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         return null;
       }
 
-      // Match the live profiles schema: full_name + status (not display_name/is_disabled/is_approved).
       const { data, error: profileError } = await supabase
         .from("profiles")
         .select("id,email,full_name,phone,role,status,avatar_url")
         .eq("id", userId)
         .maybeSingle();
 
+      if (!profileError && data) {
+        const canonicalRole = data.role?.toString().toLowerCase() as CanonicalRole;
+        const normalizedProfile: SchoolProfile = {
+          id: data.id,
+          email: data.email ?? null,
+          display_name: data.full_name ?? null,
+          phone: data.phone ?? null,
+          role: normalizeRole(data.role),
+          canonical_role: canonicalRole || "student",
+          status: data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+          avatar_url: data.avatar_url ?? null,
+        };
+
+        setError(null);
+        setProfile(normalizedProfile);
+        return normalizedProfile;
+      }
+
+      // The Auth account can be valid even when the public profile row is
+      // missing or temporarily inaccessible. Read the current Auth user and
+      // use the role written during registration as a safe client-side bridge.
+      // This prevents a successful login from being stranded on the login page.
       if (profileError) {
         console.error("Profile loading error:", profileError);
-        setError("Your account was authenticated, but your school profile could not be loaded.");
-        setProfile(null);
-        return null;
-      }
-
-      if (!data) {
+      } else {
         console.warn("No profile found for user ID:", userId);
-        setProfile(null);
-        return null;
       }
 
-      const canonicalRole = data.role?.toString().toLowerCase() as CanonicalRole;
-      const normalizedProfile: SchoolProfile = {
-        id: data.id,
-        email: data.email ?? null,
-        display_name: data.full_name ?? null,
-        phone: data.phone ?? null,
-        role: normalizeRole(data.role),
-        canonical_role: canonicalRole || "student",
-        status: data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-        avatar_url: data.avatar_url ?? null,
-      };
+      const { data: authUserData, error: authUserError } = await supabase.auth.getUser();
+      if (!authUserError && authUserData.user?.id === userId) {
+        const fallbackProfile = profileFromUserMetadata(authUserData.user);
+        if (fallbackProfile) {
+          console.warn("Using Auth metadata fallback because no readable profile row exists.");
+          setError(null);
+          setProfile(fallbackProfile);
+          return fallbackProfile;
+        }
+      }
 
-      setError(null);
-      setProfile(normalizedProfile);
-      return normalizedProfile;
+      setError("Your account was authenticated, but your school profile could not be loaded.");
+      setProfile(null);
+      return null;
     } catch (err) {
       console.error("Unexpected profile error:", err);
+
+      try {
+        const { data: authUserData } = await supabase?.auth.getUser() ?? { data: { user: null } };
+        if (authUserData.user?.id === userId) {
+          const fallbackProfile = profileFromUserMetadata(authUserData.user);
+          if (fallbackProfile) {
+            setError(null);
+            setProfile(fallbackProfile);
+            return fallbackProfile;
+          }
+        }
+      } catch (fallbackError) {
+        console.error("Auth metadata fallback failed:", fallbackError);
+      }
+
       setError("Your account was authenticated, but your school profile could not be loaded.");
       setProfile(null);
       return null;
