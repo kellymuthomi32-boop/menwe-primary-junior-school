@@ -56,8 +56,6 @@ function normalizeRole(role: string | null | undefined): AppRole {
 }
 
 function metadataRole(user: User): CanonicalRole | null {
-  // Registration stores role in user_metadata. app_metadata is also supported
-  // for accounts provisioned administratively.
   const role = user.app_metadata?.role ?? user.user_metadata?.role;
   return typeof role === "string" ? role.toLowerCase() as CanonicalRole : null;
 }
@@ -113,11 +111,23 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         return null;
       }
 
-      const { data, error: profileError } = await supabase
+      // Never allow a slow/blocked profiles query to keep the whole portal on
+      // the loading screen. Five seconds is long enough for a normal request
+      // while still giving the Auth session a deterministic fallback.
+      const profileRequest = supabase
         .from("profiles")
         .select("id,email,full_name,phone,role,status,avatar_url")
         .eq("id", userId)
         .maybeSingle();
+
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("PROFILE_LOOKUP_TIMEOUT")), 5000);
+      });
+
+      const { data, error: profileError } = await Promise.race([
+        profileRequest,
+        timeout,
+      ]);
 
       if (!profileError && data) {
         const canonicalRole = data.role?.toString().toLowerCase() as CanonicalRole;
@@ -137,16 +147,16 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         return normalizedProfile;
       }
 
-      // The Auth account can be valid even when the public profile row is
-      // missing or temporarily inaccessible. Read the current Auth user and
-      // use the role written during registration as a safe client-side bridge.
-      // This prevents a successful login from being stranded on the login page.
       if (profileError) {
         console.error("Profile loading error:", profileError);
       } else {
         console.warn("No profile found for user ID:", userId);
       }
 
+      // Auth itself is authoritative for the existence of the signed-in
+      // account. If the profile row is missing or temporarily unreachable,
+      // use the role captured during the verified registration flow so the
+      // user is not stranded after a successful login.
       const { data: authUserData, error: authUserError } = await supabase.auth.getUser();
       if (!authUserError && authUserData.user?.id === userId) {
         const fallbackProfile = profileFromUserMetadata(authUserData.user);
@@ -165,7 +175,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       console.error("Unexpected profile error:", err);
 
       try {
-        const { data: authUserData } = await supabase?.auth.getUser() ?? { data: { user: null } };
+        const { data: authUserData } = await supabase.auth.getUser();
         if (authUserData.user?.id === userId) {
           const fallbackProfile = profileFromUserMetadata(authUserData.user);
           if (fallbackProfile) {
