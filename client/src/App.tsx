@@ -4,8 +4,8 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { useSchoolAuth } from "./contexts/SupabaseAuthContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
-import { supabase } from "./lib/supabase";
 import "./mobile-premium.css";
 
 const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
@@ -46,14 +46,27 @@ const MASTER_ADMIN_EMAIL = "menweprimaryandjunior@gmail.com";
 type PortalRole = "admin" | "teacher" | "parent";
 
 function resolvePortalRole(
-  user: { email?: string | null; app_metadata?: Record<string, unknown> },
+  user: { email?: string | null; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> },
   profileRole?: unknown,
   profileActive = false
 ): PortalRole {
   if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) return "admin";
-  const role = typeof profileRole === "string" ? profileRole.toLowerCase() : "";
+
+  const role = typeof profileRole === "string"
+    ? profileRole.toLowerCase()
+    : typeof user.app_metadata?.role === "string"
+      ? user.app_metadata.role.toLowerCase()
+      : typeof user.user_metadata?.role === "string"
+        ? user.user_metadata.role.toLowerCase()
+        : "";
+
   if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
   if (profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
+
+  // If the profile row is temporarily unreadable, SupabaseAuthContext may
+  // already have produced its validated Auth-metadata fallback. Do not block
+  // an authenticated parent/teacher session on a second duplicate query.
+  if (!profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
   return "parent";
 }
 
@@ -65,93 +78,40 @@ function PortalRouteGuard({
   children: ReactNode;
 }) {
   const [, navigate] = useLocation();
+  const auth = useSchoolAuth();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    let active = true;
-    const client = supabase;
-
-    if (!client) {
-      setChecking(false);
-      navigate("/portal/login");
-      return () => {
-        active = false;
-      };
+    if (auth.loading) {
+      setChecking(true);
+      return;
     }
 
-    const authorize = async () => {
-      const { data, error } = await client.auth.getSession();
-      if (error) throw error;
+    const user = auth.user;
+    if (!user) {
+      setChecking(false);
+      navigate("/portal/login");
+      return;
+    }
 
-      const user = data.session?.user;
-      if (!user) {
-        if (active) {
-          setChecking(false);
-          navigate("/portal/login");
-        }
-        return;
-      }
+    const role = resolvePortalRole(
+      user,
+      auth.profile?.role ?? auth.profile?.canonical_role,
+      Boolean(auth.profile)
+    );
 
-      if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) {
-        if (active) {
-          setChecking(false);
-          if (!allowedRoles.includes("admin")) navigate("/portal/admin");
-        }
-        return;
-      }
+    setChecking(false);
 
-      const { data: profile, error: profileError } = await client
-        .from("profiles")
-        .select("role,is_approved,is_disabled")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profileError || !profile || profile.is_disabled || !profile.is_approved) {
-        if (active) {
-          setChecking(false);
-          navigate("/portal/login");
-        }
-        return;
-      }
-
-      const role = resolvePortalRole(user, profile.role, true);
-      if (active) {
-        setChecking(false);
-        if (!allowedRoles.includes(role)) {
-          navigate(
-            role === "teacher"
-              ? "/portal/teacher"
-              : role === "admin"
-                ? "/portal/admin"
-                : "/portal/parent"
-          );
-        }
-      }
-    };
-
-    void authorize().catch(() => {
-      if (active) {
-        setChecking(false);
-        navigate("/portal/login");
-      }
-    });
-
-    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      if (!session?.user) {
-        navigate("/portal/login");
-        return;
-      }
-      void authorize().catch(() => {
-        if (active) navigate("/portal/login");
-      });
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [allowedRoles, navigate]);
+    if (!allowedRoles.includes(role)) {
+      navigate(
+        role === "teacher"
+          ? "/portal/teacher"
+          : role === "admin"
+            ? "/portal/admin"
+            : "/portal/parent"
+      );
+    }
+  }, [allowedRoles, auth.loading, auth.profile, auth.user, navigate]);
 
   if (checking) {
     return (
