@@ -40,4 +40,44 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 }
 export function useSchoolAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider"); return context; }
 export function isAdministrator(role: AppRole | undefined) { return role === "SUPER_ADMIN" || role === "ADMIN"; }
-export function getPortalRedirect(user: User | null): "/portal/admin" | "/portal/teacher" | "/portal/dashboard" { if (!user) return "/portal/dashboard"; const role = metadataRole(user); if (user.email?.trim().toLowerCase() === "menweprimaryandjunior@gmail.com" || role === "admin" || role === "head_of_institution" || role === "deputy_hoi") return "/portal/admin"; if (role === "teacher" || role === "class_teacher" || role === "classroom_teacher" || role === "staff") return "/portal/teacher"; return "/portal/dashboard"; }
+
+export function getPortalRedirect(
+  profileOrUser: SchoolProfile | User | null,
+  fallbackUser?: User | null
+): "/portal/admin" | "/portal/teacher" | "/portal/dashboard" {
+  if (!profileOrUser) return "/portal/dashboard";
+
+  let role: string | undefined;
+  let email: string | undefined;
+
+  if ("canonical_role" in profileOrUser || "role" in profileOrUser) {
+    const prof = profileOrUser as SchoolProfile;
+    role = prof.role?.toString().toUpperCase() || prof.canonical_role?.toString().toUpperCase();
+    email = prof.email?.trim().toLowerCase();
+  } else {
+    const usr = profileOrUser as User;
+    role = metadataRole(usr)?.toUpperCase();
+    email = usr.email?.trim().toLowerCase();
+  }
+
+  if (!email && fallbackUser) {
+    email = fallbackUser.email?.trim().toLowerCase();
+  }
+
+  if (
+    email === "menweschool.official@gmail.com" ||
+    email === "menweprimaryandjunior@gmail.com" ||
+    role === "ADMIN" ||
+    role === "SUPER_ADMIN" ||
+    role === "HEAD_OF_INSTITUTION" ||
+    role === "DEPUTY_HOI"
+  ) {
+    return "/portal/admin";
+  }
+
+  if (role === "TEACHER" || role === "CLASS_TEACHER" || role === "CLASSROOM_TEACHER" || role === "STAFF") {
+    return "/portal/teacher";
+  }
+
+  return "/portal/dashboard";
+}
