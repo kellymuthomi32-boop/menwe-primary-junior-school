@@ -105,15 +105,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const [error, setError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
-    try {
-      if (!userId || !supabase) {
-        setProfile(null);
-        return null;
-      }
+    if (!userId || !supabase) {
+      setProfile(null);
+      return null;
+    }
 
-      // Never allow a slow/blocked profiles query to keep the whole portal on
-      // the loading screen. Five seconds is long enough for a normal request
-      // while still giving the Auth session a deterministic fallback.
+    try {
+      // Profile hydration is supplementary. It must never block an authenticated session.
       const profileRequest = supabase
         .from("profiles")
         .select("id,email,full_name,phone,role,status,avatar_url")
@@ -121,7 +119,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         .maybeSingle();
 
       const timeout = new Promise<never>((_, reject) => {
-        window.setTimeout(() => reject(new Error("PROFILE_LOOKUP_TIMEOUT")), 5000);
+        window.setTimeout(() => reject(new Error("PROFILE_LOOKUP_TIMEOUT")), 3500);
       });
 
       const { data, error: profileError } = await Promise.race([
@@ -141,34 +139,27 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           status: data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
           avatar_url: data.avatar_url ?? null,
         };
-
         setError(null);
         setProfile(normalizedProfile);
         return normalizedProfile;
       }
 
-      if (profileError) {
-        console.error("Profile loading error:", profileError);
-      } else {
-        console.warn("No profile found for user ID:", userId);
-      }
+      if (profileError) console.error("Profile loading error:", profileError);
+      else console.warn("No profile found for user ID:", userId);
 
-      // Auth itself is authoritative for the existence of the signed-in
-      // account. If the profile row is missing or temporarily unreachable,
-      // use the role captured during the verified registration flow so the
-      // user is not stranded after a successful login.
+      // Existing Auth users may predate the profiles row. Prefer verified Auth metadata.
       const { data: authUserData, error: authUserError } = await supabase.auth.getUser();
       if (!authUserError && authUserData.user?.id === userId) {
         const fallbackProfile = profileFromUserMetadata(authUserData.user);
         if (fallbackProfile) {
-          console.warn("Using Auth metadata fallback because no readable profile row exists.");
           setError(null);
           setProfile(fallbackProfile);
           return fallbackProfile;
         }
       }
 
-      setError("Your account was authenticated, but your school profile could not be loaded.");
+      // Do not turn a profile/RLS problem into a login failure.
+      setError("School profile is unavailable; continuing with the authenticated account.");
       setProfile(null);
       return null;
     } catch (err) {
@@ -188,7 +179,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         console.error("Auth metadata fallback failed:", fallbackError);
       }
 
-      setError("Your account was authenticated, but your school profile could not be loaded.");
+      setError("School profile is unavailable; continuing with the authenticated account.");
       setProfile(null);
       return null;
     }
@@ -209,17 +200,22 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         if (sessionError) console.error("Session restoration error:", sessionError);
         if (!active) return;
 
-        setSession(data.session ?? null);
-        if (data.session?.user?.id) {
-          await loadProfile(data.session.user.id);
+        const nextSession = data.session ?? null;
+        setSession(nextSession);
+        // Auth restoration is complete here. Never wait for profiles to render the app.
+        setLoading(false);
+
+        if (nextSession?.user?.id) {
+          void loadProfile(nextSession.user.id);
         } else {
           setProfile(null);
         }
       } catch (err) {
         console.error("Initialization error:", err);
-        if (active) setError("Unable to restore your school session.");
-      } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setError("Unable to restore your school session.");
+          setLoading(false);
+        }
       }
     };
 
@@ -228,16 +224,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
+      // Auth state itself controls the loading gate; profile loading is background work.
+      setLoading(false);
 
-      setTimeout(async () => {
+      window.setTimeout(() => {
         if (!active) return;
         if (nextSession?.user?.id) {
-          await loadProfile(nextSession.user.id);
+          void loadProfile(nextSession.user.id);
         } else {
           setProfile(null);
           setError(null);
         }
-        setLoading(false);
       }, 0);
     });
 
