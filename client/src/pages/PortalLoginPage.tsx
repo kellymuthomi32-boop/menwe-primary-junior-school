@@ -25,57 +25,109 @@ export default function PortalLoginPage() {
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [redirected, setRedirected] = useState(false);
 
-  // Strict redirect guard: Wait until BOTH user AND profile are loaded to avoid incorrect routing
+  // 1. Strict redirect guard
   useEffect(() => {
-    if (auth.loading || !auth.user || !auth.profile || redirected) return;
+    if (
+      auth.loading ||
+      !auth.user ||
+      !auth.profile ||
+      redirected
+    ) {
+      return;
+    }
 
     setRedirected(true);
-    const target = getPortalRedirect(auth.profile, auth.user);
+
+    const target = getPortalRedirect(
+      auth.profile,
+      auth.user
+    );
+
     go(target);
-  }, [auth.loading, auth.user, auth.profile, redirected, go]);
+  }, [
+    auth.loading,
+    auth.user,
+    auth.profile,
+    redirected,
+    go
+  ]);
 
   const clearFeedback = () => {
     setMessage("");
     setSuccess("");
   };
 
+  // 2. Safe error stringifier & friendly mapper
   const friendlyError = (error: unknown) => {
-    const text = error instanceof Error ? error.message : String(error);
-    if (/invalid login credentials/i.test(text)) return "Incorrect email or password. Please double-check your credentials.";
-    if (/email not confirmed/i.test(text)) return "Your email address has not been confirmed yet. Please check your inbox or toggle off email confirmation in Supabase.";
-    if (/rate limit|too many requests|429|network|fetch|timeout|failed to/i.test(text)) return "Connection issue. Please check your network and try again.";
-    if (/user already registered|already been registered/i.test(text)) return "An account already exists for this email. Please sign in instead.";
-    return text || "We could not complete your request. Please contact the school office at 0142550882.";
+    const text =
+      typeof error === "string"
+        ? error
+        : error instanceof Error
+        ? error.message
+        : JSON.stringify(error);
+
+    if (/invalid login credentials/i.test(text))
+      return "Incorrect email or password.";
+
+    if (/email not confirmed/i.test(text))
+      return "Please confirm your email before signing in.";
+
+    if (/already registered|already been registered/i.test(text))
+      return "An account already exists with this email.";
+
+    if (/rate limit|too many requests|network|timeout/i.test(text))
+      return "Network problem. Please try again.";
+
+    return text || "Something went wrong. Contact school ICT.";
   };
 
+  // 3. Awaited post-login redirect resolving direct auth user fallback
   const executePostLoginRedirect = async () => {
-    const freshProfile = await auth.refreshProfile();
+    try {
+      const profile = await auth.refreshProfile();
 
-    if (freshProfile) {
-      go(getPortalRedirect(freshProfile, auth.user));
-      return;
-    }
-
-    // Graceful retry: If profile trigger is delayed, pause briefly and re-fetch profile
-    setTimeout(async () => {
-      const retryProfile = await auth.refreshProfile();
-
-      if (!retryProfile) {
+      if (!profile) {
         setMessage(
-          "Your account was authenticated, but your profile is still being prepared by the database. Please try logging in again shortly."
+          "Account created successfully. Your profile is still being prepared. Please try again in a few seconds."
         );
         return;
       }
 
-      go(getPortalRedirect(retryProfile, auth.user));
-    }, 1000);
+      const user =
+        auth.user ??
+        (await requireSupabaseClient()
+          .auth
+          .getUser())
+          .data
+          .user;
+
+      if (!user) {
+        setMessage("Unable to load your account.");
+        return;
+      }
+
+      go(
+        getPortalRedirect(
+          profile,
+          user
+        )
+      );
+
+    } catch (error) {
+      setMessage(
+        friendlyError(error)
+      );
+    }
   };
 
-  // Resolves raw email addresses or maps identifiers (Staff ID, Admission No, UPI) to registered emails securely via RPC
+  // 5. Strict email resolution validation
   const resolveEmail = async (): Promise<string> => {
     const input = identifier.trim();
 
-    if (input.includes("@")) {
+    if (
+      input.includes("@") &&
+      input.includes(".")
+    ) {
       return input.toLowerCase();
     }
 
@@ -122,6 +174,7 @@ export default function PortalLoginPage() {
     }
   };
 
+  // 6. Magic link handling with account creation allowed
   const sendMagicLink = async () => {
     clearFeedback();
     const emailAddress = identifier.trim().toLowerCase();
@@ -136,7 +189,7 @@ export default function PortalLoginPage() {
         email: emailAddress,
         options: {
           emailRedirectTo: `${window.location.origin}/portal/callback`,
-          shouldCreateUser: false
+          shouldCreateUser: true
         }
       });
       if (error) {
@@ -151,6 +204,7 @@ export default function PortalLoginPage() {
     }
   };
 
+  // 4. Registration flow handling session and non-session responses cleanly
   const submitRegistration = async (event: FormEvent) => {
     event.preventDefault();
     clearFeedback();
@@ -227,38 +281,33 @@ export default function PortalLoginPage() {
       }
 
       if (data.session?.user) {
-        setSuccess(tab === "staff" ? "Staff account registered successfully!" : "Account registered successfully!");
-        setPassword("");
-        setConfirmPassword("");
-        setSchoolCode("");
-        await executePostLoginRedirect();
-        return;
-      }
-
-      const login = await auth.signIn(normalizedEmail, password);
-      if (!login.error) {
-        setSuccess(tab === "staff" ? "Staff account registered successfully!" : "Account registered successfully!");
-        setPassword("");
-        setConfirmPassword("");
-        setSchoolCode("");
-        await executePostLoginRedirect();
-        return;
-      }
-
-      if (/email not confirmed/i.test(login.error)) {
         setSuccess(
           tab === "staff"
-            ? "Staff account registered successfully! Please check your email inbox to confirm your account before logging in."
-            : "Account created successfully! Please check your email inbox to confirm your account before logging in."
+            ? "Staff account created successfully."
+            : "Account created successfully."
         );
-        setMode("signin");
-        setIdentifier(normalizedEmail);
+
         setPassword("");
         setConfirmPassword("");
         setSchoolCode("");
-      } else {
-        setMessage(friendlyError(login.error));
+
+        await executePostLoginRedirect();
+        return;
       }
+
+      // Email confirmation enabled
+      setSuccess(
+        tab === "staff"
+          ? "Staff account created. Check your email to confirm."
+          : "Account created. Check your email to confirm."
+      );
+
+      setMode("signin");
+      setIdentifier(normalizedEmail);
+      setPassword("");
+      setConfirmPassword("");
+      setSchoolCode("");
+
     } catch (error) {
       setMessage(friendlyError(error));
     } finally {
@@ -270,6 +319,7 @@ export default function PortalLoginPage() {
     setTab(next);
     setMode("signin");
     setMagicLinkMode(false);
+    setShowPassword(false);
     clearFeedback();
     setIdentifier("");
     setPassword("");
@@ -279,6 +329,7 @@ export default function PortalLoginPage() {
   const switchMode = (next: "signin" | "register") => {
     setMode(next);
     setMagicLinkMode(false);
+    setShowPassword(false);
     clearFeedback();
     setPassword("");
     setConfirmPassword("");
