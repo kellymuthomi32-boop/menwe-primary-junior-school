@@ -13,6 +13,8 @@ import { getSupabase, supabase } from "@/lib/supabase";
 export type AppRole =
   | "SUPER_ADMIN"
   | "ADMIN"
+  | "HEAD_OF_INSTITUTION"
+  | "DEPUTY_HOI"
   | "TEACHER"
   | "STUDENT"
   | "PARENT";
@@ -41,9 +43,7 @@ export type SchoolProfile = {
   avatar_url: string | null;
 };
 
-function normalizeRole(
-  role: string | null | undefined
-): AppRole {
+function normalizeRole(role: string | null | undefined): AppRole {
   const value = role?.toString().toUpperCase();
 
   if (value === "PARENT") {
@@ -67,6 +67,14 @@ function normalizeRole(
     return "SUPER_ADMIN";
   }
 
+  if (value === "HEAD_OF_INSTITUTION") {
+    return "HEAD_OF_INSTITUTION";
+  }
+
+  if (value === "DEPUTY_HOI") {
+    return "DEPUTY_HOI";
+  }
+
   return "ADMIN";
 }
 
@@ -79,7 +87,6 @@ function metadataRole(user: User): CanonicalRole | null {
 
   return role.toLowerCase() as CanonicalRole;
 }
-
 
 type AuthContextValue = {
   user: User | null;
@@ -110,551 +117,250 @@ type AuthContextValue = {
   refreshProfile: () => Promise<SchoolProfile | null>;
 };
 
-
-const AuthContext =
-  createContext<AuthContextValue | undefined>(undefined);
-
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function SupabaseAuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-
-  const [session, setSession] =
-    useState<Session | null>(null);
-
-  const [profile, setProfile] =
-    useState<SchoolProfile | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<SchoolProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadProfile = useCallback(
-    async (
-      userId: string | null
-    ): Promise<SchoolProfile | null> => {
-
+    async (userId: string | null): Promise<SchoolProfile | null> => {
       try {
-
         if (!userId || !supabase) {
           setProfile(null);
           return null;
         }
 
-
-        const {
-          data,
-          error: profileError,
-        } = await supabase
+        const { data, error: profileError } = await supabase
           .from("profiles")
-          .select(
-            "id,email,display_name,phone,role,is_disabled,is_approved"
-          )
+          .select("id,email,display_name,phone,role,is_disabled,is_approved")
           .eq("id", userId)
           .maybeSingle();
 
-
-
         if (profileError) {
-
-          console.error(
-            "Profile loading error:",
-            profileError
-          );
-
+          console.error("Profile loading error:", profileError);
           setError(
             "Your account was authenticated, but your school profile could not be loaded."
           );
-
           setProfile(null);
-
           return null;
         }
-
-
 
         if (!data) {
-
-          console.warn(
-            "No profile found:",
-            userId
-          );
-
+          console.warn("No profile found for user ID:", userId);
           setProfile(null);
-
           return null;
         }
 
-
-
         const normalizedProfile: SchoolProfile = {
-
           id: data.id,
-
           email: data.email ?? null,
-
-          display_name:
-            data.display_name ?? null,
-
-          phone:
-            data.phone ?? null,
-
-
-          role:
-            normalizeRole(data.role),
-
-
-          canonical_role:
-            data.role
-              ?.toString()
-              .toLowerCase() as CanonicalRole,
-
-
-          status:
-            data.is_disabled
-              ? "INACTIVE"
-              : "ACTIVE",
-
-
+          display_name: data.display_name ?? null,
+          phone: data.phone ?? null,
+          role: normalizeRole(data.role),
+          canonical_role: (data.role
+            ?.toString()
+            .toLowerCase() || "admin") as CanonicalRole,
+          status: data.is_disabled ? "INACTIVE" : "ACTIVE",
           avatar_url: null,
         };
 
-
-
         setProfile(normalizedProfile);
-
         return normalizedProfile;
-
-
-
       } catch (err) {
-
-        console.error(
-          "Unexpected profile error:",
-          err
-        );
-
+        console.error("Unexpected profile error:", err);
         setProfile(null);
-
         return null;
-
       }
     },
     []
   );
 
-
-
   useEffect(() => {
-
     if (!supabase) {
-
-      setError(
-        "The portal has not been configured with Supabase yet."
-      );
-
+      setError("The portal has not been configured with Supabase yet.");
       setLoading(false);
-
       return;
     }
 
-
     let active = true;
 
-
-
     const initialise = async () => {
-
       try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
 
-        const {
-          data,
-        } = await supabase.auth.getSession();
-
-
-        if (!active) {
-          return;
+        if (sessionError) {
+          console.error("Session restoration error:", sessionError);
         }
 
+        if (!active) return;
 
-        setSession(data.session);
+        setSession(data.session ?? null);
 
-
-        await loadProfile(
-          data.session?.user.id ?? null
-        );
-
-
+        if (data.session?.user?.id) {
+          await loadProfile(data.session.user.id);
+        } else {
+          setProfile(null);
+        }
       } catch (err) {
-
-        console.error(err);
-
+        console.error("Initialization error:", err);
         if (active) {
-
-          setError(
-            "Unable to restore your school session."
-          );
-
+          setError("Unable to restore your school session.");
         }
-
-
       } finally {
-
         if (active) {
-
           setLoading(false);
-
         }
-
       }
-
     };
-
-
 
     void initialise();
 
+    const { data: subscription } = supabase.auth.onAuthStateChange(
+      (_event, nextSession) => {
+        if (!active) return;
 
+        setSession(nextSession);
 
-    const {
-      data: subscription,
-    } =
-      supabase.auth.onAuthStateChange(
-        async (
-          _event,
-          nextSession
-        ) => {
+        setTimeout(async () => {
+          if (!active) return;
 
-
-          setSession(nextSession);
-
-
-
-          await loadProfile(
-            nextSession?.user.id ?? null
-          );
-
-
+          if (nextSession?.user?.id) {
+            await loadProfile(nextSession.user.id);
+          } else {
+            setProfile(null);
+          }
 
           setLoading(false);
-
-        }
-      );
-
-
+        }, 0);
+      }
+    );
 
     return () => {
-
       active = false;
-
       subscription.subscription.unsubscribe();
-
     };
-
-
   }, [loadProfile]);
 
-
-
-  const value =
-    useMemo<AuthContextValue>(() => ({
-
-      user:
-        session?.user ?? null,
-
-
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user: session?.user ?? null,
       session,
-
-
       profile,
-
-
       loading,
-
-
       error,
 
+      signIn: async (email, password) => {
+        setError(null);
+        const { error: signInError } = await getSupabase().auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
 
+        return signInError ? { error: signInError.message } : {};
+      },
 
-      signIn:
-        async (
-          email,
-          password
-        ) => {
+      sendMagicLink: async (email) => {
+        setError(null);
+        const { error: magicError } = await getSupabase().auth.signInWithOtp({
+          email: email.trim().toLowerCase(),
+          options: {
+            emailRedirectTo: `${window.location.origin}/portal/dashboard`,
+            shouldCreateUser: false,
+          },
+        });
 
-          const {
-            error: signInError,
-          } =
-            await getSupabase()
-              .auth
-              .signInWithPassword({
+        return magicError ? { error: magicError.message } : {};
+      },
 
-                email:
-                  email.trim().toLowerCase(),
+      sendPasswordReset: async (email) => {
+        setError(null);
+        const { error: resetError } =
+          await getSupabase().auth.resetPasswordForEmail(
+            email.trim().toLowerCase(),
+            {
+              redirectTo: `${window.location.origin}/portal/password?mode=update-password`,
+            }
+          );
 
-                password,
+        return resetError ? { error: resetError.message } : {};
+      },
 
-              });
+      updatePassword: async (password) => {
+        setError(null);
+        const { error: updateError } = await getSupabase().auth.updateUser({
+          password,
+        });
 
+        return updateError ? { error: updateError.message } : {};
+      },
 
-          return signInError
-            ? {
-                error:
-                  signInError.message,
-              }
-            : {};
+      signOut: async () => {
+        await getSupabase().auth.signOut();
+        setProfile(null);
+        setSession(null);
+        setError(null);
+      },
 
-        },
-
-
-
-      sendMagicLink:
-        async email => {
-
-          const {
-            error: magicError,
-          } =
-            await getSupabase()
-              .auth
-              .signInWithOtp({
-
-                email:
-                  email.trim().toLowerCase(),
-
-                options: {
-
-                  emailRedirectTo:
-                    `${window.location.origin}/portal/dashboard`,
-
-                  shouldCreateUser:
-                    false,
-
-                },
-
-              });
-
-
-          return magicError
-            ? {
-                error:
-                  magicError.message,
-              }
-            : {};
-
-        },
-
-
-
-      sendPasswordReset:
-        async email => {
-
-          const {
-            error: resetError,
-          } =
-            await getSupabase()
-              .auth
-              .resetPasswordForEmail(
-
-                email.trim().toLowerCase(),
-
-                {
-                  redirectTo:
-                    `${window.location.origin}/portal/password?mode=update-password`,
-                }
-
-              );
-
-
-          return resetError
-            ? {
-                error:
-                  resetError.message,
-              }
-            : {};
-
-        },
-
-
-
-      updatePassword:
-        async password => {
-
-          const {
-            error: updateError,
-          } =
-            await getSupabase()
-              .auth
-              .updateUser({
-                password,
-              });
-
-
-          return updateError
-            ? {
-                error:
-                  updateError.message,
-              }
-            : {};
-
-        },
-
-
-
-      signOut:
-        async () => {
-
-          await getSupabase()
-            .auth
-            .signOut();
-
-          setProfile(null);
-          setSession(null);
-
-        },
-
-
-
-      refreshProfile:
-        async () =>
-          loadProfile(
-            session?.user.id ?? null
-          ),
-
-
+      refreshProfile: async () => loadProfile(session?.user.id ?? null),
     }),
-    [
-      error,
-      loadProfile,
-      loading,
-      profile,
-      session,
-    ]);
-
-
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    [error, loadProfile, loading, profile, session]
   );
 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-
-
 export function useSchoolAuth() {
-
-  const context =
-    useContext(AuthContext);
-
+  const context = useContext(AuthContext);
 
   if (!context) {
-
     throw new Error(
       "useSchoolAuth must be used inside SupabaseAuthProvider"
     );
-
   }
 
-
   return context;
-
 }
 
-
-
-export function isAdministrator(
-  role: AppRole | undefined
-) {
-
+export function isAdministrator(role: AppRole | undefined) {
   return (
     role === "SUPER_ADMIN" ||
-    role === "ADMIN"
+    role === "ADMIN" ||
+    role === "HEAD_OF_INSTITUTION" ||
+    role === "DEPUTY_HOI"
   );
-
 }
-
-
 
 export function getPortalRedirect(
   profileOrUser: SchoolProfile | User | null,
   fallbackUser?: User | null
-):
-  | "/portal/admin"
-  | "/portal/teacher"
-  | "/portal/dashboard" {
-
-
+): "/portal/admin" | "/portal/teacher" | "/portal/dashboard" {
   if (!profileOrUser) {
-
     return "/portal/dashboard";
-
   }
-
-
 
   let role = "";
   let email = "";
 
-
-
-  if (
-    "canonical_role" in profileOrUser ||
-    "role" in profileOrUser
-  ) {
-
-    const profile =
-      profileOrUser as SchoolProfile;
-
-
-    role =
-      profile.role
-        ?.toString()
-        .toUpperCase();
-
-
-    email =
-      profile.email
-        ?.trim()
-        .toLowerCase() || "";
-
+  if ("canonical_role" in profileOrUser || "role" in profileOrUser) {
+    const profile = profileOrUser as SchoolProfile;
+    role = profile.role?.toString().toUpperCase() || "";
+    email = profile.email?.trim().toLowerCase() || "";
   } else {
-
-
-    const user =
-      profileOrUser as User;
-
-
-    role =
-      metadataRole(user)
-        ?.toUpperCase() || "";
-
-
-    email =
-      user.email
-        ?.trim()
-        .toLowerCase() || "";
-
+    const user = profileOrUser as User;
+    role = metadataRole(user)?.toUpperCase() || "";
+    email = user.email?.trim().toLowerCase() || "";
   }
-
-
 
   if (!email && fallbackUser) {
-
-    email =
-      fallbackUser.email
-        ?.trim()
-        .toLowerCase() || "";
-
+    email = fallbackUser.email?.trim().toLowerCase() || "";
   }
-
-
 
   if (
     email === "menweschool.official@gmail.com" ||
@@ -664,12 +370,8 @@ export function getPortalRedirect(
     role === "HEAD_OF_INSTITUTION" ||
     role === "DEPUTY_HOI"
   ) {
-
     return "/portal/admin";
-
   }
-
-
 
   if (
     role === "TEACHER" ||
@@ -677,13 +379,8 @@ export function getPortalRedirect(
     role === "CLASSROOM_TEACHER" ||
     role === "STAFF"
   ) {
-
     return "/portal/teacher";
-
   }
 
-
-
   return "/portal/dashboard";
-
 }
