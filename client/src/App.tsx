@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -42,7 +42,10 @@ const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
-const MASTER_ADMIN_EMAIL = "menweprimaryandjunior@gmail.com";
+const MASTER_ADMIN_EMAILS = new Set([
+  "menweprimaryandjunior@gmail.com",
+  "menweschool.official@gmail.com",
+]);
 type PortalRole = "admin" | "teacher" | "parent";
 
 function resolvePortalRole(
@@ -50,7 +53,7 @@ function resolvePortalRole(
   profileRole?: unknown,
   profileActive = false
 ): PortalRole {
-  if (user.email?.trim().toLowerCase() === MASTER_ADMIN_EMAIL) return "admin";
+  if (MASTER_ADMIN_EMAILS.has(user.email?.trim().toLowerCase() ?? "")) return "admin";
 
   const role = typeof profileRole === "string"
     ? profileRole.toLowerCase()
@@ -61,9 +64,7 @@ function resolvePortalRole(
         : "";
 
   if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
-  if (profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
-
-  if (!profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
+  if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
   return "parent";
 }
 
@@ -76,31 +77,20 @@ function PortalRouteGuard({
 }) {
   const [, navigate] = useLocation();
   const auth = useSchoolAuth();
-  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // An authenticated Supabase user is sufficient to begin portal routing.
-    // Profile hydration is supplementary and must never leave the UI stuck on
-    // "Checking portal access…" while the profiles table is slow or unreadable.
-    const user = auth.user;
+    if (auth.loading) return;
 
-    if (!user) {
-      if (auth.loading) {
-        setChecking(true);
-        return;
-      }
-      setChecking(false);
+    if (!auth.user) {
       navigate("/portal/login");
       return;
     }
 
     const role = resolvePortalRole(
-      user,
+      auth.user,
       auth.profile?.role ?? auth.profile?.canonical_role,
       Boolean(auth.profile)
     );
-
-    setChecking(false);
 
     if (!allowedRoles.includes(role)) {
       navigate(
@@ -113,13 +103,23 @@ function PortalRouteGuard({
     }
   }, [allowedRoles, auth.loading, auth.profile, auth.user, navigate]);
 
-  if (checking) {
+  if (auth.loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#061229] text-sm text-white">
-        Checking portal access…
+        Restoring secure session…
       </div>
     );
   }
+
+  if (!auth.user) return null;
+
+  const role = resolvePortalRole(
+    auth.user,
+    auth.profile?.role ?? auth.profile?.canonical_role,
+    Boolean(auth.profile)
+  );
+
+  if (!allowedRoles.includes(role)) return null;
 
   return <>{children}</>;
 }
