@@ -22,17 +22,16 @@ jobs:
     name: Code & Type Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
@@ -51,10 +50,10 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
     steps:
-      - name: Checkout main
+      - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Set up Supabase CLI
@@ -81,17 +80,16 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - name: Checkout exact main commit
+      - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
@@ -100,7 +98,108 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Clean Vercel production deployment
-        run: npx vercel@latest --prod --yes --force --token "$VERCEL_TOKEN"
+        run: |
+          npx vercel@latest --prod --yes --force \
+            --meta githubCommitSha="$GITHUB_SHA" \
+            --token "$VERCEL_TOKEN"
+
+      - name: Verify Live Production Deployment SHA
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID }}
+          EXPECTED_SHA: ${{ github.sha }}
+          PRODUCTION_DOMAIN: menwe-primary-junior-school.vercel.app
+        run: |
+          set -euo pipefail
+
+          echo "============================================================"
+          echo " VERIFYING LIVE VERCEL PRODUCTION DEPLOYMENT"
+          echo "============================================================"
+
+          echo "Production domain: $PRODUCTION_DOMAIN"
+          echo "Expected Git SHA:  $EXPECTED_SHA"
+
+          echo "==> Searching Vercel production deployments..."
+
+          DEPLOYMENT_JSON="$(${HOME}/.npm/_npx/$(ls -dt ${HOME}/.npm/_npx/*/node_modules/vercel 2>/dev/null | head -n1 | xargs -r dirname 2>/dev/null)/node_modules/vercel/dist/index.js 2>/dev/null || true)"
+
+          DEPLOYMENT_JSON="$((curl --fail-with-body -sS \
+            --get \
+            "https://api.vercel.com/v6/deployments" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            --data-urlencode "projectId=$VERCEL_PROJECT_ID" \
+            --data-urlencode "target=production" \
+            --data-urlencode "limit=20"))"
+
+          DEPLOYMENT_ID="$([
+            echo "$DEPLOYMENT_JSON" |
+              jq -r --arg sha "$EXPECTED_SHA" '
+                .deployments[]
+                | select(.meta.githubCommitSha == $sha)
+                | .uid
+              ' |
+              head -n 1
+          ])"
+
+          if [ -z "$DEPLOYMENT_ID" ] || [ "$DEPLOYMENT_ID" = "null" ]; then
+            echo "ERROR: No Vercel production deployment matches $EXPECTED_SHA"
+            echo "Recent production deployments:"
+            echo "$DEPLOYMENT_JSON" | jq -r '
+              .deployments[] |
+              [.uid, .readyState, (.meta.githubCommitSha // "unknown"), (.url // "unknown")] | @tsv
+            '
+            exit 1
+          fi
+
+          EXACT_DEPLOYMENT="$((curl --fail-with-body -sS \
+            "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN"))"
+
+          LIVE_SHA="$(echo "$EXACT_DEPLOYMENT" | jq -r '.meta.githubCommitSha // empty')"
+          LIVE_STATE="$(echo "$EXACT_DEPLOYMENT" | jq -r '.readyState // empty')"
+          LIVE_URL="$(echo "$EXACT_DEPLOYMENT" | jq -r '.url // empty')"
+
+          echo "Deployment ID:  $DEPLOYMENT_ID"
+          echo "Vercel State:   $LIVE_STATE"
+          echo "Vercel Git SHA: $LIVE_SHA"
+          echo "Expected SHA:   $EXPECTED_SHA"
+          echo "Deployment URL: $LIVE_URL"
+
+          if [ "$LIVE_SHA" != "$EXPECTED_SHA" ]; then
+            echo "ERROR: Vercel SHA mismatch."
+            exit 1
+          fi
+
+          if [ "$LIVE_STATE" != "READY" ]; then
+            echo "ERROR: Vercel deployment is not READY: $LIVE_STATE"
+            exit 1
+          fi
+
+          HTTP_STATUS="$(
+            curl -sS -o /dev/null -w "%{http_code}" \
+              --max-time 30 \
+              "https://$PRODUCTION_DOMAIN"
+          )"
+
+          echo "Production HTTP status: $HTTP_STATUS"
+
+          case "$HTTP_STATUS" in
+            2*|3*) ;;
+            *)
+              echo "ERROR: Production hostname returned HTTP $HTTP_STATUS"
+              exit 1
+              ;;
+          esac
+
+          echo "============================================================"
+          echo " LIVE PRODUCTION DEPLOYMENT VERIFIED"
+          echo "============================================================"
+          echo "✓ GitHub SHA:      $EXPECTED_SHA"
+          echo "✓ Vercel SHA:      $LIVE_SHA"
+          echo "✓ Vercel state:    READY"
+          echo "✓ Production host: $PRODUCTION_DOMAIN"
+          echo "✓ HTTP status:     $HTTP_STATUS"
+          echo "============================================================"
 
   deployment-summary:
     name: Deployment Summary
@@ -121,7 +220,8 @@ jobs:
           echo "✓ parent-assistant deployed"
           echo "✓ communication-webhook deployed"
           echo "✓ Vercel production deployment completed with --force"
-          echo "✓ Vercel build cache bypassed for this release"
+          echo "✓ Live Vercel SHA verified"
+          echo "✓ Production hostname verified"
           echo ""
           echo "Production: https://menwe-primary-junior-school.vercel.app"
           echo "============================================================"
