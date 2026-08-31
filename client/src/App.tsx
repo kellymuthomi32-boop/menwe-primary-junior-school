@@ -63,9 +63,6 @@ function resolvePortalRole(
   if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
   if (profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
 
-  // If the profile row is temporarily unreadable, SupabaseAuthContext may
-  // already have produced its validated Auth-metadata fallback. Do not block
-  // an authenticated parent/teacher session on a second duplicate query.
   if (!profileActive && ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
   return "parent";
 }
@@ -82,13 +79,16 @@ function PortalRouteGuard({
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (auth.loading) {
-      setChecking(true);
-      return;
-    }
-
+    // An authenticated Supabase user is sufficient to begin portal routing.
+    // Profile hydration is supplementary and must never leave the UI stuck on
+    // "Checking portal access…" while the profiles table is slow or unreadable.
     const user = auth.user;
+
     if (!user) {
+      if (auth.loading) {
+        setChecking(true);
+        return;
+      }
       setChecking(false);
       navigate("/portal/login");
       return;
