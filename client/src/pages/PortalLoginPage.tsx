@@ -4,7 +4,6 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, Shield
 import PublicLayout from "@/components/PublicLayout";
 import { useLocation } from "wouter";
 import { requireSupabaseClient } from "@/lib/supabaseClient";
-import { supabase } from "@/lib/supabase";
 import { getPortalRedirect, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function PortalLoginPage() {
@@ -24,29 +23,16 @@ export default function PortalLoginPage() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
   const [magicLinkMode, setMagicLinkMode] = useState(false);
+  const [redirected, setRedirected] = useState(false);
 
+  // Strict redirect guard: Wait until BOTH user AND profile are loaded to avoid incorrect routing
   useEffect(() => {
-    // Guard against running redirect before profile resolution
-    if (!supabase || !auth.profile) return;
-    let active = true;
+    if (auth.loading || !auth.user || !auth.profile || redirected) return;
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (active && data.session) {
-        go(getPortalRedirect(auth.profile, data.session.user));
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active && session) {
-        go(getPortalRedirect(auth.profile, session.user));
-      }
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [auth.profile, go]);
+    setRedirected(true);
+    const target = getPortalRedirect(auth.profile, auth.user);
+    go(target);
+  }, [auth.loading, auth.user, auth.profile, redirected, go]);
 
   const clearFeedback = () => {
     setMessage("");
@@ -62,58 +48,73 @@ export default function PortalLoginPage() {
     return text || "We could not complete your request. Please contact the school office at 0142550882.";
   };
 
-  const findStudent = async (value: string) => {
-    const normalized = value.trim();
-    if (!normalized) return null;
-    const client = requireSupabaseClient();
-    const { data, error } = await client
-      .from("students")
-      .select("id,parent_email,admission_number,upi_number")
-      .or(`admission_number.eq.${normalized},upi_number.eq.${normalized}`)
-      .limit(1)
-      .maybeSingle();
-    if (error) throw new Error("Learner verification is unavailable right now. Please contact school ICT or administration.");
-    return data;
+  const executePostLoginRedirect = async () => {
+    const freshProfile = await auth.refreshProfile();
+
+    if (freshProfile) {
+      go(getPortalRedirect(freshProfile, auth.user));
+      return;
+    }
+
+    // Graceful retry: If profile trigger is delayed, pause briefly and re-fetch profile
+    setTimeout(async () => {
+      const retryProfile = await auth.refreshProfile();
+
+      if (!retryProfile) {
+        setMessage(
+          "Your account was authenticated, but your profile is still being prepared by the database. Please try logging in again shortly."
+        );
+        return;
+      }
+
+      go(getPortalRedirect(retryProfile, auth.user));
+    }, 1000);
   };
 
-  const resolveEmail = async () => {
-    const value = identifier.trim();
-    if (value.includes("@")) return value.toLowerCase();
-    if (tab === "family") {
-      const student = await findStudent(value);
-      if (!student?.parent_email) throw new Error("No parent email is registered against that admission number or UPI. Please contact the school office.");
-      return student.parent_email.trim().toLowerCase();
+  // Resolves raw email addresses or maps identifiers (Staff ID, Admission No, UPI) to registered emails securely via RPC
+  const resolveEmail = async (): Promise<string> => {
+    const input = identifier.trim();
+
+    if (input.includes("@")) {
+      return input.toLowerCase();
     }
+
     const client = requireSupabaseClient();
-    const { data, error } = await client.from("staff_members").select("email").eq("source_id", value).maybeSingle();
-    if (error) throw new Error("Staff-ID lookup is protected. Please use the registered staff email or contact the ICT desk.");
-    if (!data?.email) throw new Error("No staff email is registered against that Staff ID. Please use the official registered email or contact the ICT desk.");
-    return data.email.trim().toLowerCase();
+
+    const { data: resolvedEmail, error } = await client.rpc("resolve_user_identifier_email", {
+      user_identifier: input
+    });
+
+    if (error || !resolvedEmail) {
+      throw new Error("Invalid login credentials or unregistered identifier.");
+    }
+
+    return resolvedEmail;
   };
 
   const submitSignIn = async (event: FormEvent) => {
     event.preventDefault();
     clearFeedback();
+
     if (magicLinkMode) return sendMagicLink();
+
     if (!identifier.trim() || !password) {
       setMessage("Enter your identifier and password to continue.");
       return;
     }
+
     setBusy(true);
+
     try {
       const emailAddress = await resolveEmail();
       const result = await auth.signIn(emailAddress, password);
+
       if (result.error) {
         setMessage(friendlyError(result.error));
         return;
       }
-      // Await fresh profile resolution to prevent using stale closure state
-      const freshProfile = await auth.refreshProfile();
-      const targetProfile = freshProfile || auth.profile;
-      
-      if (targetProfile) {
-        go(getPortalRedirect(targetProfile, result.user ?? auth.user));
-      }
+
+      await executePostLoginRedirect();
     } catch (error) {
       setMessage(friendlyError(error));
     } finally {
@@ -134,7 +135,7 @@ export default function PortalLoginPage() {
       const { error } = await client.auth.signInWithOtp({
         email: emailAddress,
         options: {
-          emailRedirectTo: `${window.location.origin}/portal/dashboard`,
+          emailRedirectTo: `${window.location.origin}/portal/callback`,
           shouldCreateUser: false
         }
       });
@@ -168,77 +169,96 @@ export default function PortalLoginPage() {
     }
     setBusy(true);
     try {
+      const client = requireSupabaseClient();
       let metadata: Record<string, string>;
-      let redirect: string;
+
       if (tab === "staff") {
         const name = fullName.trim();
         const id = staffId.trim();
         const enteredCode = schoolCode.trim();
-        const validCode = (import.meta.env.VITE_SCHOOL_STAFF_CODE || "MENWE-STAFF-2026").trim();
-        if (!name || !id) {
-          setMessage("Complete your full name and Staff ID / TSC Number.");
+
+        if (!name || !id || !enteredCode) {
+          setMessage("Complete your full name, Staff ID, and authorization code.");
           return;
         }
-        if (!enteredCode || enteredCode !== validCode) {
-          setMessage("Invalid School Authorization Code. Please contact administration.");
+
+        const { data: isValidCode, error: rpcError } = await client.rpc("verify_staff_registration", {
+          staff_id: id,
+          authorization_code: enteredCode
+        });
+
+        if (rpcError || !isValidCode) {
+          setMessage("Invalid Staff ID or Authorization Code. Please contact administration.");
           return;
         }
+
         metadata = { role: "teacher", tsc_number: id, full_name: name };
-        redirect = "/portal/teacher";
       } else {
         const lookup = identifier.trim();
         if (!lookup) {
           setMessage("Enter the learner admission number or UPI number.");
           return;
         }
-        const student = await findStudent(lookup);
-        if (!student) {
+
+        const { data: verifiedStudentId, error: studentError } = await client.rpc("verify_learner_registration", {
+          identifier: lookup
+        });
+
+        if (studentError || !verifiedStudentId) {
           setMessage("Learner record not found. Please contact school ICT or administration.");
           return;
         }
-        metadata = { student_id: student.id, account_type: "parent_student" };
-        redirect = "/portal/dashboard";
+
+        metadata = { student_id: verifiedStudentId, role: "parent", account_type: "parent_student" };
       }
-      const client = requireSupabaseClient();
+
       const { data, error } = await client.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
           data: metadata,
-          emailRedirectTo: `${window.location.origin}${redirect}`
+          emailRedirectTo: `${window.location.origin}/portal/callback`
         }
       });
+
       if (error) {
         setMessage(friendlyError(error));
         return;
       }
-      if (data.session) {
-        await auth.refreshProfile();
-        setSuccess(tab === "staff" ? "Staff account registered successfully! You can now log in." : "Account registered successfully!");
+
+      if (data.session?.user) {
+        setSuccess(tab === "staff" ? "Staff account registered successfully!" : "Account registered successfully!");
         setPassword("");
         setConfirmPassword("");
         setSchoolCode("");
-        go(redirect);
+        await executePostLoginRedirect();
         return;
       }
+
       const login = await auth.signIn(normalizedEmail, password);
       if (!login.error) {
-        await auth.refreshProfile();
-        setSuccess(tab === "staff" ? "Staff account registered successfully! You can now log in." : "Account registered successfully!");
+        setSuccess(tab === "staff" ? "Staff account registered successfully!" : "Account registered successfully!");
         setPassword("");
         setConfirmPassword("");
         setSchoolCode("");
-        go(redirect);
+        await executePostLoginRedirect();
         return;
       }
+
       if (/email not confirmed/i.test(login.error)) {
-        setSuccess(tab === "staff" ? "Staff account registered successfully! Please check your email inbox to confirm your account before logging in." : "Account created successfully! Please check your email inbox to confirm your account before logging in.");
+        setSuccess(
+          tab === "staff"
+            ? "Staff account registered successfully! Please check your email inbox to confirm your account before logging in."
+            : "Account created successfully! Please check your email inbox to confirm your account before logging in."
+        );
         setMode("signin");
         setIdentifier(normalizedEmail);
         setPassword("");
         setConfirmPassword("");
         setSchoolCode("");
-      } else setMessage(friendlyError(login.error));
+      } else {
+        setMessage(friendlyError(login.error));
+      }
     } catch (error) {
       setMessage(friendlyError(error));
     } finally {
