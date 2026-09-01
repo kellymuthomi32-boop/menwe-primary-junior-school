@@ -28,6 +28,10 @@ function Overview({ role }: { role: AppRole }) {
 function PortalRouter({ role }: { role: AppRole }) {
   const [location] = useLocation();
   const view = location.split("/").filter(Boolean).at(-1) || "overview";
+  const isAdminRoute = view === "admin" && isAdministrator(role);
+  // /portal/admin must never be wrapped by the generic /portal shell. The admin
+  // command center owns exactly one PortalLayout, preventing duplicated sidebars.
+  if (isAdminRoute) return <AdminDashboardHubPage />;
   if (adminOnly.has(view) && !isAdministrator(role)) return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><AccessDenied role={role} view={view} /></main></PortalLayout>;
   const component = view === "messages" ? <MessageCenter role={role} /> : view === "people" ? <PeopleDirectory /> : view === "enrolment" ? <EnrollmentDirectory /> : view === "assignments" ? <TeacherAssignmentsDirectory /> : view === "content" ? <ContentManagement /> : view === "operations" || view === "settings" || view === "audit-logs" ? <OperationsAdmin /> : <Overview role={role}/>;
   if (view === "overview" && role === "ADMIN") return component;
@@ -40,12 +44,10 @@ export default function PortalGuard() {
   useEffect(() => { if (!loading && !user) setLocation("/portal/login"); }, [loading, setLocation, user]);
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#f4f5f1]"><Loader2 className="animate-spin text-[var(--accent)]" /></div>;
   if (!user) return null;
-
   if (profile?.status === "INACTIVE") return <div className="grid min-h-screen place-items-center bg-[#f4f5f1] px-5"><div className="max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl"><ShieldAlert className="mx-auto text-[var(--accent)]" size={34} /><h1 className="mt-5 font-serif text-3xl font-semibold">School access is unavailable</h1><p className="mt-4 text-sm leading-6 text-[var(--ink)]/65">Your sign-in succeeded, but this account is disabled.</p>{error && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-red-700"><AlertCircle size={16} />{error}</p>}<div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => void refreshProfile()} disabled={profileLoading} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Try again</button><button onClick={() => setLocation("/")} className="rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white">Return to website</button></div></div></div>;
 
   const email = user.email?.trim().toLowerCase() ?? "";
   const metadataRole = typeof user.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : typeof user.user_metadata?.role === "string" ? user.user_metadata.role.toLowerCase() : "";
-  // Explicit administrator identities take precedence over stale/misclassified profile roles.
   const role: AppRole = MASTER_ADMIN_EMAILS.has(email)
     ? "ADMIN"
     : profile?.role ?? (["admin", "super_admin", "head_of_institution", "deputy_hoi"].includes(metadataRole)
