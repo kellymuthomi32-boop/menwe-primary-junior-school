@@ -41,106 +41,45 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage = lazy(() => import("./pages/CookiesPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const ContentManagementRoute = lazy(() => import("./pages/ContentManagement"));
+const AcademicDirectoryRoute = lazy(() => import("./pages/AcademicDirectory"));
+const AdminPeopleManagementPage = lazy(() => import("./pages/AdminPeopleManagementPage"));
+const AdminOperationsPage = lazy(() => import("./pages/AdminOperationsPage"));
 
-const MASTER_ADMIN_EMAILS = new Set([
-  "menweprimaryandjunior@gmail.com",
-  "menweschool.official@gmail.com",
-]);
+const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
 type PortalRole = "admin" | "teacher" | "parent";
 
-function resolvePortalRole(
-  user: { email?: string | null; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> },
-  profileRole?: unknown,
-  profileActive = false
-): PortalRole {
+function resolvePortalRole(user: { email?: string | null; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> }, profileRole?: unknown, profileActive = false): PortalRole {
   if (MASTER_ADMIN_EMAILS.has(user.email?.trim().toLowerCase() ?? "")) return "admin";
-
-  const role = typeof profileRole === "string"
-    ? profileRole.toLowerCase()
-    : typeof user.app_metadata?.role === "string"
-      ? user.app_metadata.role.toLowerCase()
-      : typeof user.user_metadata?.role === "string"
-        ? user.user_metadata.role.toLowerCase()
-        : "";
-
+  const role = typeof profileRole === "string" ? profileRole.toLowerCase() : typeof user.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : typeof user.user_metadata?.role === "string" ? user.user_metadata.role.toLowerCase() : "";
   if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
   if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
   return "parent";
 }
 
-function PortalRouteGuard({
-  allowedRoles,
-  children,
-}: {
-  allowedRoles: PortalRole[];
-  children: ReactNode;
-}) {
+function PortalRouteGuard({ allowedRoles, children }: { allowedRoles: PortalRole[]; children: ReactNode }) {
   const [, navigate] = useLocation();
   const auth = useSchoolAuth();
-
   useEffect(() => {
     if (auth.loading) return;
-
-    if (!auth.user) {
-      navigate("/portal/login");
-      return;
-    }
-
+    if (!auth.user) { navigate("/portal/login"); return; }
     if (auth.profileLoading || !auth.profile) return;
-
-    const role = resolvePortalRole(
-      auth.user,
-      auth.profile.role ?? auth.profile.canonical_role,
-      auth.profile.status === "ACTIVE"
-    );
-
-    if (!allowedRoles.includes(role)) {
-      navigate(
-        role === "teacher"
-          ? "/portal/teacher"
-          : role === "admin"
-            ? "/portal/admin"
-            : "/portal/parent"
-      );
-    }
+    const role = resolvePortalRole(auth.user, auth.profile.role ?? auth.profile.canonical_role, auth.profile.status === "ACTIVE");
+    if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
   }, [allowedRoles, auth.loading, auth.profile, auth.profileLoading, auth.user, navigate]);
-
-  if (auth.loading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#061229] text-sm text-white">
-        Restoring secure session…
-      </div>
-    );
-  }
-
+  if (auth.loading) return <div className="grid min-h-screen place-items-center bg-[#061229] text-sm text-white">Restoring secure session…</div>;
   if (!auth.user || auth.profileLoading || !auth.profile) return null;
-
-  const role = resolvePortalRole(
-    auth.user,
-    auth.profile.role ?? auth.profile.canonical_role,
-    auth.profile.status === "ACTIVE"
-  );
-
+  const role = resolvePortalRole(auth.user, auth.profile.role ?? auth.profile.canonical_role, auth.profile.status === "ACTIVE");
   if (!allowedRoles.includes(role)) return null;
-
   return <>{children}</>;
 }
 
-function AdminPortalRoute() {
-  return <PortalRouteGuard allowedRoles={["admin"]}><PortalAdminPage /></PortalRouteGuard>;
-}
-
-function TeacherPortalRoute() {
-  return <PortalRouteGuard allowedRoles={["admin", "teacher"]}><PortalTeacherPage /></PortalRouteGuard>;
-}
-
-function ParentPortalRoute() {
-  return <PortalRouteGuard allowedRoles={["parent"]}><PortalParentPage /></PortalRouteGuard>;
-}
+function AdminPortalRoute() { return <PortalRouteGuard allowedRoles={["admin"]}><PortalAdminPage /></PortalRouteGuard>; }
+function TeacherPortalRoute() { return <PortalRouteGuard allowedRoles={["admin", "teacher"]}><PortalTeacherPage /></PortalRouteGuard>; }
+function ParentPortalRoute() { return <PortalRouteGuard allowedRoles={["parent"]}><PortalParentPage /></PortalRouteGuard>; }
 
 function Router() {
   const [location] = useLocation();
-
   useEffect(() => {
     const titles: Record<string, string> = {
       "/": "Menwe Primary & Junior School | Igoki, Abogeta",
@@ -148,75 +87,24 @@ function Router() {
       "/academics": "Academics & CBC Learning | Menwe Primary & Junior School",
       "/admissions": "Admissions | Menwe Primary & Junior School",
       "/contact": "Contact Menwe Primary & Junior School",
-      "/portal/dashboard": "Learner Portal Dashboard | Menwe Primary & Junior School",
       "/portal/admin": "Staff & Admin Command Center | Menwe Primary & Junior School",
+      "/portal/admin/directory": "People & Enrolment | Menwe Primary & Junior School",
+      "/portal/admin/operations": "Operations & Reports | Menwe Primary & Junior School",
+      "/portal/admin/finance": "Finance | Menwe Primary & Junior School",
     };
-
     document.title = titles[location] ?? "Menwe Primary & Junior School | Igoki, Abogeta";
   }, [location]);
-
-  return (
-    <Switch>
-      <Route path="/" component={MenweHeroHome} />
-      <Route path="/about" component={AboutPage} />
-      <Route path="/academics" component={AcademicsPage} />
-      <Route path="/admissions" component={AdmissionsPage} />
-      <Route path="/news-events" component={NewsEventsPage} />
-      <Route path="/news" component={NewsEventsPage} />
-      <Route path="/events" component={NewsEventsPage} />
-      <Route path="/gallery" component={GalleryPage} />
-      <Route path="/contact" component={ContactPage} />
-      <Route path="/school-life" component={SchoolLifePage} />
-      <Route path="/families" component={ForFamiliesPage} />
-      <Route path="/how-it-works" component={HowItWorksPage} />
-      <Route path="/portal/login" component={PortalLoginPage} />
-      <Route path="/portal/admin" component={AdminPortalRoute} />
-      <Route path="/portal/teacher" component={TeacherPortalRoute} />
-      <Route path="/portal/parent" component={ParentPortalRoute} />
-      <Route path="/portal/dashboard" component={ParentPortalRoute} />
-      <Route path="/portal/admin/academics" component={AcademicManagementPage} />
-      <Route path="/portal/admin/attendance" component={AttendanceDirectory} />
-      <Route path="/portal/admin/content" component={ContentManagementRoute} />
-      <Route path="/portal/admin/directory" component={AcademicDirectoryRoute} />
-      <Route path="/portal" component={PortalGuard} />
-      <Route path="/calendar" component={CalendarPage} />
-      <Route path="/terms" component={TermsPage} />
-      <Route path="/privacy" component={PrivacyPage} />
-      <Route path="/cookies" component={CookiesPage} />
-      <Route path="/login" component={PortalAccessPage} />
-      <Route path="/portal/password" component={LoginPage} />
-      <Route path="/portal/email-link" component={MagicLinkPage} />
-      <Route path="/portal/setup/first-admin" component={FirstAdminPage} />
-      <Route path="/portal/setup" component={SchoolSetupPage} />
-      <Route path="/portal/academics" component={AcademicManagementPage} />
-      <Route path="/portal/exams" component={ExamManagementPage} />
-      <Route path="/portal/attendance" component={AttendanceDirectory} />
-      <Route path="/portal/report-cards" component={ReportCardsDirectory} />
-      <Route path="/portal/finance" component={FinanceDirectory} />
-      <Route path="/portal/homework" component={HomeworkDirectory} />
-      <Route path="/portal/timetable" component={TimetableDirectory} />
-      <Route path="/portal/notifications" component={NotificationCenter} />
-      <Route path="/portal/gallery" component={GalleryManagementPage} />
-      <Route path="/portal/:rest*" component={PortalGuard} />
-      <Route path="*" component={NotFoundPage} />
-    </Switch>
-  );
+  return <Switch>
+    <Route path="/" component={MenweHeroHome} /><Route path="/about" component={AboutPage} /><Route path="/academics" component={AcademicsPage} /><Route path="/admissions" component={AdmissionsPage} />
+    <Route path="/news-events" component={NewsEventsPage} /><Route path="/news" component={NewsEventsPage} /><Route path="/events" component={NewsEventsPage} /><Route path="/gallery" component={GalleryPage} /><Route path="/contact" component={ContactPage} /><Route path="/school-life" component={SchoolLifePage} /><Route path="/families" component={ForFamiliesPage} /><Route path="/how-it-works" component={HowItWorksPage} />
+    <Route path="/portal/login" component={PortalLoginPage} /><Route path="/portal/admin" component={AdminPortalRoute} /><Route path="/portal/teacher" component={TeacherPortalRoute} /><Route path="/portal/parent" component={ParentPortalRoute} /><Route path="/portal/dashboard" component={ParentPortalRoute} />
+    <Route path="/portal/admin/academics" component={AcademicManagementPage} /><Route path="/portal/admin/attendance" component={AttendanceDirectory} /><Route path="/portal/admin/content" component={ContentManagementRoute} /><Route path="/portal/admin/directory" component={AdminPeopleManagementPage} /><Route path="/portal/admin/operations" component={AdminOperationsPage} /><Route path="/portal/admin/finance" component={FinanceDirectory} />
+    <Route path="/portal" component={PortalGuard} /><Route path="/calendar" component={CalendarPage} /><Route path="/terms" component={TermsPage} /><Route path="/privacy" component={PrivacyPage} /><Route path="/cookies" component={CookiesPage} /><Route path="/login" component={PortalAccessPage} /><Route path="/portal/password" component={LoginPage} /><Route path="/portal/email-link" component={MagicLinkPage} /><Route path="/portal/setup/first-admin" component={FirstAdminPage} /><Route path="/portal/setup" component={SchoolSetupPage} />
+    <Route path="/portal/academics" component={AcademicManagementPage} /><Route path="/portal/exams" component={ExamManagementPage} /><Route path="/portal/attendance" component={AttendanceDirectory} /><Route path="/portal/report-cards" component={ReportCardsDirectory} /><Route path="/portal/finance" component={FinanceDirectory} /><Route path="/portal/homework" component={HomeworkDirectory} /><Route path="/portal/timetable" component={TimetableDirectory} /><Route path="/portal/notifications" component={NotificationCenter} /><Route path="/portal/gallery" component={GalleryManagementPage} />
+    <Route path="/portal/:rest*" component={PortalGuard} /><Route path="*" component={NotFoundPage} />
+  </Switch>;
 }
 
-const ContentManagementRoute = lazy(() => import("./pages/ContentManagement"));
-const AcademicDirectoryRoute = lazy(() => import("./pages/AcademicDirectory"));
-
 export default function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}>
-            <Router />
-          </Suspense>
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
