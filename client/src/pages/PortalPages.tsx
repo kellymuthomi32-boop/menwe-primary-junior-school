@@ -11,6 +11,7 @@ import EnrollmentDirectory from "./EnrollmentDirectory";
 import TeacherAssignmentsDirectory from "./TeacherAssignmentsDirectory";
 
 const adminOnly = new Set(["people", "enrolment", "assignments", "content", "operations", "settings", "audit-logs"]);
+const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
 
 function AccessDenied({ role, view }: { role: AppRole; view: string }) {
   return <section className="menwe-card rounded-[1.75rem] p-6 sm:p-8"><div className="flex items-start gap-4"><ShieldAlert className="mt-1 shrink-0 text-[var(--accent)]" size={24} /><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[var(--accent)]">Access restricted</p><h1 className="mt-2 font-serif text-3xl font-semibold">This area is not available to your role.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink)]/62">{role.replaceAll("_", " ")} accounts cannot open the {view.replaceAll("-", " ")} administration area.</p></div></div></section>;
@@ -37,13 +38,20 @@ export default function PortalGuard() {
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#f4f5f1]"><Loader2 className="animate-spin text-[var(--accent)]" /></div>;
   if (!user) return null;
 
-  // Authentication is the navigation gate. Profile hydration is supplementary and must never trap a signed-in user.
   if (profile?.status === "INACTIVE") return <div className="grid min-h-screen place-items-center bg-[#f4f5f1] px-5"><div className="max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl"><ShieldAlert className="mx-auto text-[var(--accent)]" size={34} /><h1 className="mt-5 font-serif text-3xl font-semibold">School access is unavailable</h1><p className="mt-4 text-sm leading-6 text-[var(--ink)]/65">Your sign-in succeeded, but this account is disabled.</p>{error && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-red-700"><AlertCircle size={16} />{error}</p>}<div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => void refreshProfile()} disabled={profileLoading} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Try again</button><button onClick={() => setLocation("/")} className="rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white">Return to website</button></div></div></div>;
 
   const email = user.email?.trim().toLowerCase() ?? "";
   const metadataRole = typeof user.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : typeof user.user_metadata?.role === "string" ? user.user_metadata.role.toLowerCase() : "";
-  const role: AppRole = profile?.role ?? (email === "menweschool.official@gmail.com" || email === "menweprimaryandjunior@gmail.com" || ["admin", "super_admin", "head_of_institution", "deputy_hoi"].includes(metadataRole) ? "ADMIN" : ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(metadataRole) ? "TEACHER" : metadataRole === "student" ? "STUDENT" : "PARENT");
+  // Explicit administrator identities take precedence over stale/misclassified profile roles.
+  const role: AppRole = MASTER_ADMIN_EMAILS.has(email)
+    ? "ADMIN"
+    : profile?.role ?? (["admin", "super_admin", "head_of_institution", "deputy_hoi"].includes(metadataRole)
+      ? "ADMIN"
+      : ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(metadataRole)
+        ? "TEACHER"
+        : metadataRole === "student"
+          ? "STUDENT"
+          : "PARENT");
 
-  // Do not wait on profileLoading. SupabaseAuthContext already has a timeout and metadata fallback.
   return <PortalRouter role={role} />;
 }
