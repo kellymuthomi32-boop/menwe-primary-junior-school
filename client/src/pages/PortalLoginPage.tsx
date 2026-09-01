@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import PublicLayout from "@/components/PublicLayout";
 import { useLocation } from "wouter";
-import { requireSupabaseClient } from "@/lib/supabaseClient";
+import { getSupabase } from "@/lib/supabase";
 import { getPortalRedirect, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
 export default function PortalLoginPage() {
@@ -27,10 +27,11 @@ export default function PortalLoginPage() {
 
   // Authenticated users are never required to have a readable profiles row just to leave login.
   useEffect(() => {
-    if (redirected || !auth.user) return;
+    if (redirected || auth.loading || !auth.user) return;
     setRedirected(true);
-    go(getPortalRedirect(auth.profile ?? auth.user, auth.user));
-  }, [auth.user, auth.profile, redirected, go]);
+    // Keep users in the neutral portal shell until the canonical profile is ready.
+    go(auth.profile ? getPortalRedirect(auth.profile, auth.user) : "/portal");
+  }, [auth.loading, auth.user, auth.profile, redirected, go]);
 
   const clearFeedback = () => { setMessage(""); setSuccess(""); };
 
@@ -46,10 +47,10 @@ export default function PortalLoginPage() {
   // Redirect from the authenticated Auth user first; profile hydration can finish in the background.
   const executePostLoginRedirect = async () => {
     try {
-      const { data: { user } } = await requireSupabaseClient().auth.getUser();
+      const { data: { user } } = await getSupabase().auth.getUser();
       if (!user) { setMessage("Unable to load your account."); return; }
       const profile = await auth.refreshProfile();
-      go(getPortalRedirect(profile ?? user, user));
+      go(profile ? getPortalRedirect(profile, user) : "/portal");
     } catch (error) {
       setMessage(friendlyError(error));
     }
@@ -58,7 +59,7 @@ export default function PortalLoginPage() {
   const resolveEmail = async (): Promise<string> => {
     const input = identifier.trim();
     if (input.includes("@") && input.includes(".")) return input.toLowerCase();
-    const { data: resolvedEmail, error } = await requireSupabaseClient().rpc("resolve_user_identifier_email", { user_identifier: input });
+    const { data: resolvedEmail, error } = await getSupabase().rpc("resolve_user_identifier_email", { user_identifier: input });
     if (error || !resolvedEmail) throw new Error("Invalid login credentials or unregistered identifier.");
     return resolvedEmail;
   };
@@ -69,7 +70,7 @@ export default function PortalLoginPage() {
     if (!emailAddress.includes("@")) { setMessage("Enter your registered email address."); return; }
     setBusy(true);
     try {
-      const { error } = await requireSupabaseClient().auth.signInWithOtp({ email: emailAddress, options: { emailRedirectTo: `${window.location.origin}/portal/callback`, shouldCreateUser: false } });
+      const { error } = await getSupabase().auth.signInWithOtp({ email: emailAddress, options: { emailRedirectTo: `${window.location.origin}/portal/callback`, shouldCreateUser: false } });
       if (error) setMessage(friendlyError(error)); else setSuccess("Magic link sent. Check your email inbox.");
     } catch (error) { setMessage(friendlyError(error)); }
     finally { setBusy(false); }
@@ -101,7 +102,7 @@ export default function PortalLoginPage() {
     if (password !== confirmPassword) { setMessage("Passwords do not match."); return; }
     setBusy(true);
     try {
-      const client = requireSupabaseClient();
+      const client = getSupabase();
       let metadata: Record<string, string>;
       if (tab === "staff") {
         const name = fullName.trim(), id = staffId.trim(), enteredCode = schoolCode.trim();

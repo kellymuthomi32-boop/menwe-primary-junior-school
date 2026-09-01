@@ -87,6 +87,7 @@ type AuthContextValue = {
   session: Session | null;
   profile: SchoolProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   sendMagicLink: (email: string) => Promise<{ error?: string }>;
@@ -102,14 +103,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<SchoolProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
     if (!userId || !supabase) {
       setProfile(null);
+      setProfileLoading(false);
       return null;
     }
 
+    setProfileLoading(true);
     try {
       // Profile hydration is supplementary. It must never block an authenticated session.
       const profileRequest = supabase
@@ -141,6 +145,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         };
         setError(null);
         setProfile(normalizedProfile);
+        setProfileLoading(false);
         return normalizedProfile;
       }
 
@@ -154,6 +159,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         if (fallbackProfile) {
           setError(null);
           setProfile(fallbackProfile);
+          setProfileLoading(false);
           return fallbackProfile;
         }
       }
@@ -161,6 +167,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       // Do not turn a profile/RLS problem into a login failure.
       setError("School profile is unavailable; continuing with the authenticated account.");
       setProfile(null);
+      setProfileLoading(false);
       return null;
     } catch (err) {
       console.error("Unexpected profile error:", err);
@@ -172,6 +179,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           if (fallbackProfile) {
             setError(null);
             setProfile(fallbackProfile);
+            setProfileLoading(false);
             return fallbackProfile;
           }
         }
@@ -181,14 +189,17 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
       setError("School profile is unavailable; continuing with the authenticated account.");
       setProfile(null);
+      setProfileLoading(false);
       return null;
     }
   }, []);
 
   useEffect(() => {
-    if (!supabase) {
+    const client = supabase;
+    if (!client) {
       setError("The portal has not been configured with Supabase yet.");
       setLoading(false);
+      setProfileLoading(false);
       return;
     }
 
@@ -196,12 +207,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     const initialise = async () => {
       try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
+        const { data, error: sessionError } = await client.auth.getSession();
         if (sessionError) console.error("Session restoration error:", sessionError);
         if (!active) return;
 
         const nextSession = data.session ?? null;
         setSession(nextSession);
+        setProfileLoading(Boolean(nextSession?.user?.id));
         // Auth restoration is complete here. Never wait for profiles to render the app.
         setLoading(false);
 
@@ -209,11 +221,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           void loadProfile(nextSession.user.id);
         } else {
           setProfile(null);
+          setProfileLoading(false);
         }
       } catch (err) {
         console.error("Initialization error:", err);
         if (active) {
           setError("Unable to restore your school session.");
+          setProfileLoading(false);
           setLoading(false);
         }
       }
@@ -221,9 +235,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
     void initialise();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
+      setProfileLoading(Boolean(nextSession?.user?.id));
       // Auth state itself controls the loading gate; profile loading is background work.
       setLoading(false);
 
@@ -231,11 +246,12 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         if (!active) return;
         if (nextSession?.user?.id) {
           void loadProfile(nextSession.user.id);
-        } else {
-          setProfile(null);
-          setError(null);
-        }
-      }, 0);
+      } else {
+        setProfile(null);
+        setProfileLoading(false);
+        setError(null);
+      }
+    }, 0);
     });
 
     return () => {
@@ -249,6 +265,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     session,
     profile,
     loading,
+    profileLoading,
     error,
 
     signIn: async (email, password) => {
@@ -289,12 +306,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     signOut: async () => {
       await getSupabase().auth.signOut();
       setProfile(null);
+      setProfileLoading(false);
       setSession(null);
       setError(null);
     },
 
     refreshProfile: async () => loadProfile(session?.user.id ?? null),
-  }), [error, loadProfile, loading, profile, session]);
+  }), [error, loadProfile, loading, profile, profileLoading, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -318,7 +336,7 @@ export function getPortalRedirect(
   let role = "";
   let email = "";
 
-  if ("canonical_role" in profileOrUser || "role" in profileOrUser) {
+  if ("canonical_role" in profileOrUser) {
     const profile = profileOrUser as SchoolProfile;
     role = profile.role?.toString().toUpperCase() || "";
     email = profile.email?.trim().toLowerCase() || "";

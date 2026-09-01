@@ -86,10 +86,12 @@ function PortalRouteGuard({
       return;
     }
 
+    if (auth.profileLoading || !auth.profile) return;
+
     const role = resolvePortalRole(
       auth.user,
-      auth.profile?.role ?? auth.profile?.canonical_role,
-      Boolean(auth.profile)
+      auth.profile.role ?? auth.profile.canonical_role,
+      auth.profile.status === "ACTIVE"
     );
 
     if (!allowedRoles.includes(role)) {
@@ -101,7 +103,7 @@ function PortalRouteGuard({
             : "/portal/parent"
       );
     }
-  }, [allowedRoles, auth.loading, auth.profile, auth.user, navigate]);
+  }, [allowedRoles, auth.loading, auth.profile, auth.profileLoading, auth.user, navigate]);
 
   if (auth.loading) {
     return (
@@ -111,12 +113,12 @@ function PortalRouteGuard({
     );
   }
 
-  if (!auth.user) return null;
+  if (!auth.user || auth.profileLoading || !auth.profile) return null;
 
   const role = resolvePortalRole(
     auth.user,
-    auth.profile?.role ?? auth.profile?.canonical_role,
-    Boolean(auth.profile)
+    auth.profile.role ?? auth.profile.canonical_role,
+    auth.profile.status === "ACTIVE"
   );
 
   if (!allowedRoles.includes(role)) return null;
