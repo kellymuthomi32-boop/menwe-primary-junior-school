@@ -1,4 +1,4 @@
-.menwe-portal{--portal-sidebar:17.5rem;min-height:100vh;background:var(--paper);color:var(--ink)}
+.menwe-portal{--portal-sidebar:17.5rem;--accent:var(--gold);min-height:100vh;background:var(--paper);color:var(--ink)}
 .menwe-portal .bg-\[\#061229\]{background-color:var(--ink)!important}
 .menwe-portal .text-\[\#061229\]{color:var(--ink)!important}
 .menwe-portal .bg-\[\#D89B28\]{background-color:var(--gold)!important}
@@ -17,5 +17,7 @@
 .menwe-portal .menwe-portal-nav-active{position:relative;background:white!important;color:var(--ink)!important;box-shadow:0 10px 25px rgba(0,0,0,.12)}
 .menwe-portal .menwe-portal-nav-active:before{content:"";position:absolute;left:0;top:20%;bottom:20%;width:3px;border-radius:999px;background:var(--gold)}
 .menwe-portal .menwe-portal-scroll::-webkit-scrollbar{width:6px}.menwe-portal .menwe-portal-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px}
+.menwe-portal .menwe-live-dot{width:.42rem;height:.42rem;border-radius:999px;background:#7abf75;box-shadow:0 0 0 .2rem rgba(122,191,117,.12);display:inline-block;flex:0 0 auto}
+.menwe-portal .menwe-focus-ring:focus-visible,.menwe-portal .menwe-interactive:focus-visible{outline:3px solid rgba(213,185,92,.42);outline-offset:2px}
 @keyframes menwe-portal-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:1023px){.menwe-portal main{animation:none}}
