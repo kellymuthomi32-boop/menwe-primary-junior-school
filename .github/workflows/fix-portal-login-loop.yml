@@ -1,0 +1,45 @@
+name: Apply portal login React loop fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch PortalLoginPage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('client/src/pages/PortalLoginPage.tsx')
+          s = p.read_text()
+          old_import = 'import { useEffect, useState } from "react";'
+          new_import = 'import { useEffect, useRef, useState } from "react";'
+          old_state = '  const [redirected, setRedirected] = useState(false);'
+          new_state = '  const redirectStarted = useRef(false);'
+          old_effect = '''  // Authenticated users are never required to have a readable profiles row just to leave login.\n  useEffect(() => {\n    if (redirected || auth.loading || !auth.user) return;\n    setRedirected(true);\n    // Keep users in the neutral portal shell until the canonical profile is ready.\n    go(auth.profile ? getPortalRedirect(auth.profile, auth.user) : "/portal");\n  }, [auth.loading, auth.user, auth.profile, redirected, go]);'''
+          new_effect = '''  // Redirect authenticated users once. Keep the guard in a ref so the effect\n  // cannot create a nested update loop while auth/wouter values reconcile.\n  useEffect(() => {\n    if (redirectStarted.current || auth.loading || !auth.user) return;\n    redirectStarted.current = true;\n    go(auth.profile ? getPortalRedirect(auth.profile, auth.user) : "/portal");\n  }, [auth.loading, auth.user, auth.profile, go]);'''
+          if 'useRef' in s and 'redirectStarted' in s:
+              print('Already patched')
+              raise SystemExit(0)
+          if old_import not in s or old_state not in s or old_effect not in s:
+              raise SystemExit('Expected PortalLoginPage patterns were not found; refusing unsafe edit')
+          s = s.replace(old_import, new_import, 1).replace(old_state, new_state, 1).replace(old_effect, new_effect, 1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/PortalLoginPage.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: prevent portal login React update-depth loop"
+          git push
