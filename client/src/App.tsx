@@ -8,43 +8,76 @@ import { useSchoolAuth } from "./contexts/SupabaseAuthContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
-const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
-const AdmissionsPage = lazy(() => import("./pages/AdmissionsPage"));
-const NewsEventsPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })));
-const GalleryPage = lazy(() => import("./pages/GalleryPage"));
-const ContactPage = lazy(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })));
-const AboutPage = lazy(() => import("./pages/AboutPage"));
-const MagicLinkPage = lazy(() => import("./pages/MagicLinkPage"));
-const PortalAccessPage = lazy(() => import("./pages/PortalAccessPage"));
-const AttendanceDirectory = lazy(() => import("./pages/AttendanceDirectory"));
-const AcademicManagementPage = lazy(() => import("./pages/AcademicManagementPage"));
-const ExamManagementPage = lazy(() => import("./pages/ExamManagementPage"));
-const FinanceDirectory = lazy(() => import("./pages/FinanceDirectory"));
-const HomeworkDirectory = lazy(() => import("./pages/HomeworkDirectory"));
-const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
-const ReportCardsDirectory = lazy(() => import("./pages/ReportCardsDirectory"));
-const TimetableDirectory = lazy(() => import("./pages/TimetableDirectory"));
-const GalleryManagementPage = lazy(() => import("./pages/GalleryManagementPage"));
-const SchoolSetupPage = lazy(() => import("./pages/SchoolSetupPage"));
-const FirstAdminPage = lazy(() => import("./pages/FirstAdminPage"));
-const PortalGuard = lazy(() => import("./pages/PortalPages"));
-const LoginPage = lazy(() => import("./pages/PublicPages").then(module => ({ default: module.LoginPage })));
-const SchoolLifePage = lazy(() => import("./pages/SchoolLifePage"));
-const ForFamiliesPage = lazy(() => import("./pages/ForFamiliesPage"));
-const HowItWorksPage = lazy(() => import("./pages/HowItWorksPage"));
-const PortalLoginPage = lazy(() => import("./pages/PortalLoginPage"));
-const PortalAdminPage = lazy(() => import("./pages/PortalAdminPage"));
-const PortalTeacherPage = lazy(() => import("./pages/PortalTeacherPage"));
-const PortalParentPage = lazy(() => import("./pages/PortalParentPage"));
-const CalendarPage = lazy(() => import("./pages/CalendarPage"));
-const TermsPage = lazy(() => import("./pages/TermsPage"));
-const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
-const CookiesPage = lazy(() => import("./pages/CookiesPage"));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
-const ContentManagementRoute = lazy(() => import("./pages/ContentManagement"));
-const AcademicDirectoryRoute = lazy(() => import("./pages/AcademicDirectory"));
-const AdminPeopleManagementPage = lazy(() => import("./pages/AdminPeopleManagementPage"));
-const AdminOperationsPage = lazy(() => import("./pages/AdminOperationsPage"));
+/**
+ * Vite emits content-hashed chunks for lazy routes. After a deployment, a
+ * browser can briefly retain an older index/app chunk that points at a chunk
+ * which no longer exists on the new deployment. Retry the import once after
+ * forcing a fresh document load, then let the normal error boundary handle
+ * any genuine module error.
+ */
+function lazyWithChunkRecovery<T extends React.ComponentType<unknown>>(
+  importer: () => Promise<{ default: T }>,
+  recoveryKey: string,
+) {
+  return lazy(async () => {
+    try {
+      return await importer();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isChunkError = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message);
+      const storageKey = `menwe:chunk-recovery:${recoveryKey}`;
+
+      if (isChunkError && typeof window !== "undefined" && !sessionStorage.getItem(storageKey)) {
+        sessionStorage.setItem(storageKey, "1");
+        window.location.reload();
+        await new Promise<never>(() => undefined);
+      }
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem(storageKey);
+      }
+      throw error;
+    }
+  });
+}
+
+const AcademicsPage = lazyWithChunkRecovery(() => import("./pages/AcademicsPage"), "academics");
+const AdmissionsPage = lazyWithChunkRecovery(() => import("./pages/AdmissionsPage"), "admissions");
+const NewsEventsPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })), "news-events");
+const GalleryPage = lazyWithChunkRecovery(() => import("./pages/GalleryPage"), "gallery");
+const ContactPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })), "contact");
+const AboutPage = lazyWithChunkRecovery(() => import("./pages/AboutPage"), "about");
+const MagicLinkPage = lazyWithChunkRecovery(() => import("./pages/MagicLinkPage"), "magic-link");
+const PortalAccessPage = lazyWithChunkRecovery(() => import("./pages/PortalAccessPage"), "portal-access");
+const AttendanceDirectory = lazyWithChunkRecovery(() => import("./pages/AttendanceDirectory"), "attendance");
+const AcademicManagementPage = lazyWithChunkRecovery(() => import("./pages/AcademicManagementPage"), "academic-management");
+const ExamManagementPage = lazyWithChunkRecovery(() => import("./pages/ExamManagementPage"), "exam-management");
+const FinanceDirectory = lazyWithChunkRecovery(() => import("./pages/FinanceDirectory"), "finance");
+const HomeworkDirectory = lazyWithChunkRecovery(() => import("./pages/HomeworkDirectory"), "homework");
+const NotificationCenter = lazyWithChunkRecovery(() => import("./pages/NotificationCenter"), "notifications");
+const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./pages/ReportCardsDirectory"), "report-cards");
+const TimetableDirectory = lazyWithChunkRecovery(() => import("./pages/TimetableDirectory"), "timetable");
+const GalleryManagementPage = lazyWithChunkRecovery(() => import("./pages/GalleryManagementPage"), "gallery-management");
+const SchoolSetupPage = lazyWithChunkRecovery(() => import("./pages/SchoolSetupPage"), "school-setup");
+const FirstAdminPage = lazyWithChunkRecovery(() => import("./pages/FirstAdminPage"), "first-admin");
+const PortalGuard = lazyWithChunkRecovery(() => import("./pages/PortalPages"), "portal-pages");
+const LoginPage = lazyWithChunkRecovery(() => import("./pages/PublicPages").then(module => ({ default: module.LoginPage })), "login");
+const SchoolLifePage = lazyWithChunkRecovery(() => import("./pages/SchoolLifePage"), "school-life");
+const ForFamiliesPage = lazyWithChunkRecovery(() => import("./pages/ForFamiliesPage"), "families");
+const HowItWorksPage = lazyWithChunkRecovery(() => import("./pages/HowItWorksPage"), "how-it-works");
+const PortalLoginPage = lazyWithChunkRecovery(() => import("./pages/PortalLoginPage"), "portal-login");
+const PortalAdminPage = lazyWithChunkRecovery(() => import("./pages/PortalAdminPage"), "portal-admin");
+const PortalTeacherPage = lazyWithChunkRecovery(() => import("./pages/PortalTeacherPage"), "portal-teacher");
+const PortalParentPage = lazyWithChunkRecovery(() => import("./pages/PortalParentPage"), "portal-parent");
+const CalendarPage = lazyWithChunkRecovery(() => import("./pages/CalendarPage"), "calendar");
+const TermsPage = lazyWithChunkRecovery(() => import("./pages/TermsPage"), "terms");
+const PrivacyPage = lazyWithChunkRecovery(() => import("./pages/PrivacyPage"), "privacy");
+const CookiesPage = lazyWithChunkRecovery(() => import("./pages/CookiesPage"), "cookies");
+const NotFoundPage = lazyWithChunkRecovery(() => import("./pages/NotFoundPage"), "not-found");
+const ContentManagementRoute = lazyWithChunkRecovery(() => import("./pages/ContentManagement"), "content-management");
+const AcademicDirectoryRoute = lazyWithChunkRecovery(() => import("./pages/AcademicDirectory"), "academic-directory");
+const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./pages/AdminPeopleManagementPage"), "people-management");
+const AdminOperationsPage = lazyWithChunkRecovery(() => import("./pages/AdminOperationsPage"), "operations");
 
 const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
 type PortalRole = "admin" | "teacher" | "parent";
