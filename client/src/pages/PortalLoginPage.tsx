@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import PublicLayout from "@/components/PublicLayout";
 import { useLocation } from "wouter";
@@ -23,15 +23,15 @@ export default function PortalLoginPage() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
   const [magicLinkMode, setMagicLinkMode] = useState(false);
-  const [redirected, setRedirected] = useState(false);
+  const redirectStarted = useRef(false);
 
-  // Authenticated users are never required to have a readable profiles row just to leave login.
+  // Redirect authenticated users once. Keep the guard in a ref so the effect
+  // cannot create a nested update loop while auth/wouter values reconcile.
   useEffect(() => {
-    if (redirected || auth.loading || !auth.user) return;
-    setRedirected(true);
-    // Keep users in the neutral portal shell until the canonical profile is ready.
+    if (redirectStarted.current || auth.loading || !auth.user) return;
+    redirectStarted.current = true;
     go(auth.profile ? getPortalRedirect(auth.profile, auth.user) : "/portal");
-  }, [auth.loading, auth.user, auth.profile, redirected, go]);
+  }, [auth.loading, auth.user, auth.profile, go]);
 
   const clearFeedback = () => { setMessage(""); setSuccess(""); };
 
