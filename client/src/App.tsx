@@ -7,137 +7,17 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { useSchoolAuth } from "./contexts/SupabaseAuthContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
-
-/**
- * Vite emits content-hashed chunks for lazy routes. After a deployment, a
- * browser can briefly retain an older index/app chunk that points at a chunk
- * which no longer exists on the new deployment. Retry the import once after
- * forcing a fresh document load, then let the normal error boundary handle
- * any genuine module error.
- */
-function lazyWithChunkRecovery<T extends ComponentType = ComponentType>(
-  importer: () => Promise<{ default: T }>,
-  recoveryKey: string,
-) {
-  return lazy(async () => {
-    try {
-      return await importer();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const isChunkError = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message);
-      const storageKey = `menwe:chunk-recovery:${recoveryKey}`;
-
-      if (isChunkError && typeof window !== "undefined" && !sessionStorage.getItem(storageKey)) {
-        sessionStorage.setItem(storageKey, "1");
-        window.location.reload();
-        await new Promise<never>(() => undefined);
-      }
-
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem(storageKey);
-      }
-      throw error;
-    }
-  });
-}
-
-const AcademicsPage = lazyWithChunkRecovery(() => import("./pages/AcademicsPage"), "academics");
-const AdmissionsPage = lazyWithChunkRecovery(() => import("./pages/AdmissionsPage"), "admissions");
-const NewsEventsPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })), "news-events");
-const GalleryPage = lazyWithChunkRecovery(() => import("./pages/GalleryPage"), "gallery");
-const ContactPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })), "contact");
-const AboutPage = lazyWithChunkRecovery(() => import("./pages/AboutPage"), "about");
-const MagicLinkPage = lazyWithChunkRecovery(() => import("./pages/MagicLinkPage"), "magic-link");
-const PortalAccessPage = lazyWithChunkRecovery(() => import("./pages/PortalAccessPage"), "portal-access");
-const AttendanceDirectory = lazyWithChunkRecovery(() => import("./pages/AttendanceDirectory"), "attendance");
-const AcademicManagementPage = lazyWithChunkRecovery(() => import("./pages/AcademicManagementPage"), "academic-management");
-const ExamManagementPage = lazyWithChunkRecovery(() => import("./pages/ExamManagementPage"), "exam-management");
-const FinanceDirectory = lazyWithChunkRecovery(() => import("./pages/FinanceDirectory"), "finance");
-const HomeworkDirectory = lazyWithChunkRecovery(() => import("./pages/HomeworkDirectory"), "homework");
-const NotificationCenter = lazyWithChunkRecovery(() => import("./pages/NotificationCenter"), "notifications");
-const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./pages/ReportCardsDirectory"), "report-cards");
-const TimetableDirectory = lazyWithChunkRecovery(() => import("./pages/TimetableDirectory"), "timetable");
-const GalleryManagementPage = lazyWithChunkRecovery(() => import("./pages/GalleryManagementPage"), "gallery-management");
-const SchoolSetupPage = lazyWithChunkRecovery(() => import("./pages/SchoolSetupPage"), "school-setup");
-const FirstAdminPage = lazyWithChunkRecovery(() => import("./pages/FirstAdminPage"), "first-admin");
-const PortalGuard = lazyWithChunkRecovery(() => import("./pages/PortalPages"), "portal-pages");
-const LoginPage = lazyWithChunkRecovery(() => import("./pages/PublicPages").then(module => ({ default: module.LoginPage })), "login");
-const SchoolLifePage = lazyWithChunkRecovery(() => import("./pages/SchoolLifePage"), "school-life");
-const ForFamiliesPage = lazyWithChunkRecovery(() => import("./pages/ForFamiliesPage"), "families");
-const HowItWorksPage = lazyWithChunkRecovery(() => import("./pages/HowItWorksPage"), "how-it-works");
-const PortalLoginPage = lazyWithChunkRecovery(() => import("./pages/PortalLoginPage"), "portal-login");
-const PortalAdminPage = lazyWithChunkRecovery(() => import("./pages/PortalAdminPage"), "portal-admin");
-const PortalTeacherPage = lazyWithChunkRecovery(() => import("./pages/PortalTeacherPage"), "portal-teacher");
-const PortalParentPage = lazyWithChunkRecovery(() => import("./pages/PortalParentPage"), "portal-parent");
-const CalendarPage = lazyWithChunkRecovery(() => import("./pages/CalendarPage"), "calendar");
-const TermsPage = lazyWithChunkRecovery(() => import("./pages/TermsPage"), "terms");
-const PrivacyPage = lazyWithChunkRecovery(() => import("./pages/PrivacyPage"), "privacy");
-const CookiesPage = lazyWithChunkRecovery(() => import("./pages/CookiesPage"), "cookies");
-const NotFoundPage = lazyWithChunkRecovery(() => import("./pages/NotFoundPage"), "not-found");
-const ContentManagementRoute = lazyWithChunkRecovery(() => import("./pages/ContentManagement"), "content-management");
-const AcademicDirectoryRoute = lazyWithChunkRecovery(() => import("./pages/AcademicDirectory"), "academic-directory");
-const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./pages/AdminPeopleManagementPage"), "people-management");
-const AdminOperationsPage = lazyWithChunkRecovery(() => import("./pages/AdminOperationsPage"), "operations");
-
-const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
-type PortalRole = "admin" | "teacher" | "parent";
-
-function resolvePortalRole(user: { email?: string | null; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> }, profileRole?: unknown, profileActive = false): PortalRole {
-  if (MASTER_ADMIN_EMAILS.has(user.email?.trim().toLowerCase() ?? "")) return "admin";
-  const role = typeof profileRole === "string" ? profileRole.toLowerCase() : typeof user.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : typeof user.user_metadata?.role === "string" ? user.user_metadata.role.toLowerCase() : "";
-  if (profileActive && ["admin", "head_of_institution", "deputy_hoi", "super_admin"].includes(role)) return "admin";
-  if (["teacher", "class_teacher", "classroom_teacher", "staff"].includes(role)) return "teacher";
-  return "parent";
-}
-
-function PortalRouteGuard({ allowedRoles, children }: { allowedRoles: PortalRole[]; children: ReactNode }) {
-  const [, navigate] = useLocation();
-  const auth = useSchoolAuth();
-  useEffect(() => {
-    if (auth.loading) return;
-    if (!auth.user) { navigate("/portal/login"); return; }
-    if (auth.profileLoading || !auth.profile) return;
-    const role = resolvePortalRole(auth.user, auth.profile.role ?? auth.profile.canonical_role, auth.profile.status === "ACTIVE");
-    if (!allowedRoles.includes(role)) navigate(role === "teacher" ? "/portal/teacher" : role === "admin" ? "/portal/admin" : "/portal/parent");
-  }, [allowedRoles, auth.loading, auth.profile, auth.profileLoading, auth.user, navigate]);
-  if (auth.loading) return <div className="grid min-h-screen place-items-center bg-[#061229] text-sm text-white">Restoring secure session…</div>;
-  if (!auth.user || auth.profileLoading || !auth.profile) return null;
-  const role = resolvePortalRole(auth.user, auth.profile.role ?? auth.profile.canonical_role, auth.profile.status === "ACTIVE");
-  if (!allowedRoles.includes(role)) return null;
-  return <>{children}</>;
-}
-
-function AdminPortalRoute() { return <PortalRouteGuard allowedRoles={["admin"]}><PortalAdminPage /></PortalRouteGuard>; }
-function TeacherPortalRoute() { return <PortalRouteGuard allowedRoles={["admin", "teacher"]}><PortalTeacherPage /></PortalRouteGuard>; }
-function ParentPortalRoute() { return <PortalRouteGuard allowedRoles={["parent"]}><PortalParentPage /></PortalRouteGuard>; }
-
-function Router() {
-  const [location] = useLocation();
-  useEffect(() => {
-    const titles: Record<string, string> = {
-      "/": "Menwe Primary & Junior School | Igoki, Abogeta",
-      "/about": "About Menwe | Menwe Primary & Junior School",
-      "/academics": "Academics & CBC Learning | Menwe Primary & Junior School",
-      "/admissions": "Admissions | Menwe Primary & Junior School",
-      "/contact": "Contact Menwe Primary & Junior School",
-      "/portal/admin": "Staff & Admin Command Center | Menwe Primary & Junior School",
-      "/portal/admin/directory": "People & Enrolment | Menwe Primary & Junior School",
-      "/portal/admin/operations": "Operations & Reports | Menwe Primary & Junior School",
-      "/portal/admin/finance": "Finance | Menwe Primary & Junior School",
-    };
-    document.title = titles[location] ?? "Menwe Primary & Junior School | Igoki, Abogeta";
-  }, [location]);
-  return <Switch>
-    <Route path="/" component={MenweHeroHome} /><Route path="/about" component={AboutPage} /><Route path="/academics" component={AcademicsPage} /><Route path="/admissions" component={AdmissionsPage} />
-    <Route path="/news-events" component={NewsEventsPage} /><Route path="/news" component={NewsEventsPage} /><Route path="/events" component={NewsEventsPage} /><Route path="/gallery" component={GalleryPage} /><Route path="/contact" component={ContactPage} /><Route path="/school-life" component={SchoolLifePage} /><Route path="/families" component={ForFamiliesPage} /><Route path="/how-it-works" component={HowItWorksPage} />
-    <Route path="/portal/login" component={PortalLoginPage} /><Route path="/portal/admin" component={AdminPortalRoute} /><Route path="/portal/teacher" component={TeacherPortalRoute} /><Route path="/portal/parent" component={ParentPortalRoute} /><Route path="/portal/dashboard" component={ParentPortalRoute} />
-    <Route path="/portal/admin/academics" component={AcademicManagementPage} /><Route path="/portal/admin/attendance" component={AttendanceDirectory} /><Route path="/portal/admin/content" component={ContentManagementRoute} /><Route path="/portal/admin/directory" component={AdminPeopleManagementPage} /><Route path="/portal/admin/operations" component={AdminOperationsPage} /><Route path="/portal/admin/finance" component={FinanceDirectory} />
-    <Route path="/portal" component={PortalGuard} /><Route path="/calendar" component={CalendarPage} /><Route path="/terms" component={TermsPage} /><Route path="/privacy" component={PrivacyPage} /><Route path="/cookies" component={CookiesPage} /><Route path="/login" component={PortalAccessPage} /><Route path="/portal/password" component={LoginPage} /><Route path="/portal/email-link" component={MagicLinkPage} /><Route path="/portal/setup/first-admin" component={FirstAdminPage} /><Route path="/portal/setup" component={SchoolSetupPage} />
-    <Route path="/portal/academics" component={AcademicManagementPage} /><Route path="/portal/exams" component={ExamManagementPage} /><Route path="/portal/attendance" component={AttendanceDirectory} /><Route path="/portal/report-cards" component={ReportCardsDirectory} /><Route path="/portal/finance" component={FinanceDirectory} /><Route path="/portal/homework" component={HomeworkDirectory} /><Route path="/portal/timetable" component={TimetableDirectory} /><Route path="/portal/notifications" component={NotificationCenter} /><Route path="/portal/gallery" component={GalleryManagementPage} />
-    <Route path="/portal/:rest*" component={PortalGuard} /><Route path="*" component={NotFoundPage} />
-  </Switch>;
-}
-
-export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router /></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>;
-}
+function lazyWithChunkRecovery<T extends ComponentType = ComponentType>(importer:()=>Promise<{default:T}>,key:string){return lazy(async()=>{try{return await importer();}catch(error){const message=error instanceof Error?error.message:String(error);const chunk=/dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message);const storage=`menwe:chunk-recovery:${key}`;if(chunk&&typeof window!=="undefined"&&!sessionStorage.getItem(storage)){sessionStorage.setItem(storage,"1");window.location.reload();await new Promise<never>(()=>undefined);}if(typeof window!=="undefined")sessionStorage.removeItem(storage);throw error;}})}
+const lp=(path:string,key:string)=>lazyWithChunkRecovery(()=>import(path),key);
+const AcademicsPage=lp("./pages/AcademicsPage","academics"),AdmissionsPage=lp("./pages/AdmissionsPage","admissions"),GalleryPage=lp("./pages/GalleryPage","gallery"),AboutPage=lp("./pages/AboutPage","about"),SchoolLifePage=lp("./pages/SchoolLifePage","school-life"),ForFamiliesPage=lp("./pages/ForFamiliesPage","families"),HowItWorksPage=lp("./pages/HowItWorksPage","how-it-works"),CalendarPage=lp("./pages/CalendarPage","calendar"),TermsPage=lp("./pages/TermsPage","terms"),PrivacyPage=lp("./pages/PrivacyPage","privacy"),CookiesPage=lp("./pages/CookiesPage","cookies"),NotFoundPage=lp("./pages/NotFoundPage","not-found"),PortalLoginPage=lp("./pages/PortalLoginPage","portal-login"),PortalGuard=lp("./pages/PortalPages","portal-pages"),AdminDashboardHubPage=lp("./pages/AdminDashboardHubPage","admin-dashboard"),TeacherDashboardPage=lp("./pages/TeacherDashboardPage","teacher-dashboard"),ParentDashboardPage=lp("./pages/ParentDashboardPage","parent-dashboard"),AttendanceDirectory=lp("./pages/AttendanceDirectory","attendance"),AcademicManagementPage=lp("./pages/AcademicManagementPage","academic-management"),ExamManagementPage=lp("./pages/ExamManagementPage","exam-management"),FinanceDirectory=lp("./pages/FinanceDirectory","finance"),HomeworkDirectory=lp("./pages/HomeworkDirectory","homework"),NotificationCenter=lp("./pages/NotificationCenter","notifications"),ReportCardsDirectory=lp("./pages/ReportCardsDirectory","report-cards"),TimetableDirectory=lp("./pages/TimetableDirectory","timetable"),GalleryManagementPage=lp("./pages/GalleryManagementPage","gallery-management"),SchoolSetupPage=lp("./pages/SchoolSetupPage","school-setup"),FirstAdminPage=lp("./pages/FirstAdminPage","first-admin"),PortalAccessPage=lp("./pages/PortalAccessPage","portal-access"),MagicLinkPage=lp("./pages/MagicLinkPage","magic-link"),LoginPage=lp("./pages/PublicPages","login"),ContentManagementRoute=lp("./pages/ContentManagement","content-management"),AdminPeopleManagementPage=lp("./pages/AdminPeopleManagementPage","people-management"),AdminOperationsPage=lp("./pages/AdminOperationsPage","operations"),MessageCenter=lp("./pages/MessageCenter","messages"),EnrollmentDirectory=lp("./pages/EnrollmentDirectory","enrolment"),TeacherAssignmentsDirectory=lp("./pages/TeacherAssignmentsDirectory","assignments");
+const MASTER_ADMIN_EMAILS=new Set(["menweprimaryandjunior@gmail.com","menweschool.official@gmail.com"]);type PortalRole="admin"|"teacher"|"parent"|"student";
+function resolveRole(user:any,profile:any):PortalRole{const email=user?.email?.trim().toLowerCase()??"";if(MASTER_ADMIN_EMAILS.has(email))return"admin";const r=String(profile?.role??user?.app_metadata?.role??user?.user_metadata?.role??"").toLowerCase();if(["admin","super_admin","head_of_institution","deputy_hoi"].includes(r))return"admin";if(["teacher","class_teacher","classroom_teacher","staff"].includes(r))return"teacher";if(r==="student")return"student";return"parent";}
+function Guard({roles,children}:{roles:PortalRole[];children:ReactNode}){const auth=useSchoolAuth();const[,go]=useLocation();useEffect(()=>{if(auth.loading||auth.profileLoading)return;if(!auth.user){go("/portal/login");return;}if(!auth.profile)return;const role=resolveRole(auth.user,auth.profile);if(!roles.includes(role))go(role==="admin"?"/portal/admin":role==="teacher"?"/portal/teacher":"/portal/parent");},[auth.loading,auth.profileLoading,auth.user,auth.profile,roles,go]);if(auth.loading||auth.profileLoading||!auth.user||!auth.profile)return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/60">Restoring secure school session…</div>;return roles.includes(resolveRole(auth.user,auth.profile))?<>{children}</>:null;}
+function Router(){const[location]=useLocation();useEffect(()=>{document.title=location==="/portal/admin"?"Admin Command Center | Menwe Primary & Junior School":location==="/portal/teacher"?"Teacher Workspace | Menwe Primary & Junior School":location==="/portal/parent"?"Family Workspace | Menwe Primary & Junior School":"Menwe Primary & Junior School | Igoki, Abogeta";},[location]);return <Switch>
+<Route path="/" component={MenweHeroHome}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={lp("./pages/CorePublicPages","news-events")}/><Route path="/news" component={lp("./pages/CorePublicPages","news")}/><Route path="/events" component={lp("./pages/CorePublicPages","events")}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={lp("./pages/CorePublicPages","contact")}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
+<Route path="/portal/login" component={PortalLoginPage}/><Route path="/portal/admin"><Guard roles={["admin"]}><AdminDashboardHubPage/></Guard></Route><Route path="/portal/teacher"><Guard roles={["admin","teacher"]}><TeacherDashboardPage/></Guard></Route><Route path="/portal/parent"><Guard roles={["parent"]}><ParentDashboardPage/></Guard></Route><Route path="/portal/dashboard"><Guard roles={["parent"]}><ParentDashboardPage/></Guard></Route>
+<Route path="/portal/admin/academics"><Guard roles={["admin"]}><AcademicManagementPage/></Guard></Route><Route path="/portal/admin/attendance"><Guard roles={["admin"]}><AttendanceDirectory/></Guard></Route><Route path="/portal/admin/content"><Guard roles={["admin"]}><ContentManagementRoute/></Guard></Route><Route path="/portal/admin/directory"><Guard roles={["admin"]}><AdminPeopleManagementPage/></Guard></Route><Route path="/portal/admin/operations"><Guard roles={["admin"]}><AdminOperationsPage/></Guard></Route><Route path="/portal/admin/finance"><Guard roles={["admin"]}><FinanceDirectory/></Guard></Route>
+<Route path="/portal/academics"><Guard roles={["admin","teacher"]}><AcademicManagementPage/></Guard></Route><Route path="/portal/exams"><Guard roles={["admin","teacher"]}><ExamManagementPage/></Guard></Route><Route path="/portal/attendance"><Guard roles={["admin","teacher","parent","student"]}><AttendanceDirectory/></Guard></Route><Route path="/portal/report-cards"><Guard roles={["admin","teacher","parent","student"]}><ReportCardsDirectory/></Guard></Route><Route path="/portal/finance"><Guard roles={["admin","parent"]}><FinanceDirectory/></Guard></Route><Route path="/portal/homework"><Guard roles={["admin","teacher","parent","student"]}><HomeworkDirectory/></Guard></Route><Route path="/portal/timetable"><Guard roles={["admin","teacher","parent","student"]}><TimetableDirectory/></Guard></Route><Route path="/portal/notifications"><Guard roles={["admin","teacher","parent","student"]}><NotificationCenter/></Guard></Route><Route path="/portal/messages"><Guard roles={["admin","teacher","parent","student"]}><MessageCenter role="PARENT"/></Guard></Route><Route path="/portal/gallery"><Guard roles={["admin"]}><GalleryManagementPage/></Guard></Route>
+<Route path="/portal/setup/first-admin" component={FirstAdminPage}/><Route path="/portal/setup" component={SchoolSetupPage}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/login" component={PortalAccessPage}/><Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="/portal" component={PortalGuard}/><Route path="/portal/:rest*" component={PortalGuard}/><Route path="*" component={NotFoundPage}/>
+</Switch>}
+export default function App(){return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster/><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router/></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>}
