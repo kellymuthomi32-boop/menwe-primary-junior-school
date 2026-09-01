@@ -9,6 +9,7 @@ import PeopleDirectory from "./PeopleDirectory";
 import OperationsAdmin from "./OperationsAdmin";
 import EnrollmentDirectory from "./EnrollmentDirectory";
 import TeacherAssignmentsDirectory from "./TeacherAssignmentsDirectory";
+import AdminDashboardHubPage from "./AdminDashboardHubPage";
 
 const adminOnly = new Set(["people", "enrolment", "assignments", "content", "operations", "settings", "audit-logs"]);
 const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
@@ -18,6 +19,7 @@ function AccessDenied({ role, view }: { role: AppRole; view: string }) {
 }
 
 function Overview({ role }: { role: AppRole }) {
+  if (role === "ADMIN") return <AdminDashboardHubPage />;
   const { profile } = useSchoolAuth();
   const title = role === "TEACHER" ? "Teaching workspace" : role === "PARENT" ? "Family workspace" : role === "STUDENT" ? "Student workspace" : "School operations";
   return <div className="grid gap-6"><section><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--accent)]">Secure school portal</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight">Welcome, {profile?.display_name || "school community member"}.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink)]/62">Your dashboard uses the canonical Supabase profile and only exposes records that your database authorization permits.</p></section><section className="menwe-card rounded-[1.75rem] p-6 sm:p-8"><h2 className="font-serif text-2xl font-semibold">{title}</h2><p className="mt-3 text-sm leading-6 text-[var(--ink)]/62">Use the portal navigation to open the school modules available to your role. Empty modules intentionally remain empty until legitimate school records exist; the application does not fabricate operational data.</p></section></div>;
@@ -28,6 +30,7 @@ function PortalRouter({ role }: { role: AppRole }) {
   const view = location.split("/").filter(Boolean).at(-1) || "overview";
   if (adminOnly.has(view) && !isAdministrator(role)) return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><AccessDenied role={role} view={view} /></main></PortalLayout>;
   const component = view === "messages" ? <MessageCenter role={role} /> : view === "people" ? <PeopleDirectory /> : view === "enrolment" ? <EnrollmentDirectory /> : view === "assignments" ? <TeacherAssignmentsDirectory /> : view === "content" ? <ContentManagement /> : view === "operations" || view === "settings" || view === "audit-logs" ? <OperationsAdmin /> : <Overview role={role}/>;
+  if (view === "overview" && role === "ADMIN") return component;
   return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{component}</main></PortalLayout>;
 }
 
