@@ -26,13 +26,7 @@ function PortalRouter({ role }: { role: AppRole }) {
   const [location] = useLocation();
   const view = location.split("/").filter(Boolean).at(-1) || "overview";
   if (adminOnly.has(view) && !isAdministrator(role)) return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><AccessDenied role={role} view={view} /></main></PortalLayout>;
-  const component = view === "messages" ? <MessageCenter role={role} />
-    : view === "people" ? <PeopleDirectory />
-    : view === "enrolment" ? <EnrollmentDirectory />
-    : view === "assignments" ? <TeacherAssignmentsDirectory />
-    : view === "content" ? <ContentManagement />
-    : view === "operations" || view === "settings" || view === "audit-logs" ? <OperationsAdmin />
-    : <Overview role={role} />;
+  const component = view === "messages" ? <MessageCenter role={role} /> : view === "people" ? <PeopleDirectory /> : view === "enrolment" ? <EnrollmentDirectory /> : view === "assignments" ? <TeacherAssignmentsDirectory /> : view === "content" ? <ContentManagement /> : view === "operations" || view === "settings" || view === "audit-logs" ? <OperationsAdmin /> : <Overview role={role}/>;
   return <PortalLayout role={role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{component}</main></PortalLayout>;
 }
 
@@ -42,7 +36,14 @@ export default function PortalGuard() {
   useEffect(() => { if (!loading && !user) setLocation("/portal/login"); }, [loading, setLocation, user]);
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#f4f5f1]"><Loader2 className="animate-spin text-[var(--accent)]" /></div>;
   if (!user) return null;
-  if (profileLoading && !profile) return <div className="grid min-h-screen place-items-center bg-[#f4f5f1] px-5"><div className="max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl"><Loader2 className="mx-auto animate-spin text-[var(--accent)]" size={34} /><h1 className="mt-5 font-serif text-3xl font-semibold">Loading your school profile</h1><p className="mt-4 text-sm leading-6 text-[var(--ink)]/65">Your account is ready. We are securely loading the school access attached to it.</p></div></div>;
-  if (!profile || profile.status !== "ACTIVE") return <div className="grid min-h-screen place-items-center bg-[#f4f5f1] px-5"><div className="max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl"><ShieldAlert className="mx-auto text-[var(--accent)]" size={34} /><h1 className="mt-5 font-serif text-3xl font-semibold">School access is unavailable</h1><p className="mt-4 text-sm leading-6 text-[var(--ink)]/65">Your sign-in succeeded, but this account is disabled or does not have an active school profile.</p>{error && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-red-700"><AlertCircle size={16} />{error}</p>}<div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => void refreshProfile()} disabled={profileLoading} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Try again</button><button onClick={() => setLocation("/")} className="rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white">Return to website</button></div></div></div>;
-  return <PortalRouter role={profile.role} />;
+
+  // Authentication is the navigation gate. Profile hydration is supplementary and must never trap a signed-in user.
+  if (profile?.status === "INACTIVE") return <div className="grid min-h-screen place-items-center bg-[#f4f5f1] px-5"><div className="max-w-xl rounded-3xl bg-white p-8 text-center shadow-xl"><ShieldAlert className="mx-auto text-[var(--accent)]" size={34} /><h1 className="mt-5 font-serif text-3xl font-semibold">School access is unavailable</h1><p className="mt-4 text-sm leading-6 text-[var(--ink)]/65">Your sign-in succeeded, but this account is disabled.</p>{error && <p className="mt-4 flex items-center justify-center gap-2 text-sm text-red-700"><AlertCircle size={16} />{error}</p>}<div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => void refreshProfile()} disabled={profileLoading} className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Try again</button><button onClick={() => setLocation("/")} className="rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white">Return to website</button></div></div></div>;
+
+  const email = user.email?.trim().toLowerCase() ?? "";
+  const metadataRole = typeof user.app_metadata?.role === "string" ? user.app_metadata.role.toLowerCase() : typeof user.user_metadata?.role === "string" ? user.user_metadata.role.toLowerCase() : "";
+  const role: AppRole = profile?.role ?? (email === "menweschool.official@gmail.com" || email === "menweprimaryandjunior@gmail.com" || ["admin", "super_admin", "head_of_institution", "deputy_hoi"].includes(metadataRole) ? "ADMIN" : ["teacher", "class_teacher", "classroom_teacher", "staff"].includes(metadataRole) ? "TEACHER" : metadataRole === "student" ? "STUDENT" : "PARENT");
+
+  // Do not wait on profileLoading. SupabaseAuthContext already has a timeout and metadata fallback.
+  return <PortalRouter role={role} />;
 }
