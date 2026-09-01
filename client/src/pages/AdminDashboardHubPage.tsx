@@ -1,25 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import {
-  Activity,
-  BarChart3,
-  BookOpen,
-  CalendarDays,
-  CheckCircle2,
-  ClipboardCheck,
-  CreditCard,
-  FileText,
-  GraduationCap,
-  Loader2,
-  LogOut,
-  Megaphone,
-  RefreshCw,
-  Users,
-} from "lucide-react";
+import { Activity, BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, CreditCard, FileText, GraduationCap, Loader2, LogOut, Megaphone, RefreshCw, Users } from "lucide-react";
 import { useSchoolAuth, isAdministrator } from "@/contexts/SupabaseAuthContext";
 import { getSupabase } from "@/lib/supabase";
 import { PortalLayout } from "@/components/PortalLayout";
 
+const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
 const modules = [
   { title: "Academic Management", href: "/portal/admin/academics", subtitle: "CBC grading, subjects, class allocation, assessments and academic workflows.", icon: BookOpen },
   { title: "Learners & Enrolment", href: "/portal/admin/directory", subtitle: "Search learner records, manage enrolment and open detailed profiles.", icon: Users },
@@ -31,13 +17,7 @@ const modules = [
   { title: "Operations & Reports", href: "/portal/admin/operations", subtitle: "Coordinate operational records, reports and school administration.", icon: BarChart3 },
 ];
 
-type Stats = {
-  learners: number;
-  teachers: number;
-  pendingAdmissions: number;
-  events: number;
-};
-
+type Stats = { learners: number; teachers: number; pendingAdmissions: number; events: number };
 const EMPTY_STATS: Stats = { learners: 0, teachers: 0, pendingAdmissions: 0, events: 0 };
 
 export default function AdminDashboardHubPage() {
@@ -47,8 +27,7 @@ export default function AdminDashboardHubPage() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [error, setError] = useState("");
   const currentYear = new Date().getFullYear();
-
-  const canAccess = Boolean(user && profile && (isAdministrator(profile.role) || profile.role === "TEACHER"));
+  const effectiveAdmin = Boolean(user && profile && (isAdministrator(profile.role) || MASTER_ADMIN_EMAILS.has(user.email?.trim().toLowerCase() ?? "")));
   const firstName = useMemo(() => profile?.display_name?.trim().split(/\s+/)[0] || "Administrator", [profile?.display_name]);
 
   useEffect(() => {
@@ -56,7 +35,7 @@ export default function AdminDashboardHubPage() {
   }, [loading, user, profile, navigate]);
 
   const loadStats = async () => {
-    if (!user || !profile || !canAccess) return;
+    if (!user || !profile || !effectiveAdmin) return;
     setLoadingStats(true);
     setError("");
     try {
@@ -69,20 +48,10 @@ export default function AdminDashboardHubPage() {
         db.from("admissions").select("status"),
         db.from("events").select("id", { count: "exact", head: true }).gte("starts_at", start).lte("starts_at", end),
       ]);
-
       const firstError = [learners.error, teachers.error, admissions.error, events.error].find(Boolean);
       if (firstError) throw firstError;
-
-      const pendingAdmissions = (admissions.data ?? []).filter((row) =>
-        ["pending", "under_review"].includes(String(row.status ?? "").toLowerCase())
-      ).length;
-
-      setStats({
-        learners: learners.count ?? 0,
-        teachers: teachers.count ?? 0,
-        pendingAdmissions,
-        events: events.count ?? 0,
-      });
+      const pendingAdmissions = (admissions.data ?? []).filter((row) => ["pending", "under_review"].includes(String(row.status ?? "").toLowerCase())).length;
+      setStats({ learners: learners.count ?? 0, teachers: teachers.count ?? 0, pendingAdmissions, events: events.count ?? 0 });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load command-center metrics.");
     } finally {
@@ -90,81 +59,23 @@ export default function AdminDashboardHubPage() {
     }
   };
 
-  useEffect(() => {
-    void loadStats();
-  }, [user?.id, profile?.role]);
+  useEffect(() => { void loadStats(); }, [user?.id, profile?.role]);
 
-  if (loading) {
-    return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/65"><Loader2 className="mr-2 animate-spin" size={18} />Loading secure command center…</div>;
-  }
-
+  if (loading) return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/65"><Loader2 className="mr-2 animate-spin" size={18} />Loading secure command center…</div>;
   if (!user || !profile) return null;
+  if (!effectiveAdmin) return <PortalLayout role={profile.role}><main className="mx-auto max-w-3xl p-6"><div className="menwe-admin-card rounded-3xl p-7"><h1 className="text-2xl font-bold text-[var(--ink)]">Access restricted</h1><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">Your account does not have staff command-center access.</p></div></main></PortalLayout>;
 
-  if (!canAccess) {
-    return <PortalLayout role={profile.role}><main className="mx-auto max-w-3xl p-6"><div className="menwe-admin-card rounded-3xl p-7"><h1 className="text-2xl font-bold text-[var(--ink)]">Access restricted</h1><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">Your account does not have staff command-center access.</p></div></main></PortalLayout>;
-  }
+  const logout = async () => { await signOut(); navigate("/portal/login"); };
 
-  const logout = async () => {
-    await signOut();
-    navigate("/portal/login");
-  };
-
-  return (
-    <PortalLayout role={profile.role}>
-      <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-        <section className="menwe-admin-hero relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 lg:p-10">
-          <div className="menwe-admin-orb" />
-          <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <span className="menwe-admin-kicker"><Activity size={14} /> Menwe command center</span>
-              <h1 className="mt-5 font-serif text-4xl font-semibold leading-tight sm:text-5xl">Good day, {firstName}.</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 sm:text-base">One secure workspace for learners, staff, admissions, academics, attendance, finance, examinations and school communications.</p>
-              <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2"><span className="menwe-live-dot" /> Live Supabase data</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">{currentYear} academic operations</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => void loadStats()} disabled={loadingStats} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold transition hover:bg-white/10 disabled:opacity-50"><RefreshCw className={loadingStats ? "animate-spin" : ""} size={17} /> Refresh</button>
-              <button onClick={() => void logout()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-bold transition hover:bg-white/10"><LogOut size={17} /> Sign out</button>
-            </div>
-          </div>
-        </section>
-
-        {error && <div role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">{error}</div>}
-
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Live school metrics">
-          <Stat icon={GraduationCap} label="Active learners" value={stats.learners} loading={loadingStats} />
-          <Stat icon={Users} label="Active teachers" value={stats.teachers} loading={loadingStats} />
-          <Stat icon={FileText} label="Admissions to review" value={stats.pendingAdmissions} loading={loadingStats} />
-          <Stat icon={CalendarDays} label={`${currentYear} events`} value={stats.events} loading={loadingStats} />
-        </section>
-
-        <section>
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div><p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-[var(--menwe-accent)]">Management</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[var(--ink)]">Every school operation in one place</h2><p className="mt-1 text-sm text-[var(--ink)]/55">Open a live workspace. Changes are persisted directly through the authorised Supabase layer.</p></div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {modules.map(({ title, href, subtitle, icon: Icon }) => (
-              <Link key={href} href={href} className="menwe-admin-action group min-h-[205px]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><Icon size={23} /></span>
-                <h3 className="mt-5 font-bold text-[var(--ink)]">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--ink)]/55">{subtitle}</p>
-                <span className="mt-5 inline-flex text-sm font-bold text-[var(--accent)] transition-transform group-hover:translate-x-1">Open workspace <span className="ml-1">→</span></span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="menwe-admin-card rounded-3xl p-6 sm:p-7"><div className="flex items-center gap-3"><CheckCircle2 className="text-[var(--accent)]" size={21} /><h2 className="text-lg font-bold text-[var(--ink)]">Production-ready operations</h2></div><p className="mt-3 text-sm leading-6 text-[var(--ink)]/65">The command center now exposes the full administrative surface already present in the application instead of hiding finance, exams and operations behind separate entry points.</p></div>
-          <div className="menwe-admin-card rounded-3xl p-6 sm:p-7"><div className="flex items-center gap-3"><CalendarDays className="text-[var(--accent)]" size={21} /><h2 className="text-lg font-bold text-[var(--ink)]">Live planning</h2></div><p className="mt-3 text-sm leading-6 text-[var(--ink)]/65">Use School Content and the calendar to keep public notices, events and academic communication current without editing the public site manually.</p></div>
-        </section>
-      </main>
-    </PortalLayout>
-  );
+  return <PortalLayout role="ADMIN">
+    <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+      <section className="menwe-admin-hero relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 lg:p-10"><div className="menwe-admin-orb" /><div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between"><div className="max-w-3xl"><span className="menwe-admin-kicker"><Activity size={14} /> Menwe command center</span><h1 className="mt-5 font-serif text-4xl font-semibold leading-tight sm:text-5xl">Good day, {firstName}.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/70 sm:text-base">One secure workspace for learners, staff, admissions, academics, attendance, finance, examinations and school communications.</p><div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-white/65"><span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2"><span className="menwe-live-dot" /> Live Supabase data</span><span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">{currentYear} academic operations</span></div></div><div className="flex flex-wrap gap-2"><button onClick={() => void loadStats()} disabled={loadingStats} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold transition hover:bg-white/10 disabled:opacity-50"><RefreshCw className={loadingStats ? "animate-spin" : ""} size={17} /> Refresh</button><button onClick={() => void logout()} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-bold transition hover:bg-white/10"><LogOut size={17} /> Sign out</button></div></div></section>
+      {error && <div role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">{error}</div>}
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Live school metrics"><Stat icon={GraduationCap} label="Active learners" value={stats.learners} loading={loadingStats} /><Stat icon={Users} label="Active teachers" value={stats.teachers} loading={loadingStats} /><Stat icon={FileText} label="Admissions to review" value={stats.pendingAdmissions} loading={loadingStats} /><Stat icon={CalendarDays} label={`${currentYear} events`} value={stats.events} loading={loadingStats} /></section>
+      <section><div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-[var(--menwe-accent)]">Management</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[var(--ink)]">Every school operation in one place</h2><p className="mt-1 text-sm text-[var(--ink)]/55">Open a live workspace. Changes are persisted directly through the authorised Supabase layer.</p></div></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">{modules.map(({ title, href, subtitle, icon: Icon }) => <Link key={href} href={href} className="menwe-admin-action group min-h-[205px]"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><Icon size={23} /></span><h3 className="mt-5 font-bold text-[var(--ink)]">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ink)]/55">{subtitle}</p><span className="mt-5 inline-flex text-sm font-bold text-[var(--accent)] transition-transform group-hover:translate-x-1">Open workspace <span className="ml-1">→</span></span></Link>)}</div></section>
+      <section className="grid gap-4 lg:grid-cols-2"><div className="menwe-admin-card rounded-3xl p-6 sm:p-7"><div className="flex items-center gap-3"><CheckCircle2 className="text-[var(--accent)]" size={21} /><h2 className="text-lg font-bold text-[var(--ink)]">Production-ready operations</h2></div><p className="mt-3 text-sm leading-6 text-[var(--ink)]/65">The command center exposes the administrative surface already present in the application instead of hiding finance, exams and operations behind separate entry points.</p></div><div className="menwe-admin-card rounded-3xl p-6 sm:p-7"><div className="flex items-center gap-3"><CalendarDays className="text-[var(--accent)]" size={21} /><h2 className="text-lg font-bold text-[var(--ink)]">Live planning</h2></div><p className="mt-3 text-sm leading-6 text-[var(--ink)]/65">Use School Content and the calendar to keep public notices, events and academic communication current without editing the public site manually.</p></div></section>
+    </main>
+  </PortalLayout>;
 }
 
-function Stat({ icon: Icon, label, value, loading }: { icon: typeof GraduationCap; label: string; value: number; loading: boolean }) {
-  return <div className="menwe-admin-metric rounded-2xl p-5"><div className="flex items-center justify-between"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><Icon size={20} /></span>{loading ? <Loader2 className="animate-spin text-[var(--accent)]" size={20} /> : <span className="text-2xl font-black text-[var(--ink)]">{value}</span>}</div><p className="mt-4 text-sm font-semibold text-[var(--ink)]/55">{label}</p></div>;
-}
+function Stat({ icon: Icon, label, value, loading }: { icon: typeof GraduationCap; label: string; value: number; loading: boolean }) { return <div className="menwe-admin-metric rounded-2xl p-5"><div className="flex items-center justify-between"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><Icon size={20} /></span>{loading ? <Loader2 className="animate-spin text-[var(--accent)]" size={20} /> : <span className="text-2xl font-black text-[var(--ink)]">{value}</span>}</div><p className="mt-4 text-sm font-semibold text-[var(--ink)]/55">{label}</p></div>; }
