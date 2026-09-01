@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -15,7 +15,7 @@ import "./mobile-premium.css";
  * forcing a fresh document load, then let the normal error boundary handle
  * any genuine module error.
  */
-function lazyWithChunkRecovery<T extends React.ComponentType<unknown>>(
+function lazyWithChunkRecovery<T extends ComponentType = ComponentType>(
   importer: () => Promise<{ default: T }>,
   recoveryKey: string,
 ) {
