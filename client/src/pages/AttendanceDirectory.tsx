@@ -1,163 +1,45 @@
+import { BarChart3, CalendarDays, CheckCircle2, Loader2, Save, Search, Users, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Save } from "lucide-react";
 import { useLocation } from "wouter";
 import { getSupabase } from "@/lib/supabase";
 import { isAdministrator, type AppRole, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
 type Row = Record<string, unknown>;
 type Status = "Present" | "Absent" | "Late";
-
 const today = new Date().toISOString().slice(0, 10);
-const inputClass = "box-border min-h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
-
-function friendlyError(error: unknown) {
-  const text = error instanceof Error ? error.message : String(error);
-  if (/row-level security|permission denied|not authorized/i.test(text)) return "You are not authorized to manage attendance for this school.";
-  if (/duplicate|unique constraint|23505/i.test(text)) return "Attendance for one or more learners already exists for this date. Your latest status will be used when you save again.";
-  if (/network|fetch|timeout|rate limit|429/i.test(text)) return "Connection issue. Please check your network and try again.";
-  return "Attendance could not be saved or loaded. Please try again.";
-}
+const inputClass = "box-border min-h-12 w-full min-w-0 rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
+const text = (value: unknown, fallback = "—") => value == null || value === "" ? fallback : String(value);
+const friendlyError = (error: unknown) => { const message = error instanceof Error ? error.message : String(error); if (/row-level security|permission denied|not authorized/i.test(message)) return "You are not authorized to manage attendance for this school."; if (/duplicate|unique constraint|23505/i.test(message)) return "Attendance already exists for one or more learners. Saving again will update their status."; if (/network|fetch|timeout|429/i.test(message)) return "Connection issue. Please check your network and try again."; return "Attendance could not be saved or loaded. Please try again."; };
 
 export default function AttendanceDirectory() {
-  const { user, profile, loading } = useSchoolAuth();
-  const [, setLocation] = useLocation();
-  const [classes, setClasses] = useState<Row[]>([]);
-  const [periods, setPeriods] = useState<Row[]>([]);
-  const [terms, setTerms] = useState<Row[]>([]);
-  const [students, setStudents] = useState<Row[]>([]);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState("");
-  const [selectedTerm, setSelectedTerm] = useState("");
-  const [date, setDate] = useState(today);
-  const [records, setRecords] = useState<Record<string, Status>>({});
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const role = String(profile?.role || "").toUpperCase() as AppRole;
+  const { user, profile, loading: authLoading } = useSchoolAuth(); const [, navigate] = useLocation();
+  const [classes, setClasses] = useState<Row[]>([]); const [periods, setPeriods] = useState<Row[]>([]); const [terms, setTerms] = useState<Row[]>([]); const [students, setStudents] = useState<Row[]>([]);
+  const [selectedClass, setSelectedClass] = useState(""); const [selectedPeriod, setSelectedPeriod] = useState(""); const [selectedTerm, setSelectedTerm] = useState(""); const [date, setDate] = useState(today); const [query, setQuery] = useState("");
+  const [records, setRecords] = useState<Record<string, Status>>({}); const [message, setMessage] = useState<string | null>(null); const [busy, setBusy] = useState(false); const role = String(profile?.role || "").toUpperCase() as AppRole;
   const canAccess = useMemo(() => isAdministrator(role) || role === "TEACHER", [role]);
 
-  const load = useCallback(async () => {
-    if (!profile?.id || !canAccess) return;
-    try {
-      const supabase = getSupabase();
-      const [periodResult, termResult] = await Promise.all([
-        supabase.from("academic_periods").select("id,name,start_date,end_date,is_active").order("start_date", { ascending: false }),
-        supabase.from("academic_terms").select("id,name,academic_period_id,start_date,end_date").order("start_date", { ascending: false }),
-      ]);
-      if (periodResult.error) throw periodResult.error;
-      if (termResult.error) throw termResult.error;
-      setPeriods(periodResult.data || []);
-      setTerms(termResult.data || []);
-      if (isAdministrator(role)) {
-        const result = await supabase.from("classes").select("id,name,level,grade,teacher_id,teacher_name").order("name");
-        if (result.error) throw result.error;
-        setClasses(result.data || []);
-        return;
-      }
-      const [assignments, homeroom] = await Promise.all([
-        supabase.from("teacher_assignments").select("class_id").eq("teacher_id", profile.id),
-        supabase.from("classes").select("id,name,level,grade,teacher_id,teacher_name").eq("teacher_id", profile.id),
-      ]);
-      if (assignments.error) throw assignments.error;
-      if (homeroom.error) throw homeroom.error;
-      const ids = [...new Set([...(assignments.data || []).map(item => item.class_id), ...(homeroom.data || []).map(item => item.id)])];
-      if (!ids.length) { setClasses([]); return; }
-      const result = await supabase.from("classes").select("id,name,level,grade,teacher_id,teacher_name").in("id", ids).order("name");
-      if (result.error) throw result.error;
-      setClasses(result.data || []);
-    } catch (error) {
-      setMessage(friendlyError(error));
-    }
-  }, [canAccess, profile?.id, role]);
+  const load = useCallback(async () => { if (!profile?.id || !canAccess) return; try { const db = getSupabase(); const [periodResult, termResult] = await Promise.all([db.from("academic_periods").select("id,name,start_date,end_date,is_active").order("start_date", { ascending: false }), db.from("academic_terms").select("id,name,academic_period_id,start_date,end_date").order("start_date", { ascending: false })]); if (periodResult.error) throw periodResult.error; if (termResult.error) throw termResult.error; setPeriods(periodResult.data ?? []); setTerms(termResult.data ?? []);
+      if (isAdministrator(role)) { const result = await db.from("classes").select("id,name,level,grade,teacher_id,teacher_name").order("name"); if (result.error) throw result.error; setClasses(result.data ?? []); return; }
+      const [assignments, homeroom] = await Promise.all([db.from("teacher_assignments").select("class_id").eq("teacher_id", profile.id), db.from("classes").select("id,name,level,grade,teacher_id,teacher_name").eq("teacher_id", profile.id)]); if (assignments.error) throw assignments.error; if (homeroom.error) throw homeroom.error; const ids = [...new Set([...(assignments.data ?? []).map(item => item.class_id), ...(homeroom.data ?? []).map(item => item.id)])]; if (!ids.length) { setClasses([]); return; } const result = await db.from("classes").select("id,name,level,grade,teacher_id,teacher_name").in("id", ids).order("name"); if (result.error) throw result.error; setClasses(result.data ?? []);
+    } catch (error) { setMessage(friendlyError(error)); } }, [canAccess, profile?.id, role]);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) { setLocation("/portal/login"); return; }
-    if (!canAccess) { setLocation("/portal/overview"); return; }
-    void load();
-  }, [canAccess, load, loading, setLocation, user]);
+  useEffect(() => { if (authLoading) return; if (!user) { navigate("/portal/login"); return; } if (!profile || !canAccess) { navigate("/portal/parent"); return; } void load(); }, [authLoading, canAccess, load, navigate, profile, user]);
 
-  const loadStudents = useCallback(async () => {
-    if (!selectedClass || !selectedPeriod) { setStudents([]); setRecords({}); return; }
-    setBusy(true); setMessage(null);
-    try {
-      const supabase = getSupabase();
-      let enrollmentQuery = supabase
-        .from("enrollments")
-        .select("student_id,students(id,name,admission_number,upi_number)")
-        .eq("class_id", selectedClass)
-        .eq("academic_period_id", selectedPeriod)
-        .eq("status", "Active");
-      if (selectedTerm) enrollmentQuery = enrollmentQuery.eq("academic_term_id", selectedTerm);
-      const enrollmentResult = await enrollmentQuery;
-      if (enrollmentResult.error) throw enrollmentResult.error;
-      const unique = new Map<string, Row>();
-      for (const row of enrollmentResult.data || []) {
-        const student = (row as any).students;
-        if (student?.id && student?.upi_number) unique.set(String(student.id), student);
-      }
-      const nextStudents = [...unique.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
-      setStudents(nextStudents);
-
-      const upis = nextStudents.map(student => String(student.upi_number));
-      if (!upis.length) { setRecords({}); return; }
-      const attendanceResult = await supabase
-        .from("daily_attendance")
-        .select("id,date,grade_level,learner_upi,status,recorded_by_email")
-        .eq("date", date)
-        .in("learner_upi", upis);
-      if (attendanceResult.error) throw attendanceResult.error;
-      const next: Record<string, Status> = {};
-      for (const student of nextStudents) {
-        const existing = (attendanceResult.data || []).find(record => record.learner_upi === student.upi_number);
-        next[String(student.id)] = (existing?.status as Status) || "Present";
-      }
-      setRecords(next);
-    } catch (error) {
-      setStudents([]);
-      setRecords({});
-      setMessage(friendlyError(error));
-    } finally { setBusy(false); }
-  }, [date, selectedClass, selectedPeriod, selectedTerm]);
-
+  const loadStudents = useCallback(async () => { if (!selectedClass || !selectedPeriod) { setStudents([]); setRecords({}); return; } setBusy(true); setMessage(null); try { const db = getSupabase(); let enrollmentQuery = db.from("enrollments").select("student_id,students(id,name,admission_number,upi_number)").eq("class_id", selectedClass).eq("academic_period_id", selectedPeriod).eq("status", "Active"); if (selectedTerm) enrollmentQuery = enrollmentQuery.eq("academic_term_id", selectedTerm); const result = await enrollmentQuery; if (result.error) throw result.error;
+      const unique = new Map<string, Row>(); for (const row of result.data ?? []) { const student = row.students as Row | null; if (student?.id && student?.upi_number) unique.set(String(student.id), student); } const next = [...unique.values()].sort((a,b) => text(a.name, "").localeCompare(text(b.name, ""))); setStudents(next);
+      const upis = next.map(student => String(student.upi_number)); if (!upis.length) { setRecords({}); return; } const attendance = await db.from("daily_attendance").select("id,date,grade_level,learner_upi,status,recorded_by_email").eq("date", date).in("learner_upi", upis); if (attendance.error) throw attendance.error; const nextRecords: Record<string, Status> = {}; for (const student of next) { const existing = (attendance.data ?? []).find(record => record.learner_upi === student.upi_number); nextRecords[String(student.id)] = (existing?.status as Status) || "Present"; } setRecords(nextRecords);
+    } catch (error) { setStudents([]); setRecords({}); setMessage(friendlyError(error)); } finally { setBusy(false); } }, [date, selectedClass, selectedPeriod, selectedTerm]);
   useEffect(() => { void loadStudents(); }, [loadStudents]);
 
-  const save = async () => {
-    if (!selectedClass || !selectedPeriod || !students.length || !profile?.id) return;
-    setBusy(true); setMessage(null);
-    try {
-      const supabase = getSupabase();
-      const selectedClassRow = classes.find(item => String(item.id) === selectedClass);
-      const payload = students.map(student => ({
-        date,
-        grade_level: String(selectedClassRow?.grade || selectedClassRow?.level || selectedClass),
-        learner_upi: String(student.upi_number),
-        status: records[String(student.id)] || "Present",
-        recorded_by_email: profile.email || user?.email || null,
-      }));
-      const { error } = await supabase
-        .from("daily_attendance")
-        .upsert(payload, { onConflict: "date,learner_upi" });
-      if (error) throw error;
-      setMessage("Attendance saved successfully. Re-marking the same date updates each learner's status.");
-      await loadStudents();
-    } catch (error) {
-      setMessage(friendlyError(error));
-    } finally { setBusy(false); }
-  };
+  const visibleStudents = useMemo(() => { const needle = query.trim().toLowerCase(); return students.filter(student => !needle || `${text(student.name, "")} ${text(student.admission_number, "")} ${text(student.upi_number, "")}`.toLowerCase().includes(needle)); }, [query, students]);
+  const stats = useMemo(() => { const values = visibleStudents.map(student => records[String(student.id)] || "Present"); return { total: values.length, present: values.filter(status => status === "Present").length, absent: values.filter(status => status === "Absent").length, late: values.filter(status => status === "Late").length }; }, [records, visibleStudents]);
+  const save = async () => { if (!selectedClass || !selectedPeriod || !students.length || !profile?.id) return; setBusy(true); setMessage(null); try { const db = getSupabase(); const classRow = classes.find(item => String(item.id) === selectedClass); const payload = students.map(student => ({ date, grade_level: text(classRow?.grade || classRow?.level || selectedClass), learner_upi: String(student.upi_number), status: records[String(student.id)] || "Present", recorded_by_email: profile.email || user?.email || null })); const { error } = await db.from("daily_attendance").upsert(payload, { onConflict: "date,learner_upi" }); if (error) throw error; setMessage("Attendance saved successfully."); await loadStudents(); } catch (error) { setMessage(friendlyError(error)); } finally { setBusy(false); } };
 
-  if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin" /></div>;
-
-  return <main className="mx-auto w-full max-w-6xl min-w-0 box-border p-4 sm:p-6 lg:p-8"><div className="grid gap-6">
-    <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--accent)]">Attendance</p><h1 className="mt-2 font-serif text-4xl font-semibold">Daily attendance</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--ink)]/60">Attendance is stored in the canonical <code>daily_attendance</code> table using the learner UPI and date as the unique record.</p></div>
-    <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <label className="grid gap-1.5 text-sm font-semibold">Academic period<select className={inputClass} value={selectedPeriod} onChange={e => { setSelectedPeriod(e.target.value); setSelectedTerm(""); }}><option value="">Select period</option>{periods.map(p => <option key={String(p.id)} value={String(p.id)}>{String(p.name)}</option>)}</select></label>
-      <label className="grid gap-1.5 text-sm font-semibold">Academic term<select className={inputClass} value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}><option value="">All / period level</option>{terms.filter(t => !selectedPeriod || String(t.academic_period_id) === selectedPeriod).map(t => <option key={String(t.id)} value={String(t.id)}>{String(t.name)}</option>)}</select></label>
-      <label className="grid gap-1.5 text-sm font-semibold">Class<select className={inputClass} value={selectedClass} onChange={e => setSelectedClass(e.target.value)}><option value="">Select class</option>{classes.map(c => <option key={String(c.id)} value={String(c.id)}>{String(c.name)}</option>)}</select></label>
-      <label className="grid gap-1.5 text-sm font-semibold">Date<input className={inputClass} type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
-    </div>{message && <p role="status" className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{message}</p>}</section>
-    <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-serif text-2xl font-semibold">Students</h2><p className="mt-1 text-sm text-[var(--ink)]/60">Only active enrolments with a learner UPI can be recorded.</p></div><button disabled={busy || !students.length} onClick={() => void save()} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[.98] disabled:opacity-50 sm:w-auto">{busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}Save attendance</button></div>
-      {!selectedClass || !selectedPeriod ? <p className="mt-6 text-sm text-[var(--ink)]/55">Choose an academic period and class to load enrolled students.</p> : students.length === 0 ? <p className="mt-6 text-sm text-[var(--ink)]/55">No active enrolments with UPI numbers matched the selected class and period.</p> : <div className="mt-6 grid grid-cols-1 gap-3 md:hidden">{students.map(student => { const id = String(student.id); return <article key={id} className="w-full min-w-0 max-w-full box-border rounded-2xl border border-[var(--ink)]/10 p-4"><div className="min-w-0"><p className="break-words font-semibold">{String(student.name)}</p><p className="mt-1 break-words text-xs text-[var(--ink)]/55">UPI: {String(student.upi_number)}</p></div><select aria-label={`Attendance status for ${String(student.name)}`} className={`${inputClass} mt-3`} value={records[id] || "Present"} onChange={e => setRecords(current => ({ ...current, [id]: e.target.value as Status }))}><option>Present</option><option>Absent</option><option>Late</option></select></article>; })}</div>}
-      {students.length > 0 && <div className="mt-6 hidden overflow-x-auto md:block"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr className="border-b text-xs uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="px-3 py-3">Student</th><th className="px-3 py-3">UPI</th><th className="px-3 py-3">Status</th></tr></thead><tbody>{students.map(student => <tr key={String(student.id)} className="border-b border-[var(--ink)]/7"><td className="px-3 py-3 font-medium">{String(student.name)}</td><td className="px-3 py-3">{String(student.upi_number)}</td><td className="px-3 py-3"><select aria-label={`Attendance status for ${String(student.name)}`} className={inputClass} value={records[String(student.id)] || "Present"} onChange={e => setRecords(current => ({ ...current, [String(student.id)]: e.target.value as Status }))}><option>Present</option><option>Absent</option><option>Late</option></select></td></tr>)}</tbody></table></div>}
-    </section>
-  </div></main>;
+  if (authLoading) return <main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-[var(--accent)]"/></main>;
+  return <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><header className="rounded-[2rem] bg-[var(--ink)] p-6 text-white shadow-xl sm:p-8"><div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><span className="inline-flex items-center gap-2 rounded-full bg-[var(--gold)]/15 px-3 py-1 text-xs font-bold uppercase tracking-[.16em] text-[var(--gold)]"><CalendarDays size={14}/> Attendance</span><h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Attendance command center</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Record daily attendance, inspect absenteeism and manage class registers from live Supabase enrolments.</p></div><button type="button" onClick={() => void load()} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold"><BarChart3 size={17}/>Refresh</button></div></header>
+    {message && <div role="status" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{message}</div>}
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"><article className="menwe-card rounded-2xl p-5"><Users size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Learners</p><p className="mt-1 text-3xl font-black">{stats.total}</p></article><article className="menwe-card rounded-2xl p-5"><CheckCircle2 size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Present</p><p className="mt-1 text-3xl font-black">{stats.present}</p></article><article className="menwe-card rounded-2xl p-5"><XCircle size={20} className="text-red-600"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Absent</p><p className="mt-1 text-3xl font-black">{stats.absent}</p></article><article className="menwe-card rounded-2xl p-5"><BarChart3 size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Late</p><p className="mt-1 text-3xl font-black">{stats.late}</p></article></section>
+    <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"><label className="grid gap-1.5 text-sm font-semibold">Academic period<select className={inputClass} value={selectedPeriod} onChange={e => { setSelectedPeriod(e.target.value); setSelectedTerm(""); }}><option value="">Select period</option>{periods.map(item => <option key={text(item.id)} value={text(item.id)}>{text(item.name)}</option>)}</select></label><label className="grid gap-1.5 text-sm font-semibold">Academic term<select className={inputClass} value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)}><option value="">All / period level</option>{terms.filter(item => !selectedPeriod || text(item.academic_period_id) === selectedPeriod).map(item => <option key={text(item.id)} value={text(item.id)}>{text(item.name)}</option>)}</select></label><label className="grid gap-1.5 text-sm font-semibold">Class<select className={inputClass} value={selectedClass} onChange={e => setSelectedClass(e.target.value)}><option value="">Select class</option>{classes.map(item => <option key={text(item.id)} value={text(item.id)}>{text(item.name)}</option>)}</select></label><label className="grid gap-1.5 text-sm font-semibold">Date<input className={inputClass} type="date" value={date} onChange={e => setDate(e.target.value)}/></label></div><label className="mt-4 flex min-h-12 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-3"><Search size={17} className="text-[var(--accent)]"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search learner, admission number or UPI…" className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"/></label></section>
+    <section className="menwe-card overflow-hidden rounded-[1.75rem] p-5 sm:p-7"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="font-serif text-2xl font-semibold">Daily register</h2><p className="mt-1 text-sm text-[var(--ink)]/60">UPI + date is the canonical attendance key. Re-saving updates the same record.</p></div><button disabled={busy || !students.length} onClick={() => void save()} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:w-auto">{busy ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>}Save attendance</button></div>{!selectedClass || !selectedPeriod ? <p className="mt-6 text-sm text-[var(--ink)]/55">Choose an academic period and class to load the register.</p> : visibleStudents.length === 0 ? <p className="mt-6 text-sm text-[var(--ink)]/55">No learners match the selected class, period and search.</p> : <><div className="mt-6 grid gap-3 md:hidden">{visibleStudents.map(student => { const id = text(student.id); return <article key={id} className="rounded-2xl border border-[var(--ink)]/10 p-4"><p className="font-semibold">{text(student.name)}</p><p className="mt-1 text-xs text-[var(--ink)]/55">{text(student.admission_number)} · UPI {text(student.upi_number)}</p><select className={`${inputClass} mt-3`} value={records[id] || "Present"} onChange={e => setRecords(current => ({ ...current, [id]: e.target.value as Status }))}><option>Present</option><option>Absent</option><option>Late</option></select></article>; })}</div><div className="mt-6 hidden overflow-x-auto md:block"><table className="w-full min-w-[650px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="px-3 py-3">Learner</th><th className="px-3 py-3">Admission / UPI</th><th className="px-3 py-3">Status</th></tr></thead><tbody>{visibleStudents.map(student => { const id = text(student.id); return <tr key={id} className="border-b border-[var(--ink)]/7"><td className="px-3 py-3 font-semibold">{text(student.name)}</td><td className="px-3 py-3">{text(student.admission_number)} · {text(student.upi_number)}</td><td className="px-3 py-3"><select className={inputClass} value={records[id] || "Present"} onChange={e => setRecords(current => ({ ...current, [id]: e.target.value as Status }))}><option>Present</option><option>Absent</option><option>Late</option></select></td></tr>; })}</tbody></table></div></>}</section>
+  </main>;
 }
