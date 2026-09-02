@@ -13,7 +13,7 @@ const text = (v: unknown, fallback = "—") => v == null || v === "" ? fallback 
 export default function AttendanceDirectory() {
   const { user, profile, loading: authLoading } = useSchoolAuth(); const [, navigate] = useLocation();
   const [classes, setClasses] = useState<Row[]>([]); const [years, setYears] = useState<Row[]>([]); const [students, setStudents] = useState<Row[]>([]);
-  const [classId, setClassId] = useState(""); const [yearId, setYearId] = useState(""); const [date, setDate] = useState(today); const [query, setQuery] = useState("");
+  const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]); const [classId, setClassId] = useState(""); const [yearId, setYearId] = useState(""); const [date, setDate] = useState(today); const [query, setQuery] = useState("");
   const [records, setRecords] = useState<Record<string, Status>>({}); const [loading, setLoading] = useState(false); const [saving, setSaving] = useState(false); const [message, setMessage] = useState<string | null>(null);
   const role = profile?.role ?? ""; const admin = isAdministrator(role);
 
@@ -24,10 +24,18 @@ export default function AttendanceDirectory() {
       const db = getSupabase();
       const [yearResult, classResult] = await Promise.all([
         db.from("academic_years").select("id,name,starts_on,ends_on,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
-        db.from("classes").select("id,academic_year_id,code,name,level,class_teacher_id,status").eq("status", "ACTIVE").order("name")
+        db.from("classes").select("id,academic_year_id,code,name,level,class_teacher_id,status").eq("status", "ACTIVE").order("name"),
       ]);
       if (yearResult.error) throw yearResult.error; if (classResult.error) throw classResult.error;
       setYears((yearResult.data ?? []) as Row[]); setClasses((classResult.data ?? []) as Row[]);
+      if (role === "TEACHER") {
+        const teacher = await db.from("teachers").select("id").eq("profile_id", profile.id).maybeSingle();
+        if (teacher.error) throw teacher.error;
+        if (!teacher.data?.id) throw new Error("Your teacher record is not linked yet. Ask an administrator to complete your staff profile.");
+        const assignments = await db.from("teacher_assignments").select("class_id").eq("teacher_id", teacher.data.id);
+        if (assignments.error) throw assignments.error;
+        setAssignedClassIds((assignments.data ?? []).map(row => String(row.class_id)));
+      } else setAssignedClassIds((classResult.data ?? []).map(row => String(row.id)));
       if (!yearId) setYearId(String(yearResult.data?.find(x => x.is_current)?.id ?? yearResult.data?.[0]?.id ?? ""));
     } catch (error) { setMessage(error instanceof Error ? error.message : "Attendance setup could not be loaded."); }
     finally { setLoading(false); }
@@ -35,10 +43,11 @@ export default function AttendanceDirectory() {
 
   useEffect(() => { if (authLoading) return; if (!user || !profile) { navigate("/portal/login"); return; } if (!admin && role !== "TEACHER") { navigate("/portal/parent"); return; } void loadBase(); }, [authLoading, admin, loadBase, navigate, profile, role, user]);
 
-  const visibleClasses = useMemo(() => admin ? classes.filter(c => !yearId || String(c.academic_year_id) === yearId) : classes.filter(c => (!yearId || String(c.academic_year_id) === yearId) && String(c.class_teacher_id ?? "") === String(profile?.id ?? "")), [admin, classes, profile?.id, yearId]);
+  const visibleClasses = useMemo(() => classes.filter(c => (!yearId || String(c.academic_year_id) === yearId) && assignedClassIds.includes(String(c.id))), [assignedClassIds, classes, yearId]);
 
   const loadRegister = useCallback(async () => {
     if (!classId || !yearId) { setStudents([]); setRecords({}); return; }
+    if (!admin && !assignedClassIds.includes(classId)) { setStudents([]); setRecords({}); setMessage("You are not assigned to this class."); return; }
     setLoading(true); setMessage(null);
     try {
       const db = getSupabase();
@@ -56,14 +65,15 @@ export default function AttendanceDirectory() {
       setRecords(next);
     } catch (error) { setStudents([]); setRecords({}); setMessage(error instanceof Error ? error.message : "Attendance register could not be loaded."); }
     finally { setLoading(false); }
-  }, [classId, date, yearId]);
+  }, [admin, assignedClassIds, classId, date, yearId]);
   useEffect(() => { void loadRegister(); }, [loadRegister]);
 
   const visibleStudents = useMemo(() => { const q = query.trim().toLowerCase(); return students.filter(s => !q || [s.first_name,s.middle_name,s.last_name,s.admission_number].map(v => text(v, "")).join(" ").toLowerCase().includes(q)); }, [query, students]);
   const stats = useMemo(() => { const vals = visibleStudents.map(s => records[String(s.id)] ?? "Present"); return { total: vals.length, present: vals.filter(v => v === "Present").length, absent: vals.filter(v => v === "Absent").length, late: vals.filter(v => v === "Late").length }; }, [records, visibleStudents]);
 
   const save = async () => {
-    if (!classId || !yearId || !students.length || !profile?.id) return; setSaving(true); setMessage(null);
+    if (!classId || !yearId || !students.length || !profile?.id) return; if (!admin && !assignedClassIds.includes(classId)) { setMessage("You are not assigned to this class."); return; }
+    setSaving(true); setMessage(null);
     try {
       const db = getSupabase(); let teacherId: string | null = null;
       if (role === "TEACHER") { const teacher = await db.from("teachers").select("id").eq("profile_id", profile.id).maybeSingle(); if (teacher.error) throw teacher.error; teacherId = teacher.data?.id ?? null; if (!teacherId) throw new Error("Your teacher record is not linked yet. Ask an administrator to complete your staff profile."); }
