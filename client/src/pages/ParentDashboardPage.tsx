@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, CalendarDays, FileText, GraduationCap, Loader2, LogOut, MessageSquare, UserRound } from "lucide-react";
+import { AlertCircle, BarChart3, CalendarDays, FileText, GraduationCap, LogOut, MessageSquare, UserRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { PortalLayout } from "@/components/PortalLayout";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -23,6 +23,7 @@ function friendlyError(error: unknown) {
 export default function ParentDashboardPage() {
   const { user, profile, loading, signOut } = useSchoolAuth();
   const [, go] = useLocation();
+  const isStudent = profile?.role === "STUDENT";
   const [students, setStudents] = useState<Student[]>([]);
   const [selected, setSelected] = useState("");
   const [attendance, setAttendance] = useState<AttendanceSummary>(EMPTY_ATTENDANCE);
@@ -30,30 +31,35 @@ export default function ParentDashboardPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!user?.id || profile?.status !== "ACTIVE" || profile.role !== "PARENT") return;
+    if (!user?.id || profile?.status !== "ACTIVE" || !["PARENT", "STUDENT"].includes(profile.role)) return;
     setBusy(true);
     setMessage(null);
     try {
       const db = getSupabase();
-      const { data: parent, error: parentError } = await db.from("parents").select("id").eq("profile_id", user.id).maybeSingle();
-      if (parentError) throw parentError;
-      if (!parent) {
-        setStudents([]);
-        setAttendance(EMPTY_ATTENDANCE);
-        setMessage("Your account is active, but the parent record is not linked yet. Please contact school administration.");
-        return;
+      let ids: string[] = [];
+      if (isStudent) {
+        const { data, error } = await db.from("students").select("id").eq("profile_id", user.id).eq("status", "ACTIVE").maybeSingle();
+        if (error) throw error;
+        if (data?.id) ids = [data.id];
+      } else {
+        const { data: parent, error: parentError } = await db.from("parents").select("id").eq("profile_id", user.id).maybeSingle();
+        if (parentError) throw parentError;
+        if (!parent) {
+          setStudents([]);
+          setAttendance(EMPTY_ATTENDANCE);
+          setMessage("Your account is active, but the parent record is not linked yet. Please contact school administration.");
+          return;
+        }
+        const { data: links, error: linkError } = await db.from("student_parents").select("student_id").eq("parent_id", parent.id);
+        if (linkError) throw linkError;
+        ids = [...new Set((links ?? []).map((row: StudentParentRow) => row.student_id).filter((id): id is string => Boolean(id)))];
       }
-
-      const { data: links, error: linkError } = await db.from("student_parents").select("student_id").eq("parent_id", parent.id);
-      if (linkError) throw linkError;
-      const ids = [...new Set((links ?? []).map((row: StudentParentRow) => row.student_id).filter((id): id is string => Boolean(id)))];
       if (ids.length === 0) {
         setStudents([]);
         setAttendance(EMPTY_ATTENDANCE);
-        setMessage("Your account is active, but no learner is linked yet. Please contact school administration.");
+        setMessage(isStudent ? "Your learner record is not linked yet. Please contact school administration." : "Your account is active, but no learner is linked yet. Please contact school administration.");
         return;
       }
-
       const { data, error } = await db.from("students").select("id,admission_number,first_name,middle_name,last_name").in("id", ids).eq("status", "ACTIVE").order("first_name");
       if (error) throw error;
       const rows: Student[] = (data ?? []).map((student: StudentRow) => ({ id: student.id, name: [student.first_name, student.middle_name, student.last_name].filter((part): part is string => Boolean(part?.trim())).join(" ") || "Learner", admission_number: student.admission_number }));
@@ -66,11 +72,11 @@ export default function ParentDashboardPage() {
     } finally {
       setBusy(false);
     }
-  }, [profile?.role, profile?.status, user?.id]);
+  }, [isStudent, profile?.role, profile?.status, user?.id]);
 
   useEffect(() => {
     if (loading) return;
-    if (!user || !profile || profile.status !== "ACTIVE" || profile.role !== "PARENT") {
+    if (!user || !profile || profile.status !== "ACTIVE" || !["PARENT", "STUDENT"].includes(profile.role)) {
       go("/portal/login");
       return;
     }
@@ -97,8 +103,7 @@ export default function ParentDashboardPage() {
         }
         const { data, error } = await db.from("daily_attendance").select("status").eq("learner_upi", upi);
         if (error) throw error;
-        const rows: AttendanceRow[] = data ?? [];
-        const summary = rows.reduce<AttendanceSummary>((result, row) => {
+        const summary = (data ?? []).reduce<AttendanceSummary>((result, row: AttendanceRow) => {
           const status = String(row.status ?? "").toLowerCase();
           result.total += 1;
           if (status === "present") result.present += 1;
@@ -117,21 +122,22 @@ export default function ParentDashboardPage() {
 
   const attendanceRate = attendance.total > 0 ? Math.round(((attendance.present + attendance.late) / attendance.total) * 100) : null;
   const logout = async () => { await signOut(); go("/portal/login"); };
+  const firstName = profile?.display_name?.split(/\s+/)[0] || (isStudent ? "Learner" : "Parent");
 
-  if (loading || busy) return <PortalLayout role="PARENT"><main className="mx-auto grid min-h-[70vh] w-full max-w-7xl place-items-center px-4"><div className="grid w-full max-w-3xl gap-4"><div className="h-52 animate-pulse rounded-[2rem] bg-[var(--mist)]"/><div className="grid gap-4 sm:grid-cols-3"><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/></div></div></main></PortalLayout>;
+  if (loading || busy) return <PortalLayout role={isStudent ? "STUDENT" : "PARENT"}><main className="mx-auto grid min-h-[70vh] w-full max-w-7xl place-items-center px-4"><div className="grid w-full max-w-3xl gap-4"><div className="h-52 animate-pulse rounded-[2rem] bg-[var(--mist)]"/><div className="grid gap-4 sm:grid-cols-3"><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/><div className="h-28 animate-pulse rounded-2xl bg-[var(--mist)]"/></div></div></main></PortalLayout>;
 
-  return <PortalLayout role="PARENT">
+  return <PortalLayout role={isStudent ? "STUDENT" : "PARENT"}>
     <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
       <header className="menwe-admin-hero rounded-[2rem] p-6 text-white shadow-xl sm:p-8">
-        <p className="menwe-admin-kicker"><GraduationCap size={14}/> Family workspace</p>
-        <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Welcome, {profile.display_name?.split(/\s+/)[0] || "Parent"}.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Secure access to linked learner progress, attendance, academic records and school communication.</p>
+        <p className="menwe-admin-kicker"><GraduationCap size={14}/> {isStudent ? "Student workspace" : "Family workspace"}</p>
+        <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Welcome, {firstName}.</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Secure access to {isStudent ? "your" : "linked learner"} progress, attendance, academic records and school communication.</p>
         <button type="button" onClick={() => void logout()} className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 font-bold transition hover:bg-white/10"><LogOut size={16}/> Sign out</button>
       </header>
       {message && <div role="alert" className="flex gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800"><AlertCircle size={18} className="mt-0.5 shrink-0"/>{message}</div>}
       {learner && <>
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <article className="menwe-card rounded-2xl p-5"><UserRound size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Linked learner</p><p className="mt-1 truncate text-xl font-bold">{learner.name}</p><p className="mt-1 text-sm text-[var(--ink)]/55">{learner.admission_number}</p></article>
+          <article className="menwe-card rounded-2xl p-5"><UserRound size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">{isStudent ? "Your learner record" : "Linked learner"}</p><p className="mt-1 truncate text-xl font-bold">{learner.name}</p><p className="mt-1 text-sm text-[var(--ink)]/55">{learner.admission_number}</p></article>
           <article className="menwe-card rounded-2xl p-5"><CalendarDays size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Attendance</p><p className="mt-1 text-2xl font-black">{attendanceRate === null ? "—" : `${attendanceRate}%`}</p><p className="mt-1 text-sm text-[var(--ink)]/55">{attendance.total ? `${attendance.present} present · ${attendance.absent} absent` : "No records yet"}</p></article>
           <Link href="/portal/report-cards" className="menwe-card menwe-interactive rounded-2xl p-5"><BarChart3 size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Performance</p><p className="mt-1 text-lg font-bold">Report cards</p><p className="mt-1 text-sm text-[var(--accent)]">View academic results →</p></Link>
           <Link href="/portal/messages" className="menwe-card menwe-interactive rounded-2xl p-5"><MessageSquare size={20} className="text-[var(--accent)]"/><p className="mt-3 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/50">Communication</p><p className="mt-1 text-lg font-bold">School messages</p><p className="mt-1 text-sm text-[var(--accent)]">Open protected inbox →</p></Link>
