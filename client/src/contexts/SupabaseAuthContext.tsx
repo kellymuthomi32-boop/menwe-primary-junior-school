@@ -1,20 +1,212 @@
 import type { Session, User } from "@supabase/supabase-js";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase, supabase } from "@/lib/supabase";
 
 export type AppRole = "SUPER_ADMIN" | "ADMIN" | "HEAD_OF_INSTITUTION" | "DEPUTY_HOI" | "TEACHER" | "STUDENT" | "PARENT";
 type CanonicalRole = "admin" | "head_of_institution" | "deputy_hoi" | "teacher" | "class_teacher" | "classroom_teacher" | "staff" | "finance_officer" | "finance_approver" | "parent" | "student";
-const CANONICAL_ROLES = new Set<CanonicalRole>(["admin","head_of_institution","deputy_hoi","teacher","class_teacher","classroom_teacher","staff","finance_officer","finance_approver","parent","student"]);
+const CANONICAL_ROLES = new Set<CanonicalRole>(["admin", "head_of_institution", "deputy_hoi", "teacher", "class_teacher", "classroom_teacher", "staff", "finance_officer", "finance_approver", "parent", "student"]);
+
 export type SchoolProfile = { id: string; email: string | null; display_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null };
-function normalizeRole(role: string | null | undefined): AppRole | null { const value = role?.trim().toUpperCase(); if (value === "PARENT") return "PARENT"; if (value === "STUDENT") return "STUDENT"; if (["TEACHER","CLASS_TEACHER","CLASSROOM_TEACHER","STAFF"].includes(value ?? "")) return "TEACHER"; if (value === "SUPER_ADMIN") return "SUPER_ADMIN"; if (value === "HEAD_OF_INSTITUTION") return "HEAD_OF_INSTITUTION"; if (value === "DEPUTY_HOI") return "DEPUTY_HOI"; if (value === "ADMIN") return "ADMIN"; return null; }
-function metadataRole(user: User): CanonicalRole | null { const value = user.app_metadata?.role ?? user.user_metadata?.role; if (typeof value !== "string") return null; const role = value.trim().toLowerCase(); return CANONICAL_ROLES.has(role as CanonicalRole) ? role as CanonicalRole : null; }
-function profileFromUserMetadata(user: User): SchoolProfile | null { const canonicalRole = metadataRole(user); const role = normalizeRole(canonicalRole); if (!canonicalRole || !role) return null; const displayName = (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()) || (typeof user.user_metadata?.name === "string" && user.user_metadata.name.trim()) || user.email?.split("@")[0] || null; return { id: user.id, email: user.email ?? null, display_name: displayName, phone: typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : null, role, canonical_role: canonicalRole, status: "ACTIVE", avatar_url: typeof user.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null }; }
-type AuthContextValue = { user: User | null; session: Session | null; profile: SchoolProfile | null; loading: boolean; profileLoading: boolean; error: string | null; signIn: (email: string, password: string) => Promise<{ error?: string }>; sendMagicLink: (email: string) => Promise<{ error?: string }>; sendPasswordReset: (email: string) => Promise<{ error?: string }>; updatePassword: (password: string) => Promise<{ error?: string }>; signOut: () => Promise<void>; refreshProfile: () => Promise<SchoolProfile | null> };
+
+function normalizeRole(role: string | null | undefined): AppRole | null {
+  const value = role?.trim().toUpperCase();
+  if (value === "PARENT") return "PARENT";
+  if (value === "STUDENT") return "STUDENT";
+  if (["TEACHER", "CLASS_TEACHER", "CLASSROOM_TEACHER", "STAFF"].includes(value ?? "")) return "TEACHER";
+  if (value === "SUPER_ADMIN") return "SUPER_ADMIN";
+  if (value === "HEAD_OF_INSTITUTION") return "HEAD_OF_INSTITUTION";
+  if (value === "DEPUTY_HOI") return "DEPUTY_HOI";
+  if (value === "ADMIN") return "ADMIN";
+  return null;
+}
+
+function toSchoolProfile(data: { id: string; email?: string | null; full_name?: string | null; phone?: string | null; role?: string | null; status?: string | null; avatar_url?: string | null }): SchoolProfile | null {
+  const canonicalRole = data.role?.trim().toLowerCase();
+  const role = normalizeRole(data.role);
+  if (!role || !canonicalRole || !CANONICAL_ROLES.has(canonicalRole as CanonicalRole)) return null;
+  return { id: data.id, email: data.email ?? null, display_name: data.full_name ?? null, phone: data.phone ?? null, role, canonical_role: canonicalRole as CanonicalRole, status: data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE", avatar_url: data.avatar_url ?? null };
+}
+
+type AuthContextValue = {
+  user: User | null;
+  session: Session | null;
+  profile: SchoolProfile | null;
+  loading: boolean;
+  profileLoading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  sendMagicLink: (email: string) => Promise<{ error?: string }>;
+  sendPasswordReset: (email: string) => Promise<{ error?: string }>;
+  updatePassword: (password: string) => Promise<{ error?: string }>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<SchoolProfile | null>;
+};
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) { const [session,setSession]=useState<Session|null>(null);const[profile,setProfile]=useState<SchoolProfile|null>(null);const[loading,setLoading]=useState(true);const[profileLoading,setProfileLoading]=useState(false);const[error,setError]=useState<string|null>(null);
- const loadProfile=useCallback(async(userId:string|null):Promise<SchoolProfile|null>=>{if(!userId||!supabase){setProfile(null);setProfileLoading(false);return null;}setProfileLoading(true);try{const profileRequest=supabase.from("profiles").select("id,email,full_name,phone,role,status,avatar_url").eq("id",userId).maybeSingle();const timeout=new Promise<never>((_,reject)=>{window.setTimeout(()=>reject(new Error("PROFILE_LOOKUP_TIMEOUT")),3500);});const{data,error:profileError}=await Promise.race([profileRequest,timeout]);if(!profileError&&data){const role=normalizeRole(data.role);const canonicalRole=data.role?.toString().trim().toLowerCase();if(!role||!canonicalRole||!CANONICAL_ROLES.has(canonicalRole as CanonicalRole)){setProfile(null);setError("Your school profile has an unsupported role. Please contact school administration.");setProfileLoading(false);return null;}const normalizedProfile:SchoolProfile={id:data.id,email:data.email??null,display_name:data.full_name??null,phone:data.phone??null,role,canonical_role:canonicalRole as CanonicalRole,status:data.status==="INACTIVE"?"INACTIVE":"ACTIVE",avatar_url:data.avatar_url??null};setError(null);setProfile(normalizedProfile);setProfileLoading(false);return normalizedProfile;}if(profileError)console.error("Profile loading error:",profileError);else console.warn("No profile found for user ID:",userId);const{data:authUserData,error:authUserError}=await supabase.auth.getUser();if(!authUserError&&authUserData.user?.id===userId){const fallbackProfile=profileFromUserMetadata(authUserData.user);if(fallbackProfile){setError(null);setProfile(fallbackProfile);setProfileLoading(false);return fallbackProfile;}}setError("School profile is unavailable; continuing with the authenticated account.");setProfile(null);setProfileLoading(false);return null;}catch(err){console.error("Unexpected profile error:",err);try{const{data:authUserData}=await supabase.auth.getUser();if(authUserData.user?.id===userId){const fallbackProfile=profileFromUserMetadata(authUserData.user);if(fallbackProfile){setError(null);setProfile(fallbackProfile);setProfileLoading(false);return fallbackProfile;}}}catch(fallbackError){console.error("Auth metadata fallback failed:",fallbackError);}setError("School profile is unavailable; continuing with the authenticated account.");setProfile(null);setProfileLoading(false);return null;}},[]);
- useEffect(()=>{const client=supabase;if(!client){setError("The portal has not been configured with Supabase yet.");setLoading(false);setProfileLoading(false);return;}let active=true;const initialise=async()=>{try{const{data,error:sessionError}=await client.auth.getSession();if(sessionError)console.error("Session restoration error:",sessionError);if(!active)return;const nextSession=data.session??null;setSession(nextSession);setProfileLoading(Boolean(nextSession?.user?.id));setLoading(false);if(nextSession?.user?.id)void loadProfile(nextSession.user.id);else{setProfile(null);setProfileLoading(false);}}catch(err){console.error("Initialization error:",err);if(active){setError("Unable to restore your school session.");setProfileLoading(false);setLoading(false);}}};void initialise();const{data:subscription}=client.auth.onAuthStateChange((_event,nextSession)=>{if(!active)return;setSession(nextSession);setProfileLoading(Boolean(nextSession?.user?.id));setLoading(false);window.setTimeout(()=>{if(!active)return;if(nextSession?.user?.id)void loadProfile(nextSession.user.id);else{setProfile(null);setProfileLoading(false);setError(null);}},0);});return()=>{active=false;subscription.subscription.unsubscribe();};},[loadProfile]);
- const value=useMemo<AuthContextValue>(()=>({user:session?.user??null,session,profile,loading,profileLoading,error,signIn:async(email,password)=>{setError(null);const{error:signInError}=await getSupabase().auth.signInWithPassword({email:email.trim().toLowerCase(),password});return signInError?{error:signInError.message}:{};},sendMagicLink:async email=>{setError(null);const{error:magicError}=await getSupabase().auth.signInWithOtp({email:email.trim().toLowerCase(),options:{emailRedirectTo:`${window.location.origin}/portal/login`,shouldCreateUser:false}});return magicError?{error:magicError.message}:{};},sendPasswordReset:async email=>{setError(null);const{error:resetError}=await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:`${window.location.origin}/portal/password?mode=update-password`});return resetError?{error:resetError.message}:{};},updatePassword:async password=>{setError(null);const{error:updateError}=await getSupabase().auth.updateUser({password});return updateError?{error:updateError.message}:{};},signOut:async()=>{await getSupabase().auth.signOut();setProfile(null);setProfileLoading(false);setSession(null);setError(null);},refreshProfile:async()=>loadProfile(session?.user.id??null)}),[error,loadProfile,loading,profile,profileLoading,session]);return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>; }
-export function useSchoolAuth(){const context=useContext(AuthContext);if(!context)throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider");return context;}
-export function isAdministrator(role:AppRole|undefined){return role==="SUPER_ADMIN"||role==="ADMIN"||role==="HEAD_OF_INSTITUTION"||role==="DEPUTY_HOI";}
-export function getPortalRedirect(profileOrUser:SchoolProfile|User|null,fallbackUser?:User|null):"/portal/admin"|"/portal/teacher"|"/portal/dashboard"{if(!profileOrUser)return"/portal/dashboard";let role="";let email="";if("canonical_role"in profileOrUser){role=profileOrUser.role?.toString().toUpperCase()||"";email=profileOrUser.email?.trim().toLowerCase()||"";}else{role=metadataRole(profileOrUser)?.toUpperCase()||"";email=profileOrUser.email?.trim().toLowerCase()||"";}if(!email&&fallbackUser)email=fallbackUser.email?.trim().toLowerCase()||"";if(["menweschool.official@gmail.com","menweprimaryandjunior@gmail.com"].includes(email)||["ADMIN","SUPER_ADMIN","HEAD_OF_INSTITUTION","DEPUTY_HOI"].includes(role))return"/portal/admin";if(["TEACHER","CLASS_TEACHER","CLASSROOM_TEACHER","STAFF"].includes(role))return"/portal/teacher";return"/portal/dashboard";}
+
+export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<SchoolProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef<{ userId: string; promise: Promise<SchoolProfile | null> } | null>(null);
+
+  const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
+    if (!userId || !supabase) {
+      setProfile(null);
+      setProfileLoading(false);
+      return null;
+    }
+    if (requestRef.current?.userId === userId) return requestRef.current.promise;
+
+    const request = (async () => {
+      setProfileLoading(true);
+      setError(null);
+      try {
+        const profileRequest = supabase.from("profiles").select("id,email,full_name,phone,role,status,avatar_url").eq("id", userId).maybeSingle();
+        const timeout = new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("PROFILE_LOOKUP_TIMEOUT")), 5000));
+        const { data, error: profileError } = await Promise.race([profileRequest, timeout]);
+        if (profileError) {
+          console.error("Profile lookup failed:", profileError);
+          setProfile(null);
+          setError("We could not load your school profile. Please try again.");
+          return null;
+        }
+        if (!data) {
+          setProfile(null);
+          setError("Your account is authenticated, but no school profile is available yet. Please contact school administration.");
+          return null;
+        }
+        const normalized = toSchoolProfile(data);
+        if (!normalized) {
+          setProfile(null);
+          setError("Your school profile has an unsupported role. Please contact school administration.");
+          return null;
+        }
+        if (normalized.status !== "ACTIVE") {
+          setProfile(null);
+          setError("Your school portal access is currently inactive. Please contact school administration.");
+          return null;
+        }
+        setProfile(normalized);
+        setError(null);
+        return normalized;
+      } catch (err) {
+        console.error("Unexpected profile lookup error:", err);
+        setProfile(null);
+        setError(err instanceof Error && err.message === "PROFILE_LOOKUP_TIMEOUT" ? "The school profile lookup timed out. Please try again." : "We could not load your school profile. Please try again.");
+        return null;
+      } finally {
+        setProfileLoading(false);
+      }
+    })();
+
+    requestRef.current = { userId, promise: request };
+    try { return await request; }
+    finally { if (requestRef.current?.promise === request) requestRef.current = null; }
+  }, []);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setError("The portal has not been configured with Supabase yet.");
+      setLoading(false);
+      setProfileLoading(false);
+      return;
+    }
+    let active = true;
+    const initialise = async () => {
+      try {
+        const { data, error: sessionError } = await client.auth.getSession();
+        if (!active) return;
+        if (sessionError) console.error("Session restoration error:", sessionError);
+        const nextSession = data.session ?? null;
+        setSession(nextSession);
+        setLoading(false);
+        if (nextSession?.user?.id) await loadProfile(nextSession.user.id);
+        else { setProfile(null); setProfileLoading(false); setError(null); }
+      } catch (err) {
+        console.error("Auth initialization error:", err);
+        if (!active) return;
+        setSession(null);
+        setProfile(null);
+        setProfileLoading(false);
+        setLoading(false);
+        setError("Unable to restore your school session. Please sign in again.");
+      }
+    };
+    void initialise();
+
+    const { data: subscription } = client.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return;
+      setSession(nextSession);
+      setLoading(false);
+      if (!nextSession?.user?.id) {
+        setProfile(null);
+        setProfileLoading(false);
+        setError(null);
+        return;
+      }
+      if (["INITIAL_SESSION", "SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+        window.setTimeout(() => { if (active) void loadProfile(nextSession.user.id); }, 0);
+      }
+    });
+    return () => { active = false; subscription.subscription.unsubscribe(); };
+  }, [loadProfile]);
+
+  const value = useMemo<AuthContextValue>(() => ({
+    user: session?.user ?? null,
+    session,
+    profile,
+    loading,
+    profileLoading,
+    error,
+    signIn: async (email, password) => {
+      setError(null);
+      const { error: signInError } = await getSupabase().auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      return signInError ? { error: signInError.message } : {};
+    },
+    sendMagicLink: async email => {
+      setError(null);
+      const { error: magicError } = await getSupabase().auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: `${window.location.origin}/portal/login`, shouldCreateUser: false } });
+      return magicError ? { error: magicError.message } : {};
+    },
+    sendPasswordReset: async email => {
+      setError(null);
+      const { error: resetError } = await getSupabase().auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${window.location.origin}/portal/password?mode=update-password` });
+      return resetError ? { error: resetError.message } : {};
+    },
+    updatePassword: async password => {
+      setError(null);
+      const { error: updateError } = await getSupabase().auth.updateUser({ password });
+      return updateError ? { error: updateError.message } : {};
+    },
+    signOut: async () => {
+      await getSupabase().auth.signOut();
+      setProfile(null);
+      setProfileLoading(false);
+      setSession(null);
+      setError(null);
+    },
+    refreshProfile: async () => loadProfile(session?.user.id ?? null),
+  }), [error, loadProfile, loading, profile, profileLoading, session]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useSchoolAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider");
+  return context;
+}
+
+export function isAdministrator(role: AppRole | undefined) {
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "HEAD_OF_INSTITUTION" || role === "DEPUTY_HOI";
+}
+
+export function getPortalRedirect(profile: SchoolProfile): "/portal/admin" | "/portal/teacher" | "/portal/parent" {
+  if (["ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return "/portal/admin";
+  if (profile.role === "TEACHER") return "/portal/teacher";
+  return "/portal/parent";
+}
