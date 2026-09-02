@@ -10,7 +10,6 @@ function normalizeRole(role: string | null | undefined): AppRole | null { const 
 function toSchoolProfile(data: { id: string; email?: string | null; full_name?: string | null; phone?: string | null; role?: string | null; status?: string | null; avatar_url?: string | null }): SchoolProfile | null { const canonicalRole = data.role?.trim().toLowerCase(); const role = normalizeRole(data.role); if (!role || !canonicalRole || !CANONICAL_ROLES.has(canonicalRole as CanonicalRole)) return null; return { id: data.id, email: data.email ?? null, display_name: data.full_name ?? null, phone: data.phone ?? null, role, canonical_role: canonicalRole as CanonicalRole, status: data.status === "INACTIVE" ? "INACTIVE" : "ACTIVE", avatar_url: data.avatar_url ?? null }; }
 type AuthContextValue = { user: User | null; session: Session | null; profile: SchoolProfile | null; loading: boolean; profileLoading: boolean; error: string | null; signIn: (email: string, password: string) => Promise<{ error?: string }>; sendMagicLink: (email: string) => Promise<{ error?: string }>; sendPasswordReset: (email: string) => Promise<{ error?: string }>; updatePassword: (password: string) => Promise<{ error?: string }>; signOut: () => Promise<void>; refreshProfile: () => Promise<SchoolProfile | null> };
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null); const [profile, setProfile] = useState<SchoolProfile | null>(null); const [loading, setLoading] = useState(true); const [profileLoading, setProfileLoading] = useState(false); const [error, setError] = useState<string | null>(null); const requestRef = useRef<{ userId: string; promise: Promise<SchoolProfile | null> } | null>(null);
   const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
@@ -34,7 +33,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     requestRef.current = { userId, promise: request };
     try { return await request; } finally { if (requestRef.current?.promise === request) requestRef.current = null; }
   }, []);
-
   useEffect(() => {
     const client = supabase;
     if (!client) { setError("The portal has not been configured with Supabase yet."); setLoading(false); setProfileLoading(false); return; }
@@ -60,7 +58,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     });
     return () => { active = false; subscription.subscription.unsubscribe(); };
   }, [loadProfile]);
-
   const value = useMemo<AuthContextValue>(() => ({ user: session?.user ?? null, session, profile, loading, profileLoading, error,
     signIn: async (email, password) => { setError(null); const { error: signInError } = await getSupabase().auth.signInWithPassword({ email: email.trim().toLowerCase(), password }); return signInError ? { error: signInError.message } : {}; },
     sendMagicLink: async email => { setError(null); const { error: magicError } = await getSupabase().auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: `${window.location.origin}/portal/login`, shouldCreateUser: false } }); return magicError ? { error: magicError.message } : {}; },
@@ -73,4 +70,4 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 }
 export function useSchoolAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider"); return context; }
 export function isAdministrator(role: AppRole | undefined) { return role === "SUPER_ADMIN" || role === "ADMIN" || role === "HEAD_OF_INSTITUTION" || role === "DEPUTY_HOI"; }
-export function getPortalRedirect(profile: SchoolProfile): "/portal/admin" | "/portal/teacher" | "/portal/parent" { if (["ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return "/portal/admin"; if (profile.role === "TEACHER") return "/portal/teacher"; return "/portal/parent"; }
+export function getPortalRedirect(profile: SchoolProfile, _fallbackUser?: User): "/portal/admin" | "/portal/teacher" | "/portal/parent" { if (["ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return "/portal/admin"; if (profile.role === "TEACHER") return "/portal/teacher"; return "/portal/parent"; }
