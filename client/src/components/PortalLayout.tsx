@@ -18,8 +18,7 @@ function buildItems(role: AppRole, pendingAdmissions = 0): { primary: PortalNavI
     { label: "My profile", key: "profile", icon: Settings, href: "/portal/profile" },
     { label: "Timetable", key: "timetable", icon: CalendarDays, href: "/portal/timetable" },
     { label: "Homework", key: "homework", icon: BookOpenCheck, href: "/portal/homework" },
-    { label: "Announcements", key: "announcements", icon: FileText, href: "/portal/notifications" },
-    { label: "Notifications", key: "notifications", icon: Bell, href: "/portal/notifications" },
+    { label: "Announcements", key: "announcements", icon: FileText, href: "/portal/announcements" },
     { label: "Messages", key: "messages", icon: MessageSquare, href: "/portal/messages" },
   ];
   if (role === "PARENT" || role === "STUDENT") primary.push({ label: "Fees & payments", key: "finance", icon: CreditCard, href: "/portal/finance" });
@@ -47,9 +46,9 @@ export function PortalLayout({ role, children }: { role: AppRole; children: Reac
     if (!isAdministrator(role)) return;
     let cancelled = false;
     const load = async () => {
-      const { data, error } = await getSupabase().from("admissions").select("status");
+      const { data, error } = await getSupabase().from("applications").select("status");
       if (cancelled || error) return;
-      setPendingAdmissions((data ?? []).filter(row => ["pending", "under_review"].includes(String(row.status).toLowerCase())).length);
+      setPendingAdmissions((data ?? []).filter(row => ["submitted", "pending", "under_review"].includes(String(row.status).toLowerCase())).length);
     };
     void load();
     const timer = window.setInterval(() => void load(), 30000);
