@@ -1,54 +1,96 @@
 import { BookOpenCheck, Loader2, Pencil, Plus, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 
-type AcademicTab = "academic_periods" | "academic_terms" | "classes" | "subjects";
+type AcademicTab = "academic_years" | "terms" | "classes" | "subjects";
 type Row = Record<string, unknown>;
 const pageSize = 25;
-const value = (item: unknown, fallback = "") => item === null || item === undefined ? fallback : String(item);
-const inputClass = "w-full rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none ring-[var(--accent)] focus:ring-2";
-
-const config: Record<AcademicTab, { label: string; fields: string; search: string[] }> = {
-  academic_periods: { label: "Academic periods", fields: "id,name,start_date,end_date,is_active,is_locked", search: ["name"] },
-  academic_terms: { label: "Academic terms", fields: "id,name,academic_period_id,start_date,end_date,is_locked", search: ["name"] },
-  classes: { label: "Classes", fields: "id,name,level,grade,teacher_id,teacher_name", search: ["name", "grade", "level"] },
-  subjects: { label: "Subjects", fields: "id,name,level", search: ["name", "level"] },
-};
-
-type FormState = { id?: string; name: string; level: string; grade: string; teacher_id: string; teacher_name: string; academic_period_id: string; start_date: string; end_date: string; is_active: boolean; is_locked: boolean };
-const blankForm = (): FormState => ({ name: "", level: "", grade: "", teacher_id: "", teacher_name: "", academic_period_id: "", start_date: "", end_date: "", is_active: false, is_locked: false });
-
-function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><h2 className="font-serif text-2xl font-semibold tracking-tight">{title}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink)]/60">{description}</p><div className="mt-6">{children}</div></section>; }
-function Pager({ page, count, setPage }: { page: number; count: number; setPage: (value: number) => void }) { const total = Math.ceil(count / pageSize); if (total < 2) return null; return <div className="mt-5 flex items-center justify-between gap-3 text-sm text-[var(--ink)]/60"><button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className="rounded-lg border border-[var(--ink)]/15 px-3 py-2 font-semibold disabled:opacity-40">Previous</button><span>Page {page + 1} of {total}</span><button type="button" disabled={page + 1 >= total} onClick={() => setPage(page + 1)} className="rounded-lg border border-[var(--ink)]/15 px-3 py-2 font-semibold disabled:opacity-40">Next</button></div>; }
+const value = (v: unknown, fallback = "") => v == null ? fallback : String(v);
+const inputClass = "w-full rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
+const tabs: { key: AcademicTab; label: string }[] = [
+  { key: "academic_years", label: "Academic years" },
+  { key: "terms", label: "Terms" },
+  { key: "classes", label: "Classes" },
+  { key: "subjects", label: "Subjects" },
+];
 
 export default function AcademicDirectory() {
-  const [type, setType] = useState<AcademicTab>("academic_periods"); const [term, setTerm] = useState(""); const [page, setPage] = useState(0); const [rows, setRows] = useState<Row[]>([]); const [count, setCount] = useState(0); const [periods, setPeriods] = useState<Row[]>([]); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | null>(null); const [edit, setEdit] = useState<FormState | null>(null);
-  const cleanTerm = useMemo(() => term.replace(/[^a-zA-Z0-9 @._-]/g, "").trim().slice(0, 80), [term]);
-  const fetchRows = useCallback(async () => {
-    setLoading(true); setMessage(null); const client = getSupabase(); const from = page * pageSize; const to = from + pageSize - 1; const pattern = `%${cleanTerm}%`; const definition = config[type];
+  const [type, setType] = useState<AcademicTab>("academic_years");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [years, setYears] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [edit, setEdit] = useState<Row | null>(null);
+
+  const loadYears = useCallback(async () => {
+    const { data, error } = await getSupabase().from("academic_years").select("id,name,starts_on,ends_on,is_current,status").order("starts_on", { ascending: false });
+    if (!error) setYears((data ?? []) as Row[]);
+  }, []);
+
+  const loadRows = useCallback(async () => {
+    setLoading(true); setMessage(null);
     try {
-      const base = client.from(type).select(definition.fields, { count: "exact" });
-      const searchable = cleanTerm.length >= 2 ? definition.search.length > 1 ? base.or(definition.search.map(column => `${column}.ilike.${pattern}`).join(",")) : base.ilike(definition.search[0], pattern) : base;
-      const { data, error, count: resultCount } = await searchable.order("name", { ascending: true }).range(from, to);
-      if (error) throw error; setRows((data ?? []) as unknown as Row[]); setCount(resultCount ?? 0);
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "Authorised academic records could not be loaded."); } finally { setLoading(false); }
-  }, [cleanTerm, page, type]);
-  const fetchPeriods = useCallback(async () => { const { data } = await getSupabase().from("academic_periods").select("id,name,start_date,end_date,is_active").order("start_date", { ascending: false }); setPeriods((data ?? []) as unknown as Row[]); }, []);
-  useEffect(() => { void fetchRows(); }, [fetchRows]); useEffect(() => { void fetchPeriods(); }, [fetchPeriods]);
-  const switchType = (next: AcademicTab) => { setType(next); setPage(0); setEdit(null); };
-  const openCreate = () => setEdit(blankForm());
-  const openEdit = (row: Row) => setEdit({ id: value(row.id), name: value(row.name), level: value(row.level), grade: value(row.grade), teacher_id: value(row.teacher_id), teacher_name: value(row.teacher_name), academic_period_id: value(row.academic_period_id), start_date: value(row.start_date), end_date: value(row.end_date), is_active: Boolean(row.is_active), is_locked: Boolean(row.is_locked) });
-  const saveEdit = async (event: React.FormEvent) => {
+      const db = getSupabase();
+      const pattern = `%${query.trim()}%`;
+      let result;
+      if (type === "academic_years") {
+        let q = db.from("academic_years").select("id,name,starts_on,ends_on,is_current,status", { count: "exact" }).order("starts_on", { ascending: false });
+        if (query.trim()) q = q.ilike("name", pattern);
+        result = await q.range(page * pageSize, page * pageSize + pageSize - 1);
+      } else if (type === "terms") {
+        let q = db.from("terms").select("id,academic_year_id,name,starts_on,ends_on,is_current,status,academic_years(name)", { count: "exact" }).order("starts_on", { ascending: false });
+        if (query.trim()) q = q.ilike("name", pattern);
+        result = await q.range(page * pageSize, page * pageSize + pageSize - 1);
+      } else if (type === "classes") {
+        let q = db.from("classes").select("id,academic_year_id,code,name,level,class_teacher_id,status", { count: "exact" }).order("name");
+        if (query.trim()) q = q.or(`name.ilike.${pattern},code.ilike.${pattern},level.ilike.${pattern}`);
+        result = await q.range(page * pageSize, page * pageSize + pageSize - 1);
+      } else {
+        let q = db.from("subjects").select("id,code,name,description,status", { count: "exact" }).order("name");
+        if (query.trim()) q = q.or(`name.ilike.${pattern},code.ilike.${pattern}`);
+        result = await q.range(page * pageSize, page * pageSize + pageSize - 1);
+      }
+      if (result.error) throw result.error;
+      setRows((result.data ?? []) as Row[]);
+    } catch (error) {
+      setRows([]); setMessage(error instanceof Error ? error.message : "Academic records could not be loaded.");
+    } finally { setLoading(false); }
+  }, [page, query, type]);
+
+  useEffect(() => { void loadRows(); void loadYears(); }, [loadRows, loadYears]);
+  const openCreate = () => setEdit({ name: "", code: "", description: "", level: "", academic_year_id: "", starts_on: "", ends_on: "", status: "ACTIVE", is_current: false });
+  const openEdit = (row: Row) => setEdit({ ...row, academic_year_id: value(row.academic_year_id), starts_on: value(row.starts_on), ends_on: value(row.ends_on), is_current: Boolean(row.is_current) });
+
+  const save = async (event: React.FormEvent) => {
     event.preventDefault(); if (!edit) return; setBusy(true); setMessage(null);
     try {
-      let payload: Record<string, unknown>;
-      if (type === "classes") { payload = { name: edit.name.trim(), level: edit.level, grade: edit.grade.trim(), teacher_id: edit.teacher_id || null, teacher_name: edit.teacher_name.trim() || null }; }
-      else if (type === "subjects") { payload = { name: edit.name.trim(), level: edit.level || null }; }
-      else if (type === "academic_periods") { payload = { name: edit.name.trim(), start_date: edit.start_date, end_date: edit.end_date, is_active: edit.is_active, is_locked: edit.is_locked }; }
-      else { payload = { name: edit.name.trim(), academic_period_id: edit.academic_period_id, start_date: edit.start_date, end_date: edit.end_date, is_locked: edit.is_locked }; }
-      const client = getSupabase(); const result = edit.id ? await client.from(type).update(payload).eq("id", edit.id) : await client.from(type).insert(payload);
-      if (result.error) throw result.error; setEdit(null); setMessage(edit.id ? "The academic record was updated and persisted." : "The academic record was created and persisted."); await Promise.all([fetchRows(), fetchPeriods()]);
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : "The academic record could not be saved."); } finally { setBusy(false); }
+      const db = getSupabase(); let result;
+      if (type === "academic_years") {
+        const payload = { name: value(edit.name).trim(), starts_on: value(edit.starts_on), ends_on: value(edit.ends_on), is_current: Boolean(edit.is_current), status: value(edit.status, "ACTIVE") };
+        result = edit.id ? await db.from("academic_years").update(payload).eq("id", edit.id) : await db.from("academic_years").insert(payload);
+      } else if (type === "terms") {
+        const payload = { academic_year_id: value(edit.academic_year_id), name: value(edit.name).trim(), starts_on: value(edit.starts_on), ends_on: value(edit.ends_on), is_current: Boolean(edit.is_current), status: value(edit.status, "ACTIVE") };
+        result = edit.id ? await db.from("terms").update(payload).eq("id", edit.id) : await db.from("terms").insert(payload);
+      } else if (type === "classes") {
+        const payload = { academic_year_id: value(edit.academic_year_id) || years.find(y => Boolean(y.is_current))?.id || null, code: value(edit.code).trim(), name: value(edit.name).trim(), level: value(edit.level).trim(), class_teacher_id: value(edit.class_teacher_id) || null, status: value(edit.status, "ACTIVE") };
+        if (!payload.academic_year_id) throw new Error("Select or configure an academic year before creating a class.");
+        result = edit.id ? await db.from("classes").update(payload).eq("id", edit.id) : await db.from("classes").insert(payload);
+      } else {
+        const payload = { code: value(edit.code).trim(), name: value(edit.name).trim(), description: value(edit.description).trim() || null, status: value(edit.status, "ACTIVE") };
+        result = edit.id ? await db.from("subjects").update(payload).eq("id", edit.id) : await db.from("subjects").insert(payload);
+      }
+      if (result.error) throw result.error;
+      setEdit(null); setMessage(edit.id ? "Academic record updated." : "Academic record created."); await loadRows(); await loadYears();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The academic record could not be saved."); }
+    finally { setBusy(false); }
   };
-  return <div className="grid gap-6"><Panel title="Academic records" description="Manage canonical academic periods, terms, classes and subjects. Historical relationships are preserved; there are no legacy codes, streams or status columns in these production tables."><div className="flex flex-wrap gap-2">{(Object.keys(config) as AcademicTab[]).map(item => <button type="button" key={item} onClick={() => switchType(item)} className={`rounded-full px-4 py-2 text-sm font-semibold ${type === item ? "bg-[var(--ink)] text-white" : "border border-[var(--ink)]/15 text-[var(--ink)]/70"}`}>{config[item].label}</button>)}</div><div className="mt-5 flex flex-wrap gap-3"><label className="flex min-w-[280px] flex-1 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-3"><Search size={17} className="text-[var(--accent)]" /><input value={term} onChange={event => { setTerm(event.target.value); setPage(0); }} placeholder="Search (2+ characters)" className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" /></label><button type="button" onClick={openCreate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={16} />Add {config[type].label.slice(0, -1)}</button></div>{loading ? <div className="flex items-center justify-center gap-3 py-12 text-sm text-[var(--ink)]/60"><Loader2 className="animate-spin text-[var(--accent)]" size={18} />Loading authorised academic records…</div> : rows.length === 0 ? <p className="mt-5 rounded-2xl border border-dashed border-[var(--ink)]/15 px-5 py-8 text-center text-sm text-[var(--ink)]/55">No matching authorised records were found.</p> : <><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="px-3 py-3">Name</th><th className="px-3 py-3">Details</th><th className="px-3 py-3">State</th><th className="px-3 py-3">Edit</th></tr></thead><tbody>{rows.map(row => <tr className="border-b border-[var(--ink)]/7 last:border-0" key={value(row.id)}><td className="px-3 py-3 font-medium">{value(row.name)}</td><td className="px-3 py-3">{type === "classes" ? `${value(row.level)} · ${value(row.grade)}` : type === "subjects" ? value(row.level, "All levels") : `${value(row.start_date)} → ${value(row.end_date)}`}</td><td className="px-3 py-3">{type === "academic_periods" ? (row.is_active ? "Active" : "Inactive") : row.is_locked ? "Locked" : "Open"}</td><td className="px-3 py-3"><button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 rounded-lg border border-[var(--ink)]/15 px-2 py-1 text-xs font-semibold"><Pencil size={13} />Edit</button></td></tr>)}</tbody></table></div><Pager page={page} count={count} setPage={setPage} /></>}</Panel>{edit && <Panel title={`${edit.id ? "Edit" : "Create"} ${config[type].label.slice(0, -1)}`} description="Changes are written directly to the canonical Supabase table and reloaded from the database after saving."><form onSubmit={saveEdit} className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Name<input required value={edit.name} onChange={event => setEdit({ ...edit, name: event.target.value })} className={inputClass} /></label>{type === "classes" && <><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Level<select required value={edit.level} onChange={event => setEdit({ ...edit, level: event.target.value })} className={inputClass}><option value="">Select level</option>{["ECDE", "Lower Primary", "Upper Primary", "Junior School"].map(level => <option key={level}>{level}</option>)}</select></label><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Grade<input required value={edit.grade} onChange={event => setEdit({ ...edit, grade: event.target.value })} className={inputClass} /></label><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Class teacher profile ID (optional)<input value={edit.teacher_id} onChange={event => setEdit({ ...edit, teacher_id: event.target.value })} className={inputClass} /></label><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Class teacher name (optional)<input value={edit.teacher_name} onChange={event => setEdit({ ...edit, teacher_name: event.target.value })} className={inputClass} /></label></>}{type === "subjects" && <label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Level (optional)<input value={edit.level} onChange={event => setEdit({ ...edit, level: event.target.value })} className={inputClass} /></label>}{(type === "academic_periods" || type === "academic_terms") && <><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Start date<input required type="date" value={edit.start_date} onChange={event => setEdit({ ...edit, start_date: event.target.value })} className={inputClass} /></label><label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">End date<input required type="date" value={edit.end_date} onChange={event => setEdit({ ...edit, end_date: event.target.value })} className={inputClass} /></label></>}{type === "academic_terms" && <label className="grid gap-1.5 text-sm font-semibold text-[var(--ink)]/75">Academic period<select required value={edit.academic_period_id} onChange={event => setEdit({ ...edit, academic_period_id: event.target.value })} className={inputClass}><option value="">Select period</option>{periods.map(period => <option key={value(period.id)} value={value(period.id)}>{value(period.name)}</option>)}</select></label>}{type === "academic_periods" && <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={edit.is_active} onChange={event => setEdit({ ...edit, is_active: event.target.checked })} />Active period</label>}{(type === "academic_periods" || type === "academic_terms") && <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={edit.is_locked} onChange={event => setEdit({ ...edit, is_locked: event.target.checked })} />Locked</label>}<div className="flex items-end gap-3"><button disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-55">{busy && <Loader2 className="animate-spin" size={16} />}<BookOpenCheck size={16} />Save</button><button type="button" onClick={() => setEdit(null)} className="rounded-xl border border-[var(--ink)]/15 px-4 py-2.5 text-sm font-semibold">Cancel</button></div></form></Panel>}{message && <p role="status" className="rounded-xl bg-[var(--sage)]/16 px-4 py-3 text-sm text-[var(--accent)]">{message}</p>}</div>;
+
+  return <div className="grid gap-6">
+    <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><h1 className="font-serif text-3xl font-semibold">Academic management</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink)]/60">Manage the live academic year, terms, classes and subjects used by enrolments, attendance, exams and reports. Empty sections are intentionally empty until real school records are created.</p><div className="mt-6 flex flex-wrap gap-2">{tabs.map(tab => <button key={tab.key} type="button" onClick={() => { setType(tab.key); setPage(0); setEdit(null); }} className={`rounded-xl px-4 py-2.5 text-sm font-bold ${type === tab.key ? "bg-[var(--ink)] text-white" : "border border-[var(--ink)]/15"}`}>{tab.label}</button>)}</div><div className="mt-5 flex flex-col gap-3 sm:flex-row"><label className="flex min-h-12 flex-1 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-3"><Search size={17} className="text-[var(--accent)]"/><input value={query} onChange={e => { setQuery(e.target.value); setPage(0); }} placeholder={`Search ${tabs.find(t => t.key === type)?.label.toLowerCase()}…`} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"/></label><button type="button" onClick={openCreate} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><Plus size={16}/>Add record</button></div></section>
+    <section className="menwe-card overflow-hidden rounded-[1.75rem] p-5 sm:p-7">{loading ? <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[var(--accent)]"/></div> : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-[var(--ink)]/15 px-5 py-12 text-center"><p className="font-semibold">No records yet</p><p className="mt-1 text-sm text-[var(--ink)]/55">This is a real empty state. Use “Add record” to enter the school's actual data.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="p-3">Name</th><th className="p-3">Code / details</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead><tbody>{rows.map(row => <tr key={value(row.id)} className="border-b border-[var(--ink)]/7"><td className="p-3 font-semibold">{value(row.name)}</td><td className="p-3">{type === "terms" ? `${value((row.academic_years as Row | null)?.name)} · ${value(row.starts_on)} → ${value(row.ends_on)}` : type === "academic_years" ? `${value(row.starts_on)} → ${value(row.ends_on)}` : `${value(row.code)} · ${value(row.level, value(row.description, "—"))}`}</td><td className="p-3">{value(row.status)}{row.is_current ? " · Current" : ""}</td><td className="p-3"><button type="button" onClick={() => openEdit(row)} className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold"><Pencil size={13}/>Edit</button></td></tr>)}</tbody></table></div>}{message && <p role="status" className="mt-4 rounded-xl bg-[var(--sage)]/15 px-4 py-3 text-sm text-[var(--ink)]">{message}</p>}</section>
+    {edit && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><h2 className="font-serif text-2xl font-semibold">{edit.id ? "Edit" : "Create"} {tabs.find(t => t.key === type)?.label.replace(/s$/, "")}</h2><form onSubmit={save} className="mt-5 grid gap-3 sm:grid-cols-2"><label className="grid gap-1.5 text-sm font-semibold">Name<input required value={value(edit.name)} onChange={e => setEdit({ ...edit, name: e.target.value })} className={inputClass}/></label>{(type === "academic_years" || type === "terms") && <><label className="grid gap-1.5 text-sm font-semibold">Start<input required type="date" value={value(edit.starts_on)} onChange={e => setEdit({ ...edit, starts_on: e.target.value })} className={inputClass}/></label><label className="grid gap-1.5 text-sm font-semibold">End<input required type="date" value={value(edit.ends_on)} onChange={e => setEdit({ ...edit, ends_on: e.target.value })} className={inputClass}/></label></>}{type === "terms" && <label className="grid gap-1.5 text-sm font-semibold">Academic year<select required value={value(edit.academic_year_id)} onChange={e => setEdit({ ...edit, academic_year_id: e.target.value })} className={inputClass}><option value="">Select academic year</option>{years.map(y => <option key={value(y.id)} value={value(y.id)}>{value(y.name)}</option>)}</select></label>}{type === "classes" && <><label className="grid gap-1.5 text-sm font-semibold">Code<input required value={value(edit.code)} onChange={e => setEdit({ ...edit, code: e.target.value })} className={inputClass}/></label><label className="grid gap-1.5 text-sm font-semibold">Level<input required value={value(edit.level)} onChange={e => setEdit({ ...edit, level: e.target.value })} className={inputClass}/></label><label className="grid gap-1.5 text-sm font-semibold">Academic year<select value={value(edit.academic_year_id)} onChange={e => setEdit({ ...edit, academic_year_id: e.target.value })} className={inputClass}><option value="">Use current year</option>{years.map(y => <option key={value(y.id)} value={value(y.id)}>{value(y.name)}</option>)}</select></label></>}{type === "subjects" && <><label className="grid gap-1.5 text-sm font-semibold">Code<input required value={value(edit.code)} onChange={e => setEdit({ ...edit, code: e.target.value })} className={inputClass}/></label><label className="grid gap-1.5 text-sm font-semibold sm:col-span-2">Description<textarea value={value(edit.description)} onChange={e => setEdit({ ...edit, description: e.target.value })} className={`${inputClass} min-h-24`}/></label></>}{(type === "academic_years" || type === "terms") && <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={Boolean(edit.is_current)} onChange={e => setEdit({ ...edit, is_current: e.target.checked })}/>Current</label>}<label className="grid gap-1.5 text-sm font-semibold">Status<select value={value(edit.status, "ACTIVE")} onChange={e => setEdit({ ...edit, status: e.target.value })} className={inputClass}><option>ACTIVE</option><option>INACTIVE</option></select></label><div className="flex items-end gap-3"><button disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy && <Loader2 className="animate-spin" size={16}/>}<BookOpenCheck size={16}/>Save</button><button type="button" onClick={() => setEdit(null)} className="rounded-xl border px-4 py-2.5 text-sm font-bold">Cancel</button></div></form></section>}
+  </div>;
 }
