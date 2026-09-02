@@ -46,7 +46,7 @@ export function PortalLayout({ role, children }: { role: AppRole; children: Reac
     if (!isAdministrator(role)) return;
     let cancelled = false;
     const load = async () => {
-      const { data, error } = await getSupabase().from("applications").select("status");
+      const { data, error } = await getSupabase().from("admission_applications").select("status");
       if (cancelled || error) return;
       setPendingAdmissions((data ?? []).filter(row => ["submitted", "pending", "under_review"].includes(String(row.status).toLowerCase())).length);
     };
