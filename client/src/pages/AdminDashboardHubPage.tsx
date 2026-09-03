@@ -1,41 +1,91 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
-import { Activity, BarChart3, CalendarDays, CheckCircle2, ClipboardCheck, CreditCard, FileText, GraduationCap, Loader2, LogOut, Megaphone, RefreshCw, Users, BookOpen } from "lucide-react";
-import { useSchoolAuth, isAdministrator } from "@/contexts/SupabaseAuthContext";
-import { getSupabase } from "@/lib/supabase";
-import { PortalLayout } from "@/components/PortalLayout";
+const loadStats = async () => {
+  if (!user || !profile || !effectiveAdmin) return;
 
-const MASTER_ADMIN_EMAILS = new Set(["menweprimaryandjunior@gmail.com", "menweschool.official@gmail.com"]);
-const modules = [
-  { title: "Academic Management", href: "/portal/admin/academics", subtitle: "Manage classes, subjects, allocation and the academic structure.", icon: BookOpen },
-  { title: "Learners & Enrolment", href: "/portal/admin/directory", subtitle: "Maintain complete learner records, enrolment, gender and family links.", icon: Users },
-  { title: "Class Marksheets", href: "/portal/class-marksheet", subtitle: "Generate polished class performance sheets with learner identity and gender.", icon: FileText },
-  { title: "Attendance", href: "/portal/admin/attendance", subtitle: "Review class registers, attendance patterns and daily records.", icon: ClipboardCheck },
-  { title: "Fees & Payments", href: "/portal/admin/finance", subtitle: "Review invoices, payments, balances and finance workflows.", icon: CreditCard },
-  { title: "Exams & Results", href: "/portal/exams", subtitle: "Create examinations and record subject results for enrolled learners.", icon: GraduationCap },
-  { title: "School Content & Admissions", href: "/portal/admin/content", subtitle: "Manage admissions, news, notices, events and public-school content.", icon: Megaphone },
-  { title: "Operations & Reports", href: "/portal/admin/operations", subtitle: "Coordinate operational records and administrative reporting.", icon: BarChart3 },
-];
-type Stats = { learners: number; teachers: number; pendingAdmissions: number; events: number };
-const EMPTY_STATS: Stats = { learners: 0, teachers: 0, pendingAdmissions: 0, events: 0 };
+  setLoadingStats(true);
+  setError("");
 
-export default function AdminDashboardHubPage() {
-  const { user, profile, loading, signOut } = useSchoolAuth(); const [, navigate] = useLocation(); const [stats, setStats] = useState<Stats>(EMPTY_STATS); const [loadingStats, setLoadingStats] = useState(false); const [error, setError] = useState(""); const currentYear = new Date().getFullYear();
-  const effectiveAdmin = Boolean(user && profile && (isAdministrator(profile.role) || MASTER_ADMIN_EMAILS.has(user.email?.trim().toLowerCase() ?? "")));
-  const firstName = useMemo(() => profile?.full_name?.trim().split(/\s+/)[0] || "Administrator", [profile?.full_name]);
-  useEffect(() => { if (!loading && (!user || !profile)) navigate("/portal/login"); }, [loading, user, profile, navigate]);
-  const loadStats = async () => { if (!user || !profile || !effectiveAdmin) return; setLoadingStats(true); setError(""); try { const db = getSupabase(); const start = `${currentYear}-01-01T00:00:00+03:00`; const end = `${currentYear}-12-31T23:59:59+03:00`; const [learners, teachers, applications, events] = await Promise.all([db.from("students").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"), db.from("teachers").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"), db.from("admission_applications").select("status"), db.from("events").select("id", { count: "exact", head: true }).gte("starts_at", start).lte("starts_at", end)]); const firstError = [learners.error, teachers.error, applications.error, events.error].find(Boolean); if (firstError) throw firstError; const pendingAdmissions = (applications.data ?? []).filter(row => ["submitted", "pending", "under_review"].includes(String(row.status ?? "").toLowerCase())).length; setStats({ learners: learners.count ?? 0, teachers: teachers.count ?? 0, pendingAdmissions, events: events.count ?? 0 }); } catch (err) { setError(err instanceof Error ? err.message : "Unable to load command-center metrics."); } finally { setLoadingStats(false); } };
-  useEffect(() => { void loadStats(); }, [user?.id, profile?.role]);
-  if (loading) return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/65"><Loader2 className="mr-2 animate-spin" size={18}/>Loading secure command center…</div>;
-  if (!user || !profile) return null;
-  if (!effectiveAdmin) return <PortalLayout role={profile.role}><main className="mx-auto max-w-3xl p-6"><div className="menwe-card rounded-3xl p-7"><h1 className="text-2xl font-bold text-[var(--ink)]">Access restricted</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Your account does not have staff command-center access.</p></div></main></PortalLayout>;
-  const logout = async () => { await signOut(); navigate("/portal/login"); };
-  return <PortalLayout role="ADMIN"><main className="mx-auto w-full max-w-[1440px] space-y-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-    <section className="menwe-admin-hero relative overflow-hidden rounded-[2.25rem] p-6 text-white shadow-2xl sm:p-9 lg:p-11"><div className="menwe-admin-orb"/><div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"><div className="max-w-3xl"><span className="menwe-admin-kicker"><Activity size={14}/> Menwe command centre</span><h1 className="mt-5 text-4xl font-extrabold leading-[1.02] tracking-[-.045em] sm:text-5xl lg:text-6xl">Good day, {firstName}.</h1><p className="mt-5 max-w-2xl text-[15px] leading-7 text-white/80 sm:text-base">A single, beautifully organised workspace for the people, academics, attendance, finance, assessments and communications that keep Menwe Primary & Junior School moving.</p><div className="mt-7 flex flex-wrap gap-2"><span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.07] px-3.5 py-2 text-xs font-bold text-white/80"><span className="menwe-live-dot"/> Live school data</span><span className="rounded-full border border-white/10 bg-white/[.07] px-3.5 py-2 text-xs font-bold text-white/80">{currentYear} operations</span></div></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void loadStats()} disabled={loadingStats} className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/[.06] px-4 text-sm font-bold text-white transition hover:bg-white/[.12] disabled:opacity-50"><RefreshCw className={loadingStats ? "animate-spin" : ""} size={17}/> Refresh data</button><button type="button" onClick={() => void logout()} className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[var(--gold)] px-4 text-sm font-extrabold text-[var(--ink)] shadow-lg transition hover:brightness-105"><LogOut size={17}/> Sign out</button></div></div></section>
-    {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">Metrics could not be refreshed. {error}</div>}
-    <section aria-label="Live school metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"><Stat icon={GraduationCap} label="Active learners" value={stats.learners} loading={loadingStats}/><Stat icon={Users} label="Active teachers" value={stats.teachers} loading={loadingStats}/><Stat icon={FileText} label="Admissions to review" value={stats.pendingAdmissions} loading={loadingStats}/><Stat icon={CalendarDays} label={`${currentYear} events`} value={stats.events} loading={loadingStats}/></section>
-    <section><div className="mb-5 flex flex-col gap-1"><p className="menwe-premium-label">School administration</p><h2 className="menwe-premium-title">Everything important, clearly organised.</h2><p className="menwe-premium-copy max-w-2xl">Each workspace has a clear purpose, consistent language and direct access to the live school records behind it.</p></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">{modules.map(({title,href,subtitle,icon:Icon})=><Link key={title} href={href} className="menwe-admin-action group focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold)]"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--mist)] text-[var(--accent)] shadow-sm"><Icon size={22}/></span><h3 className="mt-5 text-[1.05rem] font-extrabold text-[var(--ink)]">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--ink)]/65">{subtitle}</p><span className="mt-6 inline-flex items-center text-sm font-extrabold text-[var(--accent)] transition-transform group-hover:translate-x-1">Open workspace <span className="ml-1.5">→</span></span></Link>)}</div></section>
-    <section className="grid gap-4 lg:grid-cols-2"><div className="menwe-card rounded-[1.75rem] p-6 sm:p-7"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><CheckCircle2 size={20}/></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">Live records</p><h2 className="mt-1 text-lg font-extrabold text-[var(--ink)]">Built around real school data</h2></div></div><p className="mt-4 text-sm leading-7 text-[var(--ink)]/68">Learners, enrolment, assessments and reports use the authorised Supabase layer. Empty records remain empty rather than being replaced with demo information.</p></div><div className="menwe-card rounded-[1.75rem] p-6 sm:p-7"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><CalendarDays size={20}/></span><div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">Academic cycle</p><h2 className="mt-1 text-lg font-extrabold text-[var(--ink)]">Keep every term and assessment current</h2></div></div><p className="mt-4 text-sm leading-7 text-[var(--ink)]/68">Configure the academic calendar as the school year progresses, then use the class marksheet and report-card workspaces for polished printable records.</p></div></section>
-  </main></PortalLayout>;
-}
-function Stat({icon:Icon,label,value,loading}:{icon:typeof GraduationCap;label:string;value:number;loading:boolean}) { return <div className="menwe-admin-metric rounded-[1.35rem] p-5" aria-busy={loading}><div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--mist)] text-[var(--accent)]"><Icon size={20}/></span>{loading ? <span className="h-9 w-16 animate-pulse rounded-lg bg-[var(--mist)]" aria-label="Loading metric"/> : <span className="text-3xl font-black text-[var(--ink)]">{value}</span>}</div><p className="mt-4 text-sm font-bold text-[var(--ink)]/62">{label}</p></div>; }
+  try {
+    const db = getSupabase();
+
+    const start = `${currentYear}-01-01T00:00:00+03:00`;
+    const end = `${currentYear}-12-31T23:59:59+03:00`;
+
+    const [
+      learners,
+      teachers,
+      applications,
+      events
+    ] = await Promise.all([
+
+      // Active learners count only
+      db
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ACTIVE"),
+
+      // Active teachers count only
+      db
+        .from("teachers")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ACTIVE"),
+
+      // Only fetch admissions needing review
+      db
+        .from("admission_applications")
+        .select("id,status")
+        .in("status", [
+          "submitted",
+          "pending",
+          "under_review"
+        ])
+        .order("created_at", {
+          ascending: false
+        })
+        .range(0, 49),
+
+      // Current year events count
+      db
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .gte("starts_at", start)
+        .lte("starts_at", end)
+
+    ]);
+
+    const firstError = [
+      learners.error,
+      teachers.error,
+      applications.error,
+      events.error
+    ].find(Boolean);
+
+    if (firstError) {
+      throw firstError;
+    }
+
+    setStats({
+      learners: learners.count ?? 0,
+      teachers: teachers.count ?? 0,
+      pendingAdmissions: applications.data?.length ?? 0,
+      events: events.count ?? 0
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Admin dashboard metrics error:",
+      err
+    );
+
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Unable to load command-center metrics."
+    );
+
+  } finally {
+
+    setLoadingStats(false);
+
+  }
+};
