@@ -49,7 +49,7 @@ export default function AdminOperationsPage() {
       const confirmed = ((paymentsRes.data ?? []) as Row[]).reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
       const openInvoices = ((invoicesRes.data ?? []) as Row[]).filter(r => !["PAID", "CANCELLED"].includes(text(r.status).toUpperCase())).length;
       const records = (recordsRes.data ?? []) as Row[];
-      const counts = records.reduce((acc, r) => { const status = text(r.status).toLowerCase(); if (status === "present") acc.present++; else if (status === "absent") acc.absent++; else if (status === "late") acc.late++; return acc; }, { present: 0, absent: 0, late: 0 });
+      const counts = records.reduce<{ present: number; absent: number; late: number }>((acc, r) => { const status = text(r.status).toLowerCase(); if (status === "present") acc.present++; else if (status === "absent") acc.absent++; else if (status === "late") acc.late++; return acc; }, { present: 0, absent: 0, late: 0 });
       setAttendance({ ...counts, total: counts.present + counts.absent + counts.late });
       setMetrics([
         { label: "Learners", value: String(studentsRes.count ?? 0), detail: "Active student records", icon: GraduationCap },

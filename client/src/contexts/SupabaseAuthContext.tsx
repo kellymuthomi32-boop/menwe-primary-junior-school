@@ -70,4 +70,12 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 }
 export function useSchoolAuth() { const context = useContext(AuthContext); if (!context) throw new Error("useSchoolAuth must be used inside SupabaseAuthProvider"); return context; }
 export function isAdministrator(role: AppRole | undefined) { return role === "SUPER_ADMIN" || role === "ADMIN" || role === "HEAD_OF_INSTITUTION" || role === "DEPUTY_HOI"; }
-export function getPortalRedirect(profile: SchoolProfile, _fallbackUser?: User): "/portal/admin" | "/portal/teacher" | "/portal/parent" { if (["ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return "/portal/admin"; if (profile.role === "TEACHER") return "/portal/teacher"; return "/portal/parent"; }
+export function getPortalRedirect(profileOrUser: SchoolProfile | User, fallbackUser?: User): "/portal/admin" | "/portal/teacher" | "/portal/parent" {
+  const profileRoleValue = "role" in profileOrUser ? profileOrUser.role : undefined;
+  const profileRole = typeof profileRoleValue === "string" && ["ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI", "TEACHER", "STUDENT", "PARENT"].includes(profileRoleValue) ? profileRoleValue as AppRole : null;
+  const metadataRole = fallbackUser?.user_metadata?.role ?? ("user_metadata" in profileOrUser ? profileOrUser.user_metadata?.role : null);
+  const role = normalizeRole(profileRole ?? (typeof metadataRole === "string" ? metadataRole : null));
+  if (role && isAdministrator(role)) return "/portal/admin";
+  if (role === "TEACHER") return "/portal/teacher";
+  return "/portal/parent";
+}
