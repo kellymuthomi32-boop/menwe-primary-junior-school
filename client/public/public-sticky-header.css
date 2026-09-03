@@ -12,7 +12,7 @@ header:has(nav[aria-label="Public navigation"]) + main {
 
 @media (max-width: 1023px) {
   header:has(nav[aria-label="Public navigation"]) + main {
-    padding-top: 76px;
+    padding-top: 68px;
   }
 }
 
@@ -22,7 +22,7 @@ header:has(nav[aria-label="Public navigation"]) + main {
   }
 
   header:has(nav[aria-label="Public navigation"]) + main {
-    padding-top: calc(76px + env(safe-area-inset-top));
+    padding-top: calc(68px + env(safe-area-inset-top));
   }
 }
 
