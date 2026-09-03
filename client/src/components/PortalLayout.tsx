@@ -15,7 +15,7 @@ function buildItems(role:AppRole,pendingAdmissions=0){
  if(role==="PARENT"||role==="STUDENT")primary.push({label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"});
  if(role==="TEACHER")primary.splice(3,0,{label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"});
  if(role==="TEACHER")primary.splice(4,0,{label:"Class marksheet",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"});
- const management:isAdministrator extends never ? never : PortalNavItem[] = isAdministrator(role)?[
+ const management:PortalNavItem[]=isAdministrator(role)?[
   {label:"People & enrolment",key:"people",icon:Users,href:"/portal/people",badge:pendingAdmissions},
   {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
   {label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},
