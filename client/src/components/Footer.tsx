@@ -1,13 +1,16 @@
-import { BookOpen, GraduationCap, HeartHandshake, MapPin, MessageCircle, Phone, ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, HeartHandshake, MapPin, MessageCircle, Phone } from "lucide-react";
 import { useLocation } from "wouter";
 import { prefetchPublicRoute } from "@/lib/publicNavigation";
 import "@/styles/menwe-footer.css";
 
-const officialLocation = "Location: Igoki, Abogeta Division | Meru Central District, Eastern Province | South Imenti Constituency";
-const quickLinks = [["Home", "/"], ["About Us", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["School Life", "/school-life"], ["Portal Access", "/portal"]];
-const schoolLinks = [["News & Events", "/news"], ["Gallery", "/gallery"], ["Fee Structure", "/admissions"], ["Calendar", "/calendar"], ["Contact Us", "/contact"]];
+const SCHOOL_PHONE = "0142550882";
+const SCHOOL_EMAILS = ["Menweprimaryandjunior@gmail.com", "menweprimaryschool94@gmail.com"] as const;
+const SCHOOL_LOCATION = "Igoki, Abogeta Division · Meru Central District · South Imenti Constituency";
 
-function FooterLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+const quickLinks = [["Home", "/"], ["About Us", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["School Life", "/school-life"], ["Portal Access", "/portal"]] as const;
+const schoolLinks = [["News & Events", "/news"], ["Gallery", "/gallery"], ["Calendar", "/calendar"], ["Contact Us", "/contact"], ["Fee Structure", "/admissions"]] as const;
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!href.startsWith("/")) return;
@@ -15,14 +18,66 @@ function FooterLink({ href, className, children }: { href: string; className?: s
     setLocation(href);
     window.scrollTo({ top: 0, behavior: "auto" });
   };
-  return <a href={href} onPointerEnter={() => prefetchPublicRoute(href)} onFocus={() => prefetchPublicRoute(href)} onClick={handleClick} className={className}>{children}</a>;
+  return <a href={href} onPointerEnter={() => prefetchPublicRoute(href)} onFocus={() => prefetchPublicRoute(href)} onClick={handleClick}>{children}</a>;
 }
 
 export default function Footer() {
-  return <footer className="menwe-footer" aria-label="School footer">
-    <div className="menwe-footer-banner"><div><p className="menwe-footer-kicker">• STAY CONNECTED</p><h2>A better school experience begins with a simple connection.</h2><p>Stay close to the information, people and opportunities that help your child thrive.</p></div><div className="menwe-footer-actions"><FooterLink href="/admissions" className="menwe-footer-btn gold">Explore Admissions <ArrowRight size={14}/></FooterLink><FooterLink href="/contact" className="menwe-footer-btn glass">Contact School <ArrowRight size={14}/></FooterLink></div></div>
-    <div className="menwe-footer-values"><article><span><BookOpen size={18}/></span><div><b>LEARNING</b><h3>Clear Academic Pathways</h3><p>Structured competency-based curriculum designed for holistic growth.</p></div></article><article><span><HeartHandshake size={18}/></span><div><b>COMMUNITY</b><h3>Parent &amp; Family Portal</h3><p>Real-time communication, attendance tracking, and school updates in one place.</p></div></article><article><span><GraduationCap size={18}/></span><div><b>GROWTH</b><h3>Nurturing Character &amp; Values</h3><p>Fostering discipline, talent, and leadership for a brighter future.</p></div></article></div>
-    <div className="menwe-footer-main"><div className="menwe-footer-brand"><div className="menwe-footer-logo"><GraduationCap size={23}/></div><h2>MENWE PRIMARY &amp; JUNIOR SCHOOL</h2><p>Inspiring confident, disciplined and capable learners through excellent education, character and community.</p><div className="menwe-footer-contact"><a href="tel:0142550882"><Phone size={13}/>0142550882</a><a href="https://wa.me/254142550882" target="_blank" rel="noreferrer"><MessageCircle size={13}/>0142550882 · WhatsApp</a><a href="mailto:Menweprimaryandjunior@gmail.com"><span className="menwe-footer-mail">@</span>Menweprimaryandjunior@gmail.com</a><a href="mailto:menweprimaryschool94@gmail.com"><span className="menwe-footer-mail">@</span>menweprimaryschool94@gmail.com</a><span><MapPin size={13}/>{officialLocation}</span><span><MapPin size={13}/>GPS: -0.099245555, 37.58121778</span></div></div><div className="menwe-footer-col"><h3>DISCOVER</h3>{quickLinks.map(([label,href])=><FooterLink key={label} href={href}>{label}</FooterLink>)}</div><div className="menwe-footer-col"><h3>SCHOOL</h3>{schoolLinks.map(([label,href])=><FooterLink key={label} href={href}>{label}</FooterLink>)}</div><div className="menwe-footer-connect"><h3>CONNECT WITH US</h3><p>Have questions about admissions or school visits? Reach out directly.</p><div className="menwe-footer-socials"><span aria-label="Social media profiles coming soon">Social profiles coming soon</span></div><a href="tel:0142550882" className="menwe-footer-call">Call the School <ArrowRight size={14}/></a><a href="https://wa.me/254142550882" target="_blank" rel="noreferrer" className="menwe-footer-whatsapp">Chat on WhatsApp <ArrowRight size={14}/></a></div></div>
-    <div className="menwe-footer-bottom"><span>© 2026 Menwe Primary &amp; Junior School. All rights reserved.</span><div><FooterLink href="/terms">Terms &amp; Conditions</FooterLink><FooterLink href="/privacy">Privacy Policy</FooterLink><FooterLink href="/cookies">Cookies</FooterLink></div></div>
-  </footer>;
+  return (
+    <footer className="menwe-footer" aria-label="School footer">
+      <div className="menwe-footer-shell">
+        <div className="menwe-footer-cta">
+          <div>
+            <span className="menwe-footer-eyebrow">MENWE PRIMARY &amp; JUNIOR SCHOOL</span>
+            <h2>Everything your child needs to thrive, connected in one place.</h2>
+            <p>Explore our learning journey, admissions information and family portal.</p>
+          </div>
+          <div className="menwe-footer-cta-actions">
+            <FooterLink href="/admissions"><span>Start an application</span><ArrowRight size={15} /></FooterLink>
+            <FooterLink href="/contact"><span>Contact the school</span><ArrowRight size={15} /></FooterLink>
+          </div>
+        </div>
+
+        <div className="menwe-footer-grid">
+          <div className="menwe-footer-brand">
+            <div className="menwe-footer-mark"><span>M</span></div>
+            <div className="menwe-footer-brand-name">Menwe</div>
+            <div className="menwe-footer-brand-sub">PRIMARY &amp; JUNIOR SCHOOL</div>
+            <p>Inspiring confident, disciplined and capable learners through excellent education, character and community.</p>
+            <div className="menwe-footer-contact">
+              <a href={`tel:${SCHOOL_PHONE}`}><Phone size={14} />{SCHOOL_PHONE}</a>
+              <a href={`https://wa.me/254${SCHOOL_PHONE}`} target="_blank" rel="noreferrer"><MessageCircle size={14} />WhatsApp the school</a>
+              <a href={`mailto:${SCHOOL_EMAILS[0]}`}><span className="menwe-footer-mail">@</span>{SCHOOL_EMAILS[0]}</a>
+              <span><MapPin size={14} />{SCHOOL_LOCATION}</span>
+            </div>
+          </div>
+
+          <nav className="menwe-footer-links" aria-label="Footer navigation">
+            <h3>EXPLORE</h3>
+            {quickLinks.map(([label, href]) => <FooterLink key={href} href={href}>{label}</FooterLink>)}
+          </nav>
+
+          <nav className="menwe-footer-links" aria-label="School links">
+            <h3>SCHOOL</h3>
+            {schoolLinks.map(([label, href]) => <FooterLink key={href} href={href}>{label}</FooterLink>)}
+          </nav>
+
+          <div className="menwe-footer-values">
+            <h3>OUR PROMISE</h3>
+            <div><BookOpen size={16} /><span><b>Learning</b> Clear academic pathways</span></div>
+            <div><HeartHandshake size={16} /><span><b>Community</b> Strong family connection</span></div>
+            <div><GraduationCap size={16} /><span><b>Growth</b> Character and confidence</span></div>
+          </div>
+        </div>
+
+        <div className="menwe-footer-bottom">
+          <span>© 2026 Menwe Primary &amp; Junior School. All rights reserved.</span>
+          <div>
+            <FooterLink href="/terms">Terms &amp; Conditions</FooterLink>
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+            <FooterLink href="/cookies">Cookies</FooterLink>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 }
