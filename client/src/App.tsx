@@ -47,7 +47,7 @@ function GoBackButton() {
   const handleBack = () => { if (canGoBack) window.history.back(); else if (location !== "/") go("/"); };
   if (location === "/") return null;
   return (
-    <button type="button" onClick={handleBack} aria-label="Go back to the previous page" className="fixed left-4 top-4 z-[100] inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[#061229] shadow-md backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900/95 dark:text-white">
+    <button type="button" onClick={handleBack} aria-label="Go back to the previous page" className="fixed left-4 top-[84px] z-[100] inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[#061229] shadow-md backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 lg:top-4 dark:border-slate-700 dark:bg-slate-900/95 dark:text-white">
       <span aria-hidden="true" className="text-lg leading-none">←</span><span>Go Back</span>
     </button>
   );
