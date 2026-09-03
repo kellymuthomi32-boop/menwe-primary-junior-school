@@ -4,7 +4,6 @@ import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
 function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>>(importer: () => Promise<{ default: T }>, key: string) {
@@ -23,6 +22,7 @@ function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>
   });
 }
 
+const HomePage = lazyWithChunkRecovery(() => import("./pages/MenweHeroHome"), "home");
 const AcademicsPage = lazyWithChunkRecovery(() => import("./pages/AcademicsPage"), "academics");
 const AdmissionsPage = lazyWithChunkRecovery(() => import("./pages/AdmissionsPage"), "admissions");
 const NewsEventsPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.NewsEventsPage })), "news-events");
@@ -60,7 +60,7 @@ function Router() {
   const [location] = useLocation();
   useEffect(() => { document.title = location === "/portal/admin" ? "Admin Command Center | Menwe Primary & Junior School" : location === "/portal/teacher" ? "Teacher Workspace | Menwe Primary & Junior School" : location === "/portal/parent" ? "Family Workspace | Menwe Primary & Junior School" : "Menwe Primary & Junior School | Igoki, Abogeta"; }, [location]);
   return <Switch>
-    <Route path="/" component={MenweHeroHome}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsEventsPage}/><Route path="/events" component={NewsEventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
+    <Route path="/" component={HomePage}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsEventsPage}/><Route path="/events" component={NewsEventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
     <Route path="/portal/login" component={PortalLoginPage}/><Route path="/portal/callback" component={PortalCallbackPage}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/login" component={PortalAccessPage}/><Route path="/portal" component={PortalLoginPage}/>
     <Route path="/portal/:rest*" component={PortalRoutes}/>
     <Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="*" component={NotFoundPage}/>
