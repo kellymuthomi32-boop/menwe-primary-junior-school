@@ -4,6 +4,7 @@ import "./index.css";
 import "./mobile-responsive.css";
 import "./homepage-premium.css";
 import "./header-micro.css";
+import "./brand-alignment.css";
 
 // The portal no longer relies on a service worker for application delivery.
 // Unregister any older worker so stale cached bundles cannot hold the public
