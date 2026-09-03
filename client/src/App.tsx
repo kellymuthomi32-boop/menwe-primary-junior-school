@@ -37,9 +37,7 @@ const TermsPage = lazyWithChunkRecovery(() => import("./pages/TermsPage"), "term
 const PrivacyPage = lazyWithChunkRecovery(() => import("./pages/PrivacyPage"), "privacy");
 const CookiesPage = lazyWithChunkRecovery(() => import("./pages/CookiesPage"), "cookies");
 const NotFoundPage = lazyWithChunkRecovery(() => import("./pages/NotFoundPage"), "not-found");
-const MagicLinkPage = lazyWithChunkRecovery(() => import("./pages/MagicLinkPage"), "magic-link");
 const PortalAccessPage = lazyWithChunkRecovery(() => import("./pages/PortalAccessPage"), "portal-access");
-const LoginPage = lazyWithChunkRecovery(() => import("./pages/PublicPages").then(m => ({ default: m.LoginPage })), "login");
 const PortalAuthRoutes = lazyWithChunkRecovery(() => import("./pages/PortalAuthRoutes"), "portal-auth-routes");
 const PortalRoutes = lazyWithChunkRecovery(() => import("./pages/PortalRoutes"), "portal-routes");
 
@@ -60,7 +58,7 @@ function Router() {
   useEffect(() => { document.title = location === "/portal/admin" ? "Admin Command Center | Menwe Primary & Junior School" : location === "/portal/teacher" ? "Teacher Workspace | Menwe Primary & Junior School" : location === "/portal/parent" ? "Family Workspace | Menwe Primary & Junior School" : "Menwe Primary & Junior School | Igoki, Abogeta"; }, [location]);
   return <Switch>
     <Route path="/" component={HomePage}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsEventsPage}/><Route path="/events" component={NewsEventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
-    <Route path="/portal/login" component={PortalAuthRoutes}/><Route path="/portal/callback" component={PortalAuthRoutes}/><Route path="/portal" component={PortalAuthRoutes}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/login" component={PortalAccessPage}/>
+    <Route path="/portal/login" component={PortalAuthRoutes}/><Route path="/portal/callback" component={PortalAuthRoutes}/><Route path="/portal" component={PortalAuthRoutes}/><Route path="/portal/password" component={PortalAuthRoutes}/><Route path="/portal/email-link" component={PortalAuthRoutes}/><Route path="/login" component={PortalAccessPage}/>
     <Route path="/portal/:rest*" component={PortalRoutes}/>
     <Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="*" component={NotFoundPage}/>
   </Switch>;
