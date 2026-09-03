@@ -16,6 +16,7 @@ export default function PortalAuthRoutes() {
         <Switch>
           <Route path="/portal/login" component={PortalLoginPage} />
           <Route path="/portal/callback" component={PortalCallbackPage} />
+          <Route path="/portal" component={PortalLoginPage} />
         </Switch>
       </Suspense>
     </SupabaseAuthProvider>
