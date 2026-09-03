@@ -1,11 +1,9 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense, useEffect, type ComponentType, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { Route, Switch, useLocation } from "wouter";
-import type { User } from "@supabase/supabase-js";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { useSchoolAuth, type SchoolProfile } from "./contexts/SupabaseAuthContext";
 import MenweHeroHome from "./pages/MenweHeroHome";
 import "./mobile-premium.css";
 
@@ -41,71 +39,19 @@ const CookiesPage = lazyWithChunkRecovery(() => import("./pages/CookiesPage"), "
 const NotFoundPage = lazyWithChunkRecovery(() => import("./pages/NotFoundPage"), "not-found");
 const MagicLinkPage = lazyWithChunkRecovery(() => import("./pages/MagicLinkPage"), "magic-link");
 const PortalAccessPage = lazyWithChunkRecovery(() => import("./pages/PortalAccessPage"), "portal-access");
-const AttendanceDirectory = lazyWithChunkRecovery(() => import("./pages/AttendanceDirectory"), "attendance");
-const AcademicManagementPage = lazyWithChunkRecovery(() => import("./pages/AcademicManagementPage"), "academic-management");
-const ExamManagementPage = lazyWithChunkRecovery(() => import("./pages/ExamManagementPage"), "exam-management");
-const FinanceDirectory = lazyWithChunkRecovery(() => import("./pages/FinanceDirectory"), "finance");
-const HomeworkDirectory = lazyWithChunkRecovery(() => import("./pages/HomeworkDirectory"), "homework");
-const NotificationCenter = lazyWithChunkRecovery(() => import("./pages/NotificationCenter"), "notifications");
-const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./pages/ReportCardsDirectory"), "report-cards");
-const ClassMarksheetPage = lazyWithChunkRecovery(() => import("./pages/ClassMarksheetPage"), "class-marksheet");
-const TimetableDirectory = lazyWithChunkRecovery(() => import("./pages/TimetableDirectory"), "timetable");
-const GalleryManagementPage = lazyWithChunkRecovery(() => import("./pages/GalleryManagementPage"), "gallery-management");
-const SchoolSetupPage = lazyWithChunkRecovery(() => import("./pages/SchoolSetupPage"), "school-setup");
-const FirstAdminPage = lazyWithChunkRecovery(() => import("./pages/FirstAdminPage"), "first-admin");
 const LoginPage = lazyWithChunkRecovery(() => import("./pages/PublicPages").then(m => ({ default: m.LoginPage })), "login");
 const PortalLoginPage = lazyWithChunkRecovery(() => import("./pages/PortalLoginPage"), "portal-login");
-const AdminDashboardHubPage = lazyWithChunkRecovery(() => import("./pages/AdminDashboardHubPage"), "admin-dashboard");
-const TeacherDashboardPage = lazyWithChunkRecovery(() => import("./pages/TeacherDashboardPage"), "teacher-dashboard");
-const ParentDashboardPage = lazyWithChunkRecovery(() => import("./pages/ParentDashboardPage"), "parent-dashboard");
-const PortalProfilePage = lazyWithChunkRecovery(() => import("./pages/PortalProfilePage"), "profile");
-const ContentManagementRoute = lazyWithChunkRecovery(() => import("./pages/ContentManagement"), "content-management");
-const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./pages/AdminPeopleManagementPage"), "people-management");
-const AdminOperationsPage = lazyWithChunkRecovery(() => import("./pages/AdminOperationsPage"), "operations");
-const MessageCenter = lazyWithChunkRecovery(() => import("./pages/MessageCenter").then(m => ({ default: (props: { role: import("./contexts/SupabaseAuthContext").AppRole }) => <m.default {...props} /> })), "messages");
 const PortalCallbackPage = lazyWithChunkRecovery(() => import("./pages/PortalCallbackPage"), "portal-callback");
-
-type PortalRole = "admin" | "teacher" | "parent" | "student";
-function resolveRole(_user: User, profile: SchoolProfile): PortalRole {
-  if (["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return "admin";
-  if (profile.role === "TEACHER") return "teacher";
-  if (profile.role === "STUDENT") return "student";
-  return "parent";
-}
-function Guard({ roles, children }: { roles: readonly PortalRole[]; children: ReactNode }) {
-  const auth = useSchoolAuth(); const [, go] = useLocation();
-  useEffect(() => {
-    if (auth.loading || auth.profileLoading) return;
-    if (!auth.user) { go("/portal/login"); return; }
-    if (!auth.profile || auth.profile.status !== "ACTIVE") { go("/portal/login"); return; }
-    const role = resolveRole(auth.user, auth.profile);
-    if (!roles.includes(role)) go(role === "admin" ? "/portal/admin" : role === "teacher" ? "/portal/teacher" : "/portal/parent");
-  }, [auth.loading, auth.profileLoading, auth.user, auth.profile, roles, go]);
-  if (auth.loading || auth.profileLoading || !auth.user || !auth.profile || auth.profile.status !== "ACTIVE") return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/60">Restoring secure school session…</div>;
-  return roles.includes(resolveRole(auth.user, auth.profile)) ? <>{children}</> : null;
-}
-function MessagesRoute() { const { profile } = useSchoolAuth(); return profile ? <MessageCenter role={profile.role}/> : null; }
+const PortalRoutes = lazyWithChunkRecovery(() => import("./pages/PortalRoutes"), "portal-routes");
 
 function GoBackButton() {
   const [location, go] = useLocation();
   const canGoBack = typeof window !== "undefined" && window.history.length > 1;
-
-  const handleBack = () => {
-    if (canGoBack) window.history.back();
-    else if (location !== "/") go("/");
-  };
-
+  const handleBack = () => { if (canGoBack) window.history.back(); else if (location !== "/") go("/"); };
   if (location === "/") return null;
-
   return (
-    <button
-      type="button"
-      onClick={handleBack}
-      aria-label="Go back to the previous page"
-      className="fixed left-4 top-4 z-[100] inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[#061229] shadow-md backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900/95 dark:text-white"
-    >
-      <span aria-hidden="true" className="text-lg leading-none">←</span>
-      <span>Go Back</span>
+    <button type="button" onClick={handleBack} aria-label="Go back to the previous page" className="fixed left-4 top-4 z-[100] inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-[#061229] shadow-md backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 dark:border-slate-700 dark:bg-slate-900/95 dark:text-white">
+      <span aria-hidden="true" className="text-lg leading-none">←</span><span>Go Back</span>
     </button>
   );
 }
@@ -115,11 +61,10 @@ function Router() {
   useEffect(() => { document.title = location === "/portal/admin" ? "Admin Command Center | Menwe Primary & Junior School" : location === "/portal/teacher" ? "Teacher Workspace | Menwe Primary & Junior School" : location === "/portal/parent" ? "Family Workspace | Menwe Primary & Junior School" : "Menwe Primary & Junior School | Igoki, Abogeta"; }, [location]);
   return <Switch>
     <Route path="/" component={MenweHeroHome}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsEventsPage}/><Route path="/events" component={NewsEventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
-    <Route path="/portal/login" component={PortalLoginPage}/><Route path="/portal/callback" component={PortalCallbackPage}/><Route path="/portal/admin"><Guard roles={["admin"]}><AdminDashboardHubPage/></Guard></Route><Route path="/portal/teacher"><Guard roles={["teacher"]}><TeacherDashboardPage/></Guard></Route><Route path="/portal/parent"><Guard roles={["parent","student"]}><ParentDashboardPage/></Guard></Route>
-    <Route path="/portal/people"><Guard roles={["admin"]}><AdminPeopleManagementPage/></Guard></Route><Route path="/portal/academics"><Guard roles={["admin","teacher"]}><AcademicManagementPage/></Guard></Route><Route path="/portal/attendance"><Guard roles={["admin","teacher"]}><AttendanceDirectory/></Guard></Route><Route path="/portal/content"><Guard roles={["admin"]}><ContentManagementRoute/></Guard></Route><Route path="/portal/operations"><Guard roles={["admin"]}><AdminOperationsPage/></Guard></Route><Route path="/portal/finance"><Guard roles={["admin","parent","student"]}><FinanceDirectory/></Guard></Route>
-    <Route path="/portal/profile"><Guard roles={["admin","teacher","parent","student"]}><PortalProfilePage/></Guard></Route><Route path="/portal/exams"><Guard roles={["admin","teacher"]}><ExamManagementPage/></Guard></Route><Route path="/portal/report-cards"><Guard roles={["admin","teacher","parent","student"]}><ReportCardsDirectory/></Guard></Route><Route path="/portal/class-marksheet"><Guard roles={["admin","teacher"]}><ClassMarksheetPage/></Guard></Route><Route path="/portal/homework"><Guard roles={["admin","teacher","parent","student"]}><HomeworkDirectory/></Guard></Route><Route path="/portal/timetable"><Guard roles={["admin","teacher","parent","student"]}><TimetableDirectory/></Guard></Route><Route path="/portal/notifications"><Guard roles={["admin","teacher","parent","student"]}><NotificationCenter/></Guard></Route><Route path="/portal/announcements"><Guard roles={["admin","teacher","parent","student"]}><NotificationCenter/></Guard></Route><Route path="/portal/messages"><Guard roles={["admin","teacher","parent","student"]}><MessagesRoute/></Guard></Route><Route path="/portal/gallery"><Guard roles={["admin"]}><GalleryManagementPage/></Guard></Route>
-    <Route path="/portal/admin/academics"><Guard roles={["admin"]}><AcademicManagementPage/></Guard></Route><Route path="/portal/admin/attendance"><Guard roles={["admin"]}><AttendanceDirectory/></Guard></Route><Route path="/portal/admin/content"><Guard roles={["admin"]}><ContentManagementRoute/></Guard></Route><Route path="/portal/admin/directory"><Guard roles={["admin"]}><AdminPeopleManagementPage/></Guard></Route><Route path="/portal/admin/operations"><Guard roles={["admin"]}><AdminOperationsPage/></Guard></Route><Route path="/portal/admin/finance"><Guard roles={["admin"]}><FinanceDirectory/></Guard></Route>
-    <Route path="/portal/setup/first-admin" component={FirstAdminPage}/><Route path="/portal/setup" component={SchoolSetupPage}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/login" component={PortalAccessPage}/><Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="/portal" component={PortalLoginPage}/><Route path="*" component={NotFoundPage}/>
+    <Route path="/portal/login" component={PortalLoginPage}/><Route path="/portal/callback" component={PortalCallbackPage}/><Route path="/portal/password" component={LoginPage}/><Route path="/portal/email-link" component={MagicLinkPage}/><Route path="/login" component={PortalAccessPage}/><Route path="/portal" component={PortalLoginPage}/>
+    <Route path="/portal/:rest*" component={PortalRoutes}/>
+    <Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="*" component={NotFoundPage}/>
   </Switch>;
 }
+
 export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster/><Suspense fallback={<div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe…</div>}><Router/><GoBackButton/></Suspense></TooltipProvider></ThemeProvider></ErrorBoundary>; }
