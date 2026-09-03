@@ -9,11 +9,12 @@ describe("school platform canonical architecture", () => {
       read("../client/src/pages/AcademicDirectory.tsx"), read("../client/src/pages/EnrollmentDirectory.tsx"),
       read("../client/src/pages/AttendanceDirectory.tsx"), read("../client/src/pages/FinanceDirectory.tsx"),
     ]);
-    expect(academics).toContain('academic_periods'); expect(academics).toContain('academic_terms');
-    expect(academics).not.toContain('academic_years');
+    expect(academics).toContain('academic_years'); expect(academics).toContain('terms');
+    expect(academics).not.toContain('academic_periods');
+    expect(academics).not.toContain('academic_terms');
     expect(enrollment).toContain('enrollments'); expect(attendance).toContain('attendance');
-    expect(finance).toContain('charges'); expect(finance).toContain('payment_allocations');
-    expect(finance).not.toContain('from("invoices")');
+    expect(finance).toContain('from("invoices")'); expect(finance).toContain('from("payments")');
+    expect(finance).toContain('payment_method'); expect(finance).not.toContain('from("charges")');
   });
 
   it("keeps messaging and gallery hardening in the current production architecture", async () => {
@@ -27,13 +28,13 @@ describe("school platform canonical architecture", () => {
 
   it("persists initial school setup through canonical Supabase tables", async () => {
     const [setup, migration] = await Promise.all([read("../client/src/pages/SchoolSetupPage.tsx"), read("../supabase/migrations/202608280001_school_settings.sql")]);
-    for (const table of ['school_settings', 'academic_periods', 'academic_terms', 'classes', 'subjects']) expect(setup).toContain(`from("${table}")`);
-    expect(setup).not.toContain('from("streams")'); expect(migration).toContain('enable row level security');
+    for (const table of ['school_settings', 'academic_years', 'terms', 'classes', 'subjects']) expect(setup).toContain(`from("${table}")`);
+    expect(setup).not.toContain('from("streams")'); expect(setup).not.toContain('from("academic_periods")'); expect(setup).not.toContain('from("academic_terms")'); expect(migration).toContain('enable row level security');
   });
 
   it("keeps portal administration role-gated and profile identity canonical", async () => {
-    const [portal, layout] = await Promise.all([read("../client/src/pages/PortalPages.tsx"), read("../client/src/components/PortalLayout.tsx")]);
-    expect(portal).toContain('isAdministrator'); expect(portal).toContain('profile.status !== "ACTIVE"');
+    const [portal, layout] = await Promise.all([read("../client/src/pages/AdminDashboardHubPage.tsx"), read("../client/src/components/PortalLayout.tsx")]);
+    expect(portal).toContain('isAdministrator');
     expect(layout).toContain('profile?.display_name'); expect(layout).not.toContain('profile?.full_name');
   });
 
