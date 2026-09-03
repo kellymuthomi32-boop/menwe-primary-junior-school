@@ -109,8 +109,8 @@ export default function AdminDashboardHubPage() {
           .select("id,status")
           .in("status", [
             "submitted",
-            "pending",
-            "under_review",
+            "PENDING",
+            "UNDER_REVIEW",
           ])
           .order("created_at", {
             ascending: false,
