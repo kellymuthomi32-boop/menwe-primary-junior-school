@@ -36,6 +36,17 @@
       .menwe-instant-secondary { border: 1px solid rgba(255,255,255,.2); color: #fff; }
       @media (prefers-reduced-motion: no-preference) { .menwe-instant-shell-inner { animation: menwe-fade-in .35s ease-out both; } @keyframes menwe-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } } }
     </style>
+    <script>
+      // Remove the old service worker before the application module requests any chunk.
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) { registration.unregister(); });
+        }).catch(function () {});
+        if ("caches" in window) {
+          caches.keys().then(function (keys) { return Promise.all(keys.map(function (key) { return caches.delete(key); })); }).catch(function () {});
+        }
+      }
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
