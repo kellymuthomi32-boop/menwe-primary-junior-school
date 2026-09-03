@@ -1,0 +1,39 @@
+/* Canonical Menwe brand bridge for older public components. */
+:root {
+  --paper: #f7f8fa;
+  --mist: #edf1f6;
+  --ink: #061229;
+  --menwe-accent: #061229;
+  --gold: #D89B28;
+  --sage: #D89B28;
+  --background: oklch(0.98 0.004 250);
+  --foreground: oklch(0.19 0.025 255);
+  --card-foreground: oklch(0.19 0.025 255);
+  --popover-foreground: oklch(0.19 0.025 255);
+  --primary: oklch(0.20 0.055 255);
+  --secondary: oklch(0.95 0.012 250);
+  --secondary-foreground: oklch(0.23 0.045 255);
+  --muted: oklch(0.95 0.008 250);
+  --muted-foreground: oklch(0.47 0.025 255);
+  --accent: oklch(0.69 0.15 75);
+  --accent-foreground: oklch(0.18 0.04 255);
+  --border: oklch(0.88 0.012 250);
+  --input: oklch(0.88 0.012 250);
+  --ring: oklch(0.69 0.15 75);
+}
+
+.menwe-metric-card {
+  background: linear-gradient(145deg, #061229, #10254a) !important;
+  box-shadow: 0 14px 28px rgba(6,18,41,.17) !important;
+}
+
+.menwe-metric-card::after {
+  border-color: rgba(216,155,40,.42) !important;
+}
+
+@media (max-width: 767px) {
+  /* Keep the mobile brand mark readable without squeezing the wordmark. */
+  header .menwe-focus-ring.group > div { min-width: 0; }
+  header .menwe-focus-ring.group > div > div:last-child { min-width: 0; }
+  header .menwe-focus-ring.group > div > div:last-child p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
