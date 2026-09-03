@@ -10,15 +10,12 @@ function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>
       const message = error instanceof Error ? error.message : String(error);
       const chunk = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message);
       const storage = `menwe:chunk-recovery:${key}`;
-      if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) {
-        sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined);
-      }
+      if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) { sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined); }
       if (typeof window !== "undefined") sessionStorage.removeItem(storage);
       throw error;
     }
   });
 }
-
 const AttendanceDirectory = lazyWithChunkRecovery(() => import("./AttendanceDirectory"), "attendance");
 const AcademicManagementPage = lazyWithChunkRecovery(() => import("./AcademicManagementPage"), "academic-management");
 const ExamManagementPage = lazyWithChunkRecovery(() => import("./ExamManagementPage"), "exam-management");
@@ -29,7 +26,9 @@ const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./ReportCardsDi
 const ClassMarksheetPage = lazyWithChunkRecovery(() => import("./ClassMarksheetPage"), "class-marksheet");
 const TimetableDirectory = lazyWithChunkRecovery(() => import("./TimetableDirectory"), "timetable");
 const GalleryManagementPage = lazyWithChunkRecovery(() => import("./GalleryManagementPage"), "gallery-management");
-const SchoolSetupPage = lazyWithChunkRecovery(() => import("./SchoolSetupPage"), "school-setup");
+const AdminSettingsPage = lazyWithChunkRecovery(() => import("./AdminSettingsPage"), "admin-settings");
+const AdminAnnouncementsPage = lazyWithChunkRecovery(() => import("./AdminAnnouncementsPage"), "admin-announcements");
+const AdminAuditLogPage = lazyWithChunkRecovery(() => import("./AdminAuditLogPage"), "admin-audit");
 const FirstAdminPage = lazyWithChunkRecovery(() => import("./FirstAdminPage"), "first-admin");
 const PortalProfilePage = lazyWithChunkRecovery(() => import("./PortalProfilePage"), "profile");
 const ContentManagementRoute = lazyWithChunkRecovery(() => import("./ContentManagement"), "content-management");
@@ -50,17 +49,11 @@ function resolveRole(_user: User, profile: SchoolProfile): PortalRole {
 }
 function Guard({ allowed, children }: { allowed: readonly PortalRole[]; children: ReactNode }) {
   const auth = useSchoolAuth(); const [, go] = useLocation();
-  useEffect(() => {
-    if (auth.loading || auth.profileLoading) return;
-    if (!auth.user || !auth.profile || auth.profile.status !== "ACTIVE") { go("/portal/login"); return; }
-    const role = resolveRole(auth.user, auth.profile);
-    if (!allowed.includes(role)) go(role === "admin" ? "/portal/admin" : role === "teacher" ? "/portal/teacher" : "/portal/parent");
-  }, [auth.loading, auth.profileLoading, auth.user, auth.profile, allowed, go]);
+  useEffect(() => { if (auth.loading || auth.profileLoading) return; if (!auth.user || !auth.profile || auth.profile.status !== "ACTIVE") { go("/portal/login"); return; } const role = resolveRole(auth.user, auth.profile); if (!allowed.includes(role)) go(role === "admin" ? "/portal/admin" : role === "teacher" ? "/portal/teacher" : "/portal/parent"); }, [auth.loading, auth.profileLoading, auth.user, auth.profile, allowed, go]);
   if (auth.loading || auth.profileLoading || !auth.user || !auth.profile || auth.profile.status !== "ACTIVE") return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/60">Restoring secure school session…</div>;
   return allowed.includes(resolveRole(auth.user, auth.profile)) ? <>{children}</> : null;
 }
 function MessagesRoute() { const { profile } = useSchoolAuth(); return profile ? <MessageCenter role={profile.role}/> : null; }
-
 function PortalWorkspace() {
   return <Switch>
     <Route path="/portal/admin"><Guard allowed={roles.admin}><AdminDashboardHubPage/></Guard></Route>
@@ -79,20 +72,21 @@ function PortalWorkspace() {
     <Route path="/portal/homework"><Guard allowed={roles.all}><HomeworkDirectory/></Guard></Route>
     <Route path="/portal/timetable"><Guard allowed={roles.all}><TimetableDirectory/></Guard></Route>
     <Route path="/portal/notifications"><Guard allowed={roles.all}><NotificationCenter/></Guard></Route>
-    <Route path="/portal/announcements"><Guard allowed={roles.all}><NotificationCenter/></Guard></Route>
+    <Route path="/portal/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route>
     <Route path="/portal/messages"><Guard allowed={roles.all}><MessagesRoute/></Guard></Route>
     <Route path="/portal/gallery"><Guard allowed={roles.admin}><GalleryManagementPage/></Guard></Route>
+    <Route path="/portal/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route>
+    <Route path="/portal/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route>
     <Route path="/portal/admin/academics"><Guard allowed={roles.admin}><AcademicManagementPage/></Guard></Route>
     <Route path="/portal/admin/attendance"><Guard allowed={roles.admin}><AttendanceDirectory/></Guard></Route>
     <Route path="/portal/admin/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
     <Route path="/portal/admin/directory"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
     <Route path="/portal/admin/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
     <Route path="/portal/admin/finance"><Guard allowed={roles.admin}><FinanceDirectory/></Guard></Route>
+    <Route path="/portal/admin/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route>
+    <Route path="/portal/admin/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route>
+    <Route path="/portal/admin/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route>
     <Route path="/portal/setup/first-admin" component={FirstAdminPage}/>
-    <Route path="/portal/setup" component={SchoolSetupPage}/>
   </Switch>;
 }
-
-export default function PortalRoutes() {
-  return <SupabaseAuthProvider><PortalWorkspace/></SupabaseAuthProvider>;
-}
+export default function PortalRoutes() { return <SupabaseAuthProvider><PortalWorkspace/></SupabaseAuthProvider>; }
