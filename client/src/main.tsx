@@ -27,10 +27,10 @@ if (typeof indexedDB !== "undefined") {
   const scheduleOfflineSync = () => {
     void import("./lib/offlineSync").then(({ installOfflineSync }) => installOfflineSync()).catch(() => undefined);
   };
-  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(scheduleOfflineSync, { timeout: 3000 });
   } else {
-    window.setTimeout(scheduleOfflineSync, 1500);
+    globalThis.setTimeout(scheduleOfflineSync, 1500);
   }
 }
 
