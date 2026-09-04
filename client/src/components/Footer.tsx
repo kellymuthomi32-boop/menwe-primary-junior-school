@@ -5,7 +5,8 @@ import "@/styles/menwe-footer.css";
 
 const SCHOOL_PHONE = "0142550882";
 const SCHOOL_EMAILS = ["Menweprimaryandjunior@gmail.com", "menweprimaryschool94@gmail.com"] as const;
-const SCHOOL_LOCATION = "Igoki, Abogeta Division · Meru Central District · South Imenti Constituency";
+const SCHOOL_LOCATION = "Menwe Village, Abogeta Division · Meru Central District · South Imenti Constituency";
+const SCHOOL_PO_BOX = "P.O. Box 19, Kionyo";
 
 const quickLinks = [["Home", "/"], ["About Us", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["School Life", "/school-life"], ["Portal Access", "/portal"]] as const;
 const schoolLinks = [["News & Events", "/news"], ["Gallery", "/gallery"], ["Calendar", "/calendar"], ["Contact Us", "/contact"], ["Fee Structure", "/admissions"]] as const;
@@ -48,6 +49,7 @@ export default function Footer() {
               <a href={`https://wa.me/254${SCHOOL_PHONE}`} target="_blank" rel="noreferrer"><MessageCircle size={14} />WhatsApp the school</a>
               <a href={`mailto:${SCHOOL_EMAILS[0]}`}><span className="menwe-footer-mail">@</span>{SCHOOL_EMAILS[0]}</a>
               <span><MapPin size={14} />{SCHOOL_LOCATION}</span>
+              <span><MapPin size={14} />{SCHOOL_PO_BOX}</span>
             </div>
           </div>
 
