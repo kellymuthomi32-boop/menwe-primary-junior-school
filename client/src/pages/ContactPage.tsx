@@ -4,7 +4,7 @@ import PublicLayout from "@/components/PublicLayout";
 import { getSupabase } from "@/lib/supabase";
 
 const card="rounded-2xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900";
-const officialLocation="Location: Igoki, Abogeta Division | Meru Central District, Eastern Province | South Imenti Constituency";
+const officialLocation="Location: Menwe Village, Abogeta Division | Meru Central District, Eastern Province | South Imenti Constituency";
 const latitude=-0.099245555, longitude=37.58121778;
 const mapsUrl=`https://www.google.com/maps?q=${latitude},${longitude}`;
 function friendlyContactError(error: unknown) { const text=error instanceof Error?error.message:String(error); if(/network|fetch|timeout|429|rate limit/i.test(text)) return "Connection issue. Please check your network and try again."; return "We could not send your inquiry right now. Please call the admissions office at 0142550882."; }
