@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Camera, ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 import PublicLayout from "@/components/PublicLayout";
 
@@ -7,13 +7,14 @@ const items:GalleryItem[]=[
 {title:"Science discovery",category:"JSS Science Labs & Computers",image:"https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1800&q=88",description:"A visual reference for practical science learning, investigation and laboratory-based discovery in Junior Secondary."},
 {title:"Digital learning",category:"JSS Science Labs & Computers",image:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=88",description:"Technology-supported learning spaces help learners build digital confidence and problem-solving habits."},
 {title:"Active on the field",category:"Sports & Marching Band",image:"https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1800&q=88",description:"Sport develops fitness, teamwork, discipline and resilience as part of the wider Menwe learner experience."},
+{title:"Girls' rugby county representation",category:"Girls' Rugby",image:"/gallery/girls-rugby-county.svg",description:"This team proudly represented Menwe Junior School in girls' rugby at county level, showcasing teamwork, discipline, confidence and sporting talent."},
 {title:"Music and expression",category:"Sports & Marching Band",image:"https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1800&q=88",description:"Music and marching-band activities create space for coordination, confidence and creative expression."},
 {title:"Focused classroom learning",category:"Academic Classrooms",image:"https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1800&q=88",description:"Classroom learning combines guided teaching, participation, collaboration and practical competency development."},
 {title:"Collaborative study",category:"Academic Classrooms",image:"https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1800&q=88",description:"Purposeful learning spaces encourage learners to communicate, work together and take responsibility for their learning."},
 {title:"Growing through agriculture",category:"4-K Club & Agriculture Projects",image:"https://images.unsplash.com/photo-1592982537447-6f2a6a0a7c1c?auto=format&fit=crop&w=1800&q=88",description:"Agriculture projects connect learners with practical skills, environmental stewardship and food-production ideas."},
 {title:"School grounds and community",category:"Campus Grounds",image:"https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=88",description:"The campus environment provides the setting for learning, movement, community gatherings and everyday school life."},
 ];
-const categories=["All","JSS Science Labs & Computers","Sports & Marching Band","Academic Classrooms","4-K Club & Agriculture Projects","Campus Grounds"];
+const categories=["All","JSS Science Labs & Computers","Sports & Marching Band","Girls' Rugby","Academic Classrooms","4-K Club & Agriculture Projects","Campus Grounds"];
 export default function GalleryPage(){const[filter,setFilter]=useState("All");const[selected,setSelected]=useState<number|null>(null);const[startX,setStartX]=useState<number|null>(null);const visible=items.map((item,index)=>({item,index})).filter(({item})=>filter==="All"||item.category===filter);const current=selected===null?null:items[selected];
 useEffect(()=>{const key=(e:KeyboardEvent)=>{if(selected===null)return;if(e.key==="Escape")setSelected(null);if(e.key==="ArrowLeft")setSelected(i=>i===null?null:(i-1+items.length)%items.length);if(e.key==="ArrowRight")setSelected(i=>i===null?null:(i+1)%items.length)};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)},[selected]);
 const swipeStart=(e:React.TouchEvent)=>setStartX(e.touches[0]?.clientX??null);const swipeEnd=(e:React.TouchEvent)=>{if(startX===null||selected===null)return;const dx=(e.changedTouches[0]?.clientX??startX)-startX;if(Math.abs(dx)>50)setSelected(i=>i===null?null:(dx<0?(i+1)%items.length:(i-1+items.length)%items.length));setStartX(null)};
