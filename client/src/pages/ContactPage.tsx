@@ -40,14 +40,14 @@ const contactMethods = [
     label: "Email",
     value: "Menweprimaryandjunior@gmail.com",
     href: "mailto:Menweprimaryandjunior@gmail.com",
-    note: "Admissions and general enquiries",
+    note: "menweprimaryschool94@gmail.com · Admissions and general enquiries",
   },
   {
     icon: MapPin,
-    label: "Official location",
-    value: "Igoki, Abogeta Division",
+    label: "Find us",
+    value: "Igoki · Abogeta Division",
     href: googleMapsUrl,
-    note: "Meru County, South Imenti Constituency",
+    note: "Official coordinates: -0.099245555, 37.58121778.",
   },
 ];
 
@@ -141,8 +141,8 @@ export default function ContactPage() {
               <a
                 key={label}
                 href={href}
-                target={label === "Official location" ? "_blank" : undefined}
-                rel={label === "Official location" ? "noreferrer" : undefined}
+                target={label === "Find us" ? "_blank" : undefined}
+                rel={label === "Find us" ? "noreferrer" : undefined}
                 className={`${card} group flex min-h-36 items-start gap-4 p-6 focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2`}
               >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#061229]/5 text-[#D89B28] transition-transform duration-300 group-hover:scale-105 dark:bg-white/5">
