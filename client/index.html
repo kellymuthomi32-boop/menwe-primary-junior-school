@@ -36,16 +36,6 @@
       .menwe-instant-secondary { border: 1px solid rgba(255,255,255,.2); color: #fff; }
       @media (prefers-reduced-motion: no-preference) { .menwe-instant-shell-inner { animation: menwe-fade-in .35s ease-out both; } @keyframes menwe-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } } }
     </style>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-          registrations.forEach(function (registration) { registration.unregister(); });
-        }).catch(function () {});
-        if ("caches" in window) {
-          caches.keys().then(function (keys) { return Promise.all(keys.map(function (key) { return caches.delete(key); })); }).catch(function () {});
-        }
-      }
-    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,6 +71,14 @@
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>
-    <script src="/public-discovery.js" defer></script>
+    <script>
+      // Non-critical public discovery enhancement. Delay it until the browser
+      // is idle so it never competes with React hydration/first paint.
+      window.addEventListener("load", function () {
+        var run = function () { var s = document.createElement("script"); s.src = "/public-discovery.js"; s.defer = true; document.body.appendChild(s); };
+        if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 4000 });
+        else window.setTimeout(run, 2000);
+      }, { once: true });
+    </script>
   </body>
 </html>
