@@ -42,6 +42,7 @@ export async function fetchSiteMedia(keys?: string[]) {
   let query = getSupabase()
     .from("site_media")
     .select("id,media_key,image_url,storage_key,alt_text,label,section,mime_type,byte_size,updated_at")
+    .eq("is_published", true)
     .order("section")
     .order("label");
   if (keys?.length) query = query.in("media_key", keys);
@@ -54,22 +55,43 @@ export function useSiteMedia(keys?: string[]) {
   const keyString = keys?.join(",") ?? "";
   const [media, setMedia] = useState<Record<string, SiteMedia>>({});
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    fetchSiteMedia(keys)
-      .then(rows => {
-        if (!active) return;
-        setMedia(Object.fromEntries(rows.map(row => [row.media_key, row])));
-      })
-      .catch(() => {
+    const db = getSupabase();
+    const load = async () => {
+      try {
+        const rows = await fetchSiteMedia(keys);
+        if (active) setMedia(Object.fromEntries(rows.map(row => [row.media_key, row])));
+      } catch {
         if (active) setMedia({});
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
-    return () => { active = false; };
+      }
+    };
+
+    setLoading(true);
+    void load();
+
+    const channel = db
+      .channel(`site-media-${keyString || "all"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_media" }, () => { void load(); })
+      .subscribe();
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      void db.removeChannel(channel);
+    };
   }, [keyString]);
+
   return { media, loading };
 }
 
