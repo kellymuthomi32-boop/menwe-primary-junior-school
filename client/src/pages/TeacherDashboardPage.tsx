@@ -6,7 +6,8 @@ import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { getSupabase } from "@/lib/supabase";
 
 type Row = Record<string, any>;
-const modules = [
+type DashboardModule = { title: string; href: string; icon: typeof PenLine; text: string; featured?: boolean };
+const modules: DashboardModule[] = [
   { title: "Enter learner marks", href: "/portal/exams", icon: PenLine, text: "Select an assessment and your assigned subject, enter learner scores, and save results.", featured: true },
   { title: "My learners", href: "#my-learners", icon: Users, text: "See active learners in your assigned classes." },
   { title: "My classes & subjects", href: "/portal/profile", icon: BookOpen, text: "Review or update the classes and subjects you teach." },
@@ -16,7 +17,7 @@ const modules = [
   { title: "Exams & results", href: "/portal/exams", icon: FileText, text: "Enter marks and review authorised results." },
   { title: "Class marksheet", href: "/portal/class-marksheet", icon: FileText, text: "Generate a professional class performance sheet." },
   { title: "Messages", href: "/portal/messages", icon: MessageSquare, text: "Communicate through the protected school directory." },
-] as const;
+];
 
 export default function TeacherDashboardPage() {
   const { profile, user, signOut } = useSchoolAuth();
@@ -71,7 +72,7 @@ export default function TeacherDashboardPage() {
         if (st.error) throw st.error;
         if (active) {
           setAssignments(a.data ?? []); setRoles(r.data ?? []); setClasses(c.data ?? []); setSubjects(s.data ?? []);
-          setLearners((st.data ?? []).map(student => ({ ...student, class_id: (e.data ?? []).find(x => String(x.student_id) === String(student.id))?.class_id })));
+          setLearners((st.data ?? []).map((student: Row) => ({ ...student, class_id: (e.data ?? []).find(x => String(x.student_id) === String(student.id))?.class_id })));
         }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Teacher workspace could not be loaded.");
