@@ -15,6 +15,7 @@ const inputClass = "mt-2 min-h-[48px] w-full min-w-0 max-w-full box-border round
 const buttonClass = "min-h-[48px] active:scale-[0.98] transition-all";
 function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block min-w-0 text-sm font-bold text-[#061229]">{label}{children}</label>; }
 function referenceCode() { return `MNW-2026-${Math.floor(1000 + Math.random() * 9000)}`; }
+function splitName(fullName: string) { const parts = fullName.trim().split(/\s+/).filter(Boolean); return { first: parts[0] || "Applicant", last: parts.slice(1).join(" ") || parts[0] || "Applicant" }; }
 
 export default function AdmissionsPage() {
   const [, navigate] = useLocation();
@@ -37,8 +38,30 @@ export default function AdmissionsPage() {
     const reference = referenceCode(); setBusy(true);
     try {
       const supabase = getSupabase();
-      const payload = { reference_code: reference, learner_full_name: form.learnerName.trim(), date_of_birth: form.dob, gender: form.gender, grade_applied: form.grade, nemis_upi_number: form.upi.trim() || null, parent_full_name: form.guardianName.trim(), parent_phone: form.phone.trim(), parent_whatsapp: form.whatsapp.trim() || null, parent_email: form.email.trim().toLowerCase(), sub_county_location: form.location.trim(), previous_school: form.previousSchool.trim(), last_kpsea_results: form.results.trim() || null, medical_dietary_notes: form.notes.trim() || null, status: "pending" };
-      const { error: insertError } = await supabase.from("admissions").insert([payload]);
+      const { first, last } = splitName(form.learnerName);
+      const additionalInformation = [
+        form.upi.trim() ? `NEMIS / Assessment UPI: ${form.upi.trim()}` : "",
+        form.whatsapp.trim() ? `WhatsApp: ${form.whatsapp.trim()}` : "",
+        form.results.trim() ? `Last KPSEA / Assessment Results: ${form.results.trim()}` : "",
+        form.notes.trim() ? `Medical / Dietary Notes: ${form.notes.trim()}` : "",
+      ].filter(Boolean).join("\n\n") || null;
+      const payload = {
+        reference,
+        student_first_name: first,
+        student_last_name: last,
+        date_of_birth: form.dob,
+        gender: form.gender,
+        current_school: form.previousSchool.trim(),
+        grade_applying_for: form.grade,
+        guardian_name: form.guardianName.trim(),
+        guardian_phone: form.phone.trim(),
+        guardian_email: form.email.trim().toLowerCase(),
+        guardian_relationship: "Parent / Guardian",
+        address: form.location.trim(),
+        additional_information: additionalInformation,
+        status: "PENDING",
+      };
+      const { error: insertError } = await supabase.from("admission_applications").insert([payload]);
       if (insertError) throw insertError;
       setForm(initial); setSuccess(reference); window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -49,7 +72,7 @@ export default function AdmissionsPage() {
 
   if (success) return <PublicLayout><main className="w-full overflow-hidden bg-[#F8F9FA] px-4 py-16 sm:px-6 lg:px-8"><section className="mx-auto w-full max-w-3xl rounded-3xl bg-white p-7 text-center shadow-xl sm:p-12"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={34}/></div><p className="mt-6 text-xs font-bold uppercase tracking-[.2em] text-[#D89B28]">Application received</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#061229] sm:text-4xl">Thank you — your application is on its way.</h1><p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600">Your application reference is <strong>{success}</strong>. Keep this code when contacting the Admissions Office at 0142550882.</p><div className="mt-8 grid gap-3 sm:grid-cols-2"><a href="tel:0142550882" className={`${buttonClass} inline-flex items-center justify-center gap-2 rounded-xl bg-[#061229] px-5 py-3 font-bold text-white`}><Phone size={17}/> Call Admissions</a><a href="https://wa.me/254142550882" target="_blank" rel="noreferrer" className={`${buttonClass} inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 font-bold text-[#061229]`}><MessageCircle size={17}/> WhatsApp</a></div><button onClick={() => navigate("/")} className={`${buttonClass} mt-4 px-4 text-sm font-bold text-[#D89B28]`}>Return to homepage</button></section></main></PublicLayout>;
 
-  return <PublicLayout><section className="relative overflow-hidden bg-gradient-to-br from-[#061229] via-[#0b1d3a] to-[#061229] text-white"><div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[#D89B28]/15 blur-3xl"/><div className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-16 sm:px-6 sm:py-20 lg:px-8"><span className="inline-flex rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#D89B28]">2026 Admissions Open • PP1 to Grade 9 JSS</span><h1 className="mt-5 max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">Join Our Learning Community</h1><p className="mt-5 max-w-3xl text-sm leading-7 text-white/70 sm:text-lg">Enrol a new learner at Menwe Primary &amp; Junior School in Abogeta Sub-County, Meru. Complete the guided application below and our Admissions Office will contact your family about the next step.</p></div></section>
+  return <PublicLayout><section className="relative overflow-hidden bg-gradient-to-br from-[#061229] via-[#0b1d3a] to-[#061229] text-white"><div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[#D89B28]/15 blur-3xl"/><div className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-16 sm:px-6 sm:py-20 lg:px-8"><span className="inline-flex rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#D89B28]">Admissions Open • PP1 to Grade 9 JSS</span><h1 className="mt-5 max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">Join Our Learning Community</h1><p className="mt-5 max-w-3xl text-sm leading-7 text-white/70 sm:text-lg">Enrol a new learner at Menwe Primary &amp; Junior School in Menwe Village, South Imenti. Complete the guided application below and our Admissions Office will contact your family about the next step.</p></div></section>
   <main className="w-full overflow-hidden bg-[#F8F9FA] px-4 py-12 sm:px-6 sm:py-16 lg:px-8"><div className="mx-auto grid w-full max-w-7xl min-w-0 grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,.75fr)]"><section className="min-w-0 rounded-3xl bg-white p-5 shadow-sm sm:p-8"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#D89B28]">Digital application</p><h2 className="mt-2 text-2xl font-extrabold text-[#061229] sm:text-3xl">Step {step} of 4</h2></div><span className="shrink-0 rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">{Math.round(step / 4 * 100)}%</span></div><div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#D89B28] transition-all" style={{ width: `${step / 4 * 100}%` }}/></div><div className="mt-5 flex gap-2 overflow-x-auto pb-2">{steps.map((label, index) => <button key={label} type="button" onClick={() => index + 1 < step && setStep(index + 1)} disabled={index + 1 > step} className={`${buttonClass} shrink-0 rounded-full px-3 py-2 text-xs font-bold ${index + 1 === step ? "bg-[#D89B28] text-[#061229]" : "bg-slate-100 text-slate-500 disabled:opacity-60"}`}>{index + 1}. {label}</button>)}</div>
   <form onSubmit={submit} className="mt-6">
     {step === 1 && <div className="grid grid-cols-1 gap-5 sm:grid-cols-2"><Field label="Learner Full Name"><input required className={inputClass} value={form.learnerName} onChange={e => update("learnerName", e.target.value)} /></Field><Field label="Date of Birth"><input required type="date" className={inputClass} value={form.dob} onChange={e => update("dob", e.target.value)} /></Field><Field label="Gender"><select required className={inputClass} value={form.gender} onChange={e => update("gender", e.target.value)}><option value="">Select gender</option><option>Female</option><option>Male</option><option>Prefer not to say</option></select></Field><Field label="Grade Applied For"><select required className={inputClass} value={form.grade} onChange={e => update("grade", e.target.value)}><option value="">Select grade</option>{grades.map(g => <option key={g}>{g}</option>)}</select></Field><Field label="NEMIS / Assessment UPI (if transferring)"><input className={inputClass} value={form.upi} onChange={e => update("upi", e.target.value)} /></Field></div>}
