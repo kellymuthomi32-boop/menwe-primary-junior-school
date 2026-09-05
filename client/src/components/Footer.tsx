@@ -4,6 +4,7 @@ import { prefetchPublicRoute } from "@/lib/publicNavigation";
 import "@/styles/menwe-footer.css";
 
 const SCHOOL_PHONE = "0142550882";
+const SCHOOL_WHATSAPP = "254142550882";
 const SCHOOL_EMAILS = ["Menweprimaryandjunior@gmail.com", "menweprimaryschool94@gmail.com"] as const;
 const SCHOOL_LOCATION = "Menwe Village, Abogeta Division · Meru Central District · South Imenti Constituency";
 const SCHOOL_PO_BOX = "P.O. Box 19, Kionyo";
@@ -46,7 +47,7 @@ export default function Footer() {
             <p>Inspiring confident, disciplined and capable learners through excellent education, character and community.</p>
             <div className="menwe-footer-contact">
               <a href={`tel:${SCHOOL_PHONE}`}><Phone size={14} />{SCHOOL_PHONE}</a>
-              <a href={`https://wa.me/254${SCHOOL_PHONE}`} target="_blank" rel="noreferrer"><MessageCircle size={14} />WhatsApp the school</a>
+              <a href={`https://wa.me/${SCHOOL_WHATSAPP}`} target="_blank" rel="noreferrer"><MessageCircle size={14} />WhatsApp the school</a>
               <a href={`mailto:${SCHOOL_EMAILS[0]}`}><span className="menwe-footer-mail">@</span>{SCHOOL_EMAILS[0]}</a>
               <span><MapPin size={14} />{SCHOOL_LOCATION}</span>
               <span><MapPin size={14} />{SCHOOL_PO_BOX}</span>
