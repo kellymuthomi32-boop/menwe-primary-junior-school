@@ -29,7 +29,7 @@ const NewsEventsPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPag
 const NewsPage = lazyWithChunkRecovery(() => import("./pages/NewsPage"), "news");
 const EventsPage = lazyWithChunkRecovery(() => import("./pages/EventsPage"), "events");
 const GalleryPage = lazyWithChunkRecovery(() => import("./pages/GalleryPage"), "gallery");
-const ContactPage = lazyWithChunkRecovery(() => import("./pages/CorePublicPages").then(m => ({ default: m.ContactPage })), "contact");
+const ContactPage = lazyWithChunkRecovery(() => import("./pages/ContactPage"), "contact");
 const AboutPage = lazyWithChunkRecovery(() => import("./pages/AboutPage"), "about");
 const SchoolLifePage = lazyWithChunkRecovery(() => import("./pages/SchoolLifePage"), "school-life");
 const ForFamiliesPage = lazyWithChunkRecovery(() => import("./pages/ForFamiliesPage"), "families");
