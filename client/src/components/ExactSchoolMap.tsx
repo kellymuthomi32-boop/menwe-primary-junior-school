@@ -7,7 +7,7 @@ export const SCHOOL_LOCATION = {
   region: "Igoki, Abogeta Division, South Imenti Constituency, Meru County, Kenya",
 } as const;
 
-const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${SCHOOL_LOCATION.latitude},${SCHOOL_LOCATION.longitude}`;
+const googleMapsUrl = "https://www.google.com/maps/place/0%C2%B005'57.3%22S+37%C2%B034'52.4%22E/@-0.0992456,37.5812178,17z/data=!3m1!4b1!4m4!3m3!8m2!3d-0.0992456!4d37.5812178?entry=ttu&g_ep=EgoyMDI2MDkwMi4wIKXMDSoASAFQAw%3D%3D";
 const openStreetMapUrl = `https://www.openstreetmap.org/?mlat=${SCHOOL_LOCATION.latitude}&mlon=${SCHOOL_LOCATION.longitude}#map=17/${SCHOOL_LOCATION.latitude}/${SCHOOL_LOCATION.longitude}`;
 const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=37.57521778,-0.103245555,37.58721778,-0.095245555&layer=mapnik&marker=${SCHOOL_LOCATION.latitude},${SCHOOL_LOCATION.longitude}`;
 
@@ -25,7 +25,8 @@ export default function ExactSchoolMap() {
             <p className="mt-4 text-sm leading-7 text-white/70">{SCHOOL_LOCATION.region}</p>
             <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
               <p className="font-bold text-white">Exact GPS coordinates</p>
-              <p className="mt-1 font-mono text-xs text-white/65">{SCHOOL_LOCATION.latitude}, {SCHOOL_LOCATION.longitude}</p>
+              <p className="mt-1 font-mono text-xs text-white/65">0°05'57.3&quot;S, 37°34'52.4&quot;E</p>
+              <p className="mt-1 text-xs text-white/50">-0.099245555, 37.58121778</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -54,7 +55,7 @@ export default function ExactSchoolMap() {
             title="Menwe Primary & Junior School exact GPS location map"
             src={embedUrl}
             className="h-[360px] min-h-full w-full border-0 sm:h-[430px]"
-            loading="lazy"
+            loading="eager"
             referrerPolicy="no-referrer-when-downgrade"
           />
         </div>
