@@ -14,10 +14,28 @@ export type SiteMedia = {
   updated_at: string;
 };
 
+const MEDIA_TIMEOUT_MS = 8_000;
+
 export function cacheBustedUrl(url: string | null | undefined, version?: string | null) {
   if (!url) return null;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}v=${encodeURIComponent(version || "1")}`;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    parsed.searchParams.set("v", version || "1");
+    return parsed.toString();
+  } catch {
+    const hashIndex = url.indexOf("#");
+    const base = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+    const hash = hashIndex >= 0 ? url.slice(hashIndex) : "";
+    const separator = base.includes("?") ? "&" : "?";
+    return `${base}${separator}v=${encodeURIComponent(version || "1")}${hash}`;
+  }
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, ms = MEDIA_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("Media request timed out.")), ms);
+    Promise.resolve(promise).then(resolve, reject).finally(() => window.clearTimeout(timer));
+  });
 }
 
 export async function fetchSiteMedia(keys?: string[]) {
@@ -27,7 +45,7 @@ export async function fetchSiteMedia(keys?: string[]) {
     .order("section")
     .order("label");
   if (keys?.length) query = query.in("media_key", keys);
-  const { data, error } = await query;
+  const { data, error } = await withTimeout(query);
   if (error) throw error;
   return (data ?? []) as SiteMedia[];
 }
@@ -39,13 +57,17 @@ export function useSiteMedia(keys?: string[]) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    fetchSiteMedia(keys).then(rows => {
-      if (active) setMedia(Object.fromEntries(rows.map(row => [row.media_key, row])));
-    }).catch(() => {
-      if (active) setMedia({});
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    fetchSiteMedia(keys)
+      .then(rows => {
+        if (!active) return;
+        setMedia(Object.fromEntries(rows.map(row => [row.media_key, row])));
+      })
+      .catch(() => {
+        if (active) setMedia({});
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => { active = false; };
   }, [keyString]);
   return { media, loading };
