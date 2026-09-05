@@ -35,6 +35,83 @@
       .menwe-instant-primary { background: #D89B28; color: #061229; }
       .menwe-instant-secondary { border: 1px solid rgba(255,255,255,.2); color: #fff; }
       @media (prefers-reduced-motion: no-preference) { .menwe-instant-shell-inner { animation: menwe-fade-in .35s ease-out both; } @keyframes menwe-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } } }
+
+      /* Premium About-page purpose cards. Scoped through the About hero structure so
+         the upgrade does not alter the visual language of the other public pages. */
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article {
+        position: relative;
+        overflow: hidden;
+        min-height: 300px;
+        border-radius: 28px;
+        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 24px 55px rgba(6,18,41,.14);
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article:first-child::after,
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article:last-child::after {
+        content: "";
+        position: absolute;
+        right: -48px;
+        bottom: -64px;
+        width: 190px;
+        height: 190px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(216,155,40,.18), transparent 68%);
+        pointer-events: none;
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article > div:first-child {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(216,155,40,.12);
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article p:first-of-type {
+        letter-spacing: .24em;
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article {
+        position: relative;
+        overflow: hidden;
+        min-height: 215px;
+        border-radius: 24px;
+        padding: 28px;
+        border-color: rgba(6,18,41,.08);
+        box-shadow: 0 12px 30px rgba(6,18,41,.07);
+        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article:hover,
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article:focus-visible {
+        transform: translateY(-6px);
+        box-shadow: 0 22px 45px rgba(6,18,41,.13);
+        border-color: rgba(216,155,40,.28);
+        outline: none;
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article::before {
+        content: "";
+        position: absolute;
+        right: -28px;
+        top: -28px;
+        width: 92px;
+        height: 92px;
+        border-radius: 999px;
+        background: rgba(216,155,40,.07);
+      }
+      main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article > div:first-child {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(216,155,40,.16), rgba(6,18,41,.06));
+        color: #061229;
+      }
+      @media (max-width: 640px) {
+        main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article { min-height: 270px; }
+        main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article { min-height: 190px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-8.grid.gap-5.lg\\:grid-cols-2 > article,
+        main:has(> section.relative.isolate) > main > div:nth-child(2) section > div.mt-6.grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 > article { transition: none; }
+      }
     </style>
     <script type="application/ld+json">
       {
