@@ -12,7 +12,7 @@ const socialChannels = [
   { label: "Twitter", icon: X, href: "#", configured: false },
   { label: "Instagram", icon: Instagram, href: "#", configured: false },
 ] as const;
-const links = [["Home", "/"], ["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"], ["Explore", "/school-life"], ["Gallery", "/gallery"], ["Contact", "/contact"]] as const;
+const links = [["Home", "/"], ["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"], ["Gallery", "/gallery"], ["Contact", "/contact"]] as const;
 const discoverLinks = [["School life", "/school-life"], ["For families", "/families"], ["How it works", "/how-it-works"]] as const;
 const legalLinks = [["Terms & conditions", "/terms"], ["Privacy", "/privacy"], ["Cookies", "/cookies"]] as const;
 const footerPrinciples = [
@@ -40,7 +40,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   useEffect(() => { document.body.style.overflow = open ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [open]);
 
   return <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
-    <header className={`sticky top-0 z-50 border-b border-[var(--ink)]/10 bg-[var(--paper)] shadow-[0_8px_28px_rgba(29,43,37,.08)] transition-all duration-300`}>
+    <header className="sticky top-0 z-50 border-b border-[var(--ink)]/10 bg-[var(--paper)] shadow-[0_8px_28px_rgba(29,43,37,.08)] transition-all duration-300">
       <UtilityBar />
       <div className={`mx-auto flex max-w-7xl items-center justify-between px-5 transition-all duration-300 lg:px-8 ${scrolled ? "h-[68px]" : "h-[76px]"}`}>
         <button onClick={() => go("/")} className="menwe-focus-ring group shrink-0 rounded-2xl text-left" aria-label="Menwe Primary & Junior School home"><SchoolMark /></button>
