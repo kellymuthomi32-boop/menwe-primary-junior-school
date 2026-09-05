@@ -8,7 +8,8 @@ export const SCHOOL_LOCATION = {
 } as const;
 
 const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${SCHOOL_LOCATION.latitude},${SCHOOL_LOCATION.longitude}`;
-const embedUrl = `https://www.google.com/maps?q=${SCHOOL_LOCATION.latitude},${SCHOOL_LOCATION.longitude}&z=17&output=embed`;
+const openStreetMapUrl = `https://www.openstreetmap.org/?mlat=${SCHOOL_LOCATION.latitude}&mlon=${SCHOOL_LOCATION.longitude}#map=17/${SCHOOL_LOCATION.latitude}/${SCHOOL_LOCATION.longitude}`;
+const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=37.57521778,-0.103245555,37.58721778,-0.095245555&layer=mapnik&marker=${SCHOOL_LOCATION.latitude},${SCHOOL_LOCATION.longitude}`;
 
 export default function ExactSchoolMap() {
   return (
@@ -27,25 +28,34 @@ export default function ExactSchoolMap() {
               <p className="mt-1 font-mono text-xs text-white/65">{SCHOOL_LOCATION.latitude}, {SCHOOL_LOCATION.longitude}</p>
             </div>
           </div>
-          <a
-            href={googleMapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 py-3 text-sm font-extrabold text-[#061229] transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 focus:ring-offset-[#061229]"
-          >
-            <Navigation size={16} aria-hidden="true" />
-            Open exact location in Google Maps
-          </a>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-4 py-3 text-center text-sm font-extrabold text-[#061229] transition hover:-translate-y-0.5 hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 focus:ring-offset-[#061229]"
+            >
+              <Navigation size={16} aria-hidden="true" />
+              Google Maps
+            </a>
+            <a
+              href={openStreetMapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#D89B28]"
+            >
+              Open map
+            </a>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-slate-100 dark:border-slate-800">
           <iframe
-            title="Menwe Primary & Junior School exact GPS location on Google Maps"
+            title="Menwe Primary & Junior School exact GPS location map"
             src={embedUrl}
             className="h-[360px] min-h-full w-full border-0 sm:h-[430px]"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
           />
         </div>
       </div>
