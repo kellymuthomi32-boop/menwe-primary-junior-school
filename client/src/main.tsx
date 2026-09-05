@@ -6,18 +6,18 @@ import "./homepage-premium.css";
 import "./header-micro.css";
 import "./brand-alignment.css";
 
-// The portal no longer relies on a service worker for application delivery.
-// Unregister any older worker so stale cached bundles cannot hold the public
-// site on an obsolete or broken chunk while the browser is loading.
+// Application delivery no longer uses a service worker. Do not enumerate or
+// delete browser caches during startup: that defeats normal HTTP/CDN caching
+// and can make repeat visits much slower. Legacy workers should be removed
+// once, outside the critical render path, rather than on every navigation.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => void registration.unregister());
-    });
-    if ("caches" in window) {
-      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
-    }
-  });
+    window.setTimeout(() => {
+      void navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => void registration.unregister());
+      }).catch(() => undefined);
+    }, 5000);
+  }, { once: true });
 }
 
 // IndexedDB/offline reconciliation is non-critical for the initial render.
