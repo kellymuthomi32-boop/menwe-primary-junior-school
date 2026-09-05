@@ -26,7 +26,7 @@ export default function MediaManagerPage() {
   const [media, setMedia] = useState<SiteMedia[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [gallery, setGallery] = useState<GalleryRow[]>([]);
-  const [selectedKey, setSelectedKey] = useState(slots[0][0]);
+  const [selectedKey, setSelectedKey] = useState<typeof slots[number][0]>(slots[0][0]);
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [albumId, setAlbumId] = useState("");
