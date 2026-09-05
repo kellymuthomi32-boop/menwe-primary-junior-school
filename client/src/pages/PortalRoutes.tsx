@@ -26,6 +26,7 @@ const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./ReportCardsDi
 const ClassMarksheetPage = lazyWithChunkRecovery(() => import("./ClassMarksheetPage"), "class-marksheet");
 const TimetableDirectory = lazyWithChunkRecovery(() => import("./TimetableDirectory"), "timetable");
 const GalleryManagementPage = lazyWithChunkRecovery(() => import("./GalleryManagementPage"), "gallery-management");
+const MediaManagerPage = lazyWithChunkRecovery(() => import("./MediaManagerPage"), "media-manager");
 const AdminSettingsPage = lazyWithChunkRecovery(() => import("./AdminSettingsPage"), "admin-settings");
 const AdminAnnouncementsPage = lazyWithChunkRecovery(() => import("./AdminAnnouncementsPage"), "admin-announcements");
 const AdminAuditLogPage = lazyWithChunkRecovery(() => import("./AdminAuditLogPage"), "admin-audit");
@@ -51,6 +52,7 @@ function PortalWorkspace() { return <Switch>
   <Route path="/portal/academics"><Guard allowed={["admin","teacher"]}><AcademicManagementPage/></Guard></Route>
   <Route path="/portal/attendance"><Guard allowed={["admin","teacher"]}><AttendanceDirectory/></Guard></Route>
   <Route path="/portal/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
+  <Route path="/portal/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
   <Route path="/portal/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
   <Route path="/portal/finance"><Guard allowed={["admin","teacher","parent","student"]}><FinanceDirectory/></Guard></Route>
   <Route path="/portal/profile"><Guard allowed={roles.all}><PortalProfilePage/></Guard></Route>
@@ -68,6 +70,7 @@ function PortalWorkspace() { return <Switch>
   <Route path="/portal/admin/academics"><Guard allowed={roles.admin}><AcademicManagementPage/></Guard></Route>
   <Route path="/portal/admin/attendance"><Guard allowed={roles.admin}><AttendanceDirectory/></Guard></Route>
   <Route path="/portal/admin/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
+  <Route path="/portal/admin/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
   <Route path="/portal/admin/directory"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
   <Route path="/portal/admin/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
   <Route path="/portal/admin/finance"><Guard allowed={roles.admin}><FinanceDirectory/></Guard></Route>
