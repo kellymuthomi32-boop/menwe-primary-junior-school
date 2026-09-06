@@ -3,19 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 import type { User } from "@supabase/supabase-js";
 import { SupabaseAuthProvider, useSchoolAuth, type AppRole, type SchoolProfile } from "../contexts/SupabaseAuthContext";
 
-function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>>(importer: () => Promise<{ default: T }>, key: string) {
-  return lazy(async () => {
-    try { return await importer(); }
-    catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const chunk = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message);
-      const storage = `menwe:chunk-recovery:${key}`;
-      if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) { sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined); }
-      if (typeof window !== "undefined") sessionStorage.removeItem(storage);
-      throw error;
-    }
-  });
-}
+function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>>(importer: () => Promise<{ default: T }>, key: string) { return lazy(async () => { try { return await importer(); } catch (error) { const message = error instanceof Error ? error.message : String(error); const chunk = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message); const storage = `menwe:chunk-recovery:${key}`; if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) { sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined); } if (typeof window !== "undefined") sessionStorage.removeItem(storage); throw error; } }); }
 const AttendanceDirectory = lazyWithChunkRecovery(() => import("./AttendanceDirectory"), "attendance");
 const AcademicManagementPage = lazyWithChunkRecovery(() => import("./AcademicManagementPage"), "academic-management");
 const ExamManagementPage = lazyWithChunkRecovery(() => import("./ExamManagementPage"), "exam-management");
@@ -33,6 +21,7 @@ const AdminAuditLogPage = lazyWithChunkRecovery(() => import("./AdminAuditLogPag
 const FirstAdminPage = lazyWithChunkRecovery(() => import("./FirstAdminPage"), "first-admin");
 const PortalProfilePage = lazyWithChunkRecovery(() => import("./PortalProfilePage"), "profile");
 const ContentManagementRoute = lazyWithChunkRecovery(() => import("./ContentManagement"), "content-management");
+const FormsManagementPage = lazyWithChunkRecovery(() => import("./FormsManagementPage"), "forms-management");
 const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./AdminPeopleManagementPage"), "people-management");
 const AdminOperationsPage = lazyWithChunkRecovery(() => import("./AdminOperationsPage"), "operations");
 const MessageCenter = lazyWithChunkRecovery(() => import("./MessageCenter").then(m => ({ default: (props: { role: AppRole }) => <m.default {...props} /> })), "messages");
@@ -47,11 +36,12 @@ function MessagesRoute() { const { profile } = useSchoolAuth(); return profile ?
 function PortalWorkspace() { return <Switch>
   <Route path="/portal/admin"><Guard allowed={roles.admin}><AdminDashboardHubPage/></Guard></Route>
   <Route path="/portal/teacher"><Guard allowed={roles.teacher}><TeacherDashboardPage/></Guard></Route>
-  <Route path="/portal/parent"><Guard allowed={roles.parent}><ParentDashboardPage/></Guard></Route>
+  <Route path="/portal/parent"><Guard allowed={roles.parent}><ParentDashboardPage/></Guard></Guard></Route>
   <Route path="/portal/people"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
   <Route path="/portal/academics"><Guard allowed={["admin","teacher"]}><AcademicManagementPage/></Guard></Route>
   <Route path="/portal/attendance"><Guard allowed={["admin","teacher"]}><AttendanceDirectory/></Guard></Route>
   <Route path="/portal/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
+  <Route path="/portal/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route>
   <Route path="/portal/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
   <Route path="/portal/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
   <Route path="/portal/finance"><Guard allowed={["admin","teacher","parent","student"]}><FinanceDirectory/></Guard></Route>
@@ -70,6 +60,7 @@ function PortalWorkspace() { return <Switch>
   <Route path="/portal/admin/academics"><Guard allowed={roles.admin}><AcademicManagementPage/></Guard></Route>
   <Route path="/portal/admin/attendance"><Guard allowed={roles.admin}><AttendanceDirectory/></Guard></Route>
   <Route path="/portal/admin/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
+  <Route path="/portal/admin/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route>
   <Route path="/portal/admin/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
   <Route path="/portal/admin/directory"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
   <Route path="/portal/admin/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
