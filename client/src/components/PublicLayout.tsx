@@ -2,6 +2,7 @@ import { ArrowRight, ArrowUpRight, Check, ChevronDown, Facebook, Instagram, Mail
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Footer from "./Footer";
+import SchoolFAQAssistant from "./SchoolFAQAssistant";
 import { prefetchPublicRoute } from "@/lib/publicNavigation";
 
 const SCHOOL_PHONE = "0142550882";
@@ -58,5 +59,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     </header>
     <main>{children}</main>
     <Footer />
+    <SchoolFAQAssistant />
   </div>;
 }
