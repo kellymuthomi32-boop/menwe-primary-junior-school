@@ -10,7 +10,7 @@ const PROFILE_TIMEOUT_MS = 3000;
 
 export type SchoolProfile = { id: string; email: string | null; full_name: string | null; display_name: string | null; phone: string | null; role: AppRole; canonical_role: CanonicalRole; status: "ACTIVE" | "INACTIVE"; avatar_url: string | null };
 
-function normalizeRole(role: string | null | undefined): AppRole | null {
+export function normalizeRole(role: string | null | undefined): AppRole | null {
   const value = role?.trim().toUpperCase();
   if (value === "PARENT") return "PARENT";
   if (value === "STUDENT") return "STUDENT";
@@ -22,7 +22,7 @@ function normalizeRole(role: string | null | undefined): AppRole | null {
   return null;
 }
 
-function toSchoolProfile(data: { id: string; email?: string | null; full_name?: string | null; phone?: string | null; role?: string | null; status?: string | null; avatar_url?: string | null }): SchoolProfile | null {
+export function toSchoolProfile(data: { id: string; email?: string | null; full_name?: string | null; phone?: string | null; role?: string | null; status?: string | null; avatar_url?: string | null }): SchoolProfile | null {
   const canonicalRole = data.role?.trim().toLowerCase();
   const role = normalizeRole(data.role);
   if (!role || !canonicalRole || !CANONICAL_ROLES.has(canonicalRole as CanonicalRole)) return null;
@@ -54,7 +54,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
     if (!userId || !supabase) { setProfile(null); setProfileLoading(false); return null; }
     if (requestRef.current?.userId === userId) return requestRef.current.promise;
-
     const request = (async () => {
       setProfileLoading(true);
       setError(null);
@@ -74,11 +73,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         setProfile(null);
         setError(err instanceof Error && err.message === "PROFILE_LOOKUP_TIMEOUT" ? "The school profile lookup timed out. Please try again." : "We could not load your school profile. Please try again.");
         return null;
-      } finally {
-        setProfileLoading(false);
-      }
+      } finally { setProfileLoading(false); }
     })();
-
     requestRef.current = { userId, promise: request };
     try { return await request; } finally { if (requestRef.current?.promise === request) requestRef.current = null; }
   }, []);
@@ -87,7 +83,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     const client = supabase;
     if (!client) { setError("The portal has not been configured with Supabase yet."); setLoading(false); setProfileLoading(false); return; }
     let active = true;
-
     const initialise = async () => {
       try {
         const { data, error: sessionError } = await withTimeout(client.auth.getSession(), SESSION_TIMEOUT_MS, "SESSION_RESTORE_TIMEOUT");
@@ -100,17 +95,11 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       } catch (err) {
         console.error("Auth initialization error:", err);
         if (!active) return;
-        setSession(null);
-        setProfile(null);
-        setProfileLoading(false);
+        setSession(null); setProfile(null); setProfileLoading(false);
         setError(err instanceof Error && err.message === "SESSION_RESTORE_TIMEOUT" ? "Session restoration timed out. You can sign in again." : "Unable to restore your school session. Please sign in again.");
-      } finally {
-        if (active) { initializedRef.current = true; setLoading(false); }
-      }
+      } finally { if (active) { initializedRef.current = true; setLoading(false); } }
     };
-
     void initialise();
-
     const { data: subscription } = client.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
       setSession(nextSession);
@@ -123,7 +112,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         void loadProfile(nextSession.user.id).finally(() => { if (active) setLoading(false); });
       }, 0);
     });
-
     return () => { active = false; subscription.subscription.unsubscribe(); };
   }, [loadProfile]);
 
@@ -136,7 +124,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     signOut: async () => { await getSupabase().auth.signOut(); setProfile(null); setProfileLoading(false); setSession(null); setError(null); setLoading(false); },
     refreshProfile: async () => loadProfile(session?.user.id ?? null),
   }), [error, loadProfile, loading, profile, profileLoading, session]);
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
