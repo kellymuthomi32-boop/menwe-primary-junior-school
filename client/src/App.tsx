@@ -30,6 +30,7 @@ const NewsPage = lazyWithChunkRecovery(() => import("./pages/NewsPage"), "news")
 const EventsPage = lazyWithChunkRecovery(() => import("./pages/EventsPage"), "events");
 const GalleryPage = lazyWithChunkRecovery(() => import("./pages/GalleryPage"), "gallery");
 const ContactPage = lazyWithChunkRecovery(() => import("./pages/ContactPage"), "contact");
+const FormsPage = lazyWithChunkRecovery(() => import("./pages/FormsPage"), "forms");
 const AboutPage = lazyWithChunkRecovery(() => import("./pages/AboutPage"), "about");
 const SchoolLifePage = lazyWithChunkRecovery(() => import("./pages/SchoolLifePage"), "school-life");
 const ForFamiliesPage = lazyWithChunkRecovery(() => import("./pages/ForFamiliesPage"), "families");
@@ -63,9 +64,9 @@ function LoginRedirect() {
 
 function Router() {
   const [location] = useLocation();
-  useEffect(() => { document.title = location === "/portal/admin" ? "Admin Command Center | Menwe Primary & Junior School" : location === "/portal/teacher" ? "Teacher Workspace | Menwe Primary & Junior School" : location === "/portal/parent" ? "Family Workspace | Menwe Primary & Junior School" : location === "/news" ? "News | Menwe Primary & Junior School" : location === "/events" ? "Events | Menwe Primary & Junior School" : "Menwe Primary & Junior School | Igoki, Abogeta"; }, [location]);
+  useEffect(() => { document.title = location === "/portal/admin" ? "Admin Command Center | Menwe Primary & Junior School" : location === "/portal/teacher" ? "Teacher Workspace | Menwe Primary & Junior School" : location === "/portal/parent" ? "Family Workspace | Menwe Primary & Junior School" : location === "/news" ? "News | Menwe Primary & Junior School" : location === "/events" ? "Events | Menwe Primary & Junior School" : location === "/forms" ? "Forms & Feedback | Menwe Primary & Junior School" : "Menwe Primary & Junior School | Igoki, Abogeta"; }, [location]);
   return <Switch>
-    <Route path="/" component={HomePage}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsPage}/><Route path="/events" component={EventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
+    <Route path="/" component={HomePage}/><Route path="/about" component={AboutPage}/><Route path="/academics" component={AcademicsPage}/><Route path="/admissions" component={AdmissionsPage}/><Route path="/forms" component={FormsPage}/><Route path="/news-events" component={NewsEventsPage}/><Route path="/news" component={NewsPage}/><Route path="/events" component={EventsPage}/><Route path="/gallery" component={GalleryPage}/><Route path="/contact" component={ContactPage}/><Route path="/school-life" component={SchoolLifePage}/><Route path="/families" component={ForFamiliesPage}/><Route path="/how-it-works" component={HowItWorksPage}/>
     <Route path="/portal/login" component={PortalAuthRoutes}/><Route path="/portal/callback" component={PortalAuthRoutes}/><Route path="/portal" component={PortalAuthRoutes}/><Route path="/portal/password" component={PortalAuthRoutes}/><Route path="/portal/email-link" component={PortalAuthRoutes}/><Route path="/login" component={LoginRedirect}/>
     <Route path="/portal/:rest*" component={PortalRoutes}/>
     <Route path="/calendar" component={CalendarPage}/><Route path="/terms" component={TermsPage}/><Route path="/privacy" component={PrivacyPage}/><Route path="/cookies" component={CookiesPage}/><Route path="*" component={NotFoundPage}/>
