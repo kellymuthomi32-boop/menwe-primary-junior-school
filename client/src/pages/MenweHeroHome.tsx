@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import AboutSection from "@/components/AboutSection";
 import { cacheBustedUrl, useSiteMedia } from "@/lib/siteMedia";
+import { listPublished } from "@/lib/database";
 import "@/styles/menwe-hero-exact.css";
 import "@/mobile-layout-fix.css";
 
@@ -21,12 +22,12 @@ const programs = [
   [Medal, "Co-Curricular & Talent Pathways", "Grow the whole learner through music and band, football, athletics, STEM clubs, leadership and purposeful teamwork."],
 ] as const;
 
-const news = [
+const fallbackNews = [
   ["Admissions", "Applications open for the upcoming academic term", "Plan ahead for your child’s next learning journey with Menwe. Our admissions team is ready to guide families through the process."],
   ["Learning", "Celebrating progress beyond the classroom", "From academic milestones to sport, music and practical projects, our learners are encouraged to discover where they can thrive."],
 ] as const;
 
-const events = [
+const fallbackEvents = [
   ["SEP", "12", "Parents-Teachers Meeting", "09:00 AM · Main School Campus"],
   ["OCT", "03", "Annual Sports Day", "08:00 AM · School Sports Field"],
   ["OCT", "17", "Menwe Science Fair", "10:00 AM · Science & Innovation Hall"],
@@ -82,11 +83,46 @@ function HomeNavigationCards() {
   return <div className="relative z-20 mx-auto mt-6 w-full max-w-7xl px-0" aria-label="Explore Menwe"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 w-full">{homeNavigation.map(([title, path, text, Icon]) => <button key={path} type="button" onClick={() => navigate(path)} aria-label={`Open ${title}`} className="group w-full min-w-0 min-h-12 rounded-2xl p-6 bg-white border border-slate-200/80 shadow-sm text-left hover:border-[#D89B28]/50 hover:shadow-xl transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D89B28]"><span className="w-12 h-12 rounded-xl bg-amber-50 text-[#D89B28] flex items-center justify-center font-bold text-lg mb-4"><Icon size={21} /></span><span className="flex items-center justify-between gap-4"><span className="min-w-0 text-lg sm:text-xl font-bold text-slate-900 break-words">{title}</span><span className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-slate-50 text-slate-500 transition-transform group-hover:translate-x-1"><ArrowRight size={17} /></span></span><span className="mt-2 block text-sm sm:text-base text-slate-600 leading-relaxed break-words">{text}</span></button>)}</div></div>;
 }
 
+function formatEventDate(value: unknown) {
+  const date = new Date(String(value ?? ""));
+  if (Number.isNaN(date.getTime())) return ["", ""] as const;
+  return [date.toLocaleString("en-US", { month: "short" }).toUpperCase(), String(date.getDate()).padStart(2, "0")] as const;
+}
+
+function formatEventMeta(event: Record<string, unknown>) {
+  const date = new Date(String(event.starts_at ?? ""));
+  const time = Number.isNaN(date.getTime()) ? "" : date.toLocaleString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return [time, event.location ? String(event.location) : ""].filter(Boolean).join(" · ");
+}
+
 export default function MenweHeroHome() {
   const [, navigate] = useLocation();
   const { media } = useSiteMedia(fallbackSlides.map((slide) => slide.key).concat("principal_photo"));
+  const [homeNews, setHomeNews] = useState<readonly (readonly [string, string, string])[]>(fallbackNews);
+  const [homeEvents, setHomeEvents] = useState<readonly (readonly [string, string, string, string])[]>(fallbackEvents);
   const slides = fallbackSlides.map((slide) => ({ ...slide, src: cacheBustedUrl(media[slide.key]?.image_url, media[slide.key]?.updated_at) || slide.src, alt: media[slide.key]?.alt_text || slide.alt }));
   const principalImage = cacheBustedUrl(media.principal_photo?.image_url, media.principal_photo?.updated_at) || slides[1].src;
+
+  useEffect(() => {
+    let active = true;
+    const loadHomeContent = async () => {
+      try {
+        const [newsResult, eventsResult] = await Promise.all([listPublished("news_articles", 0, 2), listPublished("events", 0, 3)]);
+        if (!active) return;
+        const nextNews = newsResult.data.map((item) => [String(item.category || "NEWS"), String(item.title || ""), String(item.excerpt || item.body || "")] as const).filter((item) => item[1]);
+        const nextEvents = eventsResult.data.map((item) => {
+          const [month, day] = formatEventDate(item.starts_at);
+          return [month, day, String(item.title || ""), formatEventMeta(item)] as const;
+        }).filter((item) => item[2] && item[0]);
+        if (nextNews.length) setHomeNews(nextNews);
+        if (nextEvents.length) setHomeEvents(nextEvents);
+      } catch {
+        // Keep the existing static fallback when CMS content is unavailable.
+      }
+    };
+    void loadHomeContent();
+    return () => { active = false; };
+  }, []);
 
   return (
     <PublicLayout>
@@ -115,7 +151,7 @@ export default function MenweHeroHome() {
 
         <section className="menwe-section bg-white"><div className="menwe-section-inner"><div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center bg-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-2xl overflow-hidden"><div className="lg:col-span-4 min-w-0 overflow-hidden rounded-2xl"><img src={principalImage} alt={media.principal_photo?.alt_text || "Mr. Simon Muriungi Muthemba, Principal of Menwe Primary & Junior School"} loading="lazy" decoding="async" className="w-full h-72 lg:h-96 object-cover p-8" /></div><div className="lg:col-span-8 min-w-0"><p className="text-xs font-bold tracking-[0.2em] uppercase text-[#D89B28]">A MESSAGE FROM THE PRINCIPAL</p><h2 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight break-words">Welcome to Menwe Primary &amp; Junior School.</h2><p className="mt-5 text-base text-white/70 leading-relaxed">“We warmly welcome parents and guardians to Menwe. Our promise is to provide a safe, purposeful learning environment where children are known, supported and challenged to grow. When school and family work together, learners gain the confidence and character to thrive.”</p><p className="mt-6 text-lg font-semibold text-[#D89B28] italic">“Nurturing holistic, self-reliant learners through values and CBC excellence.”</p><div className="mt-6 flex items-center gap-3"><span className="h-px w-10 bg-[#D89B28]" /><div><strong className="block">Mr. Simon Muriungi Muthemba</strong><small className="text-white/50">School Principal</small></div></div></div></div></div></section>
 
-        <section id="news-events" className="menwe-section menwe-news-section"><div className="menwe-section-inner menwe-news-grid"><div><p className="menwe-section-kicker">LATEST FROM MENWE</p><div className="menwe-news-heading"><h2>News, Announcements &amp; Events</h2><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>View all news <ArrowRight size={15} /></button></div><div className="menwe-news-cards">{news.map(([tag, title, text]) => <article key={title} className="menwe-news-card"><span>{tag}</span><h3>{title}</h3><p>{text}</p><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>Read story <ArrowRight size={14} /></button></article>)}</div></div><div className="menwe-events"><p className="menwe-section-kicker">UPCOMING</p><h2>What’s Next</h2>{events.map(([month, day, title, meta]) => <button className="menwe-event min-h-12" key={title} onClick={() => navigate("/events")}><span className="menwe-date"><b>{month}</b><strong>{day}</strong></span><span><b>{title}</b><small>{meta}</small></span><ArrowRight size={16} /></button>)}</div></div></section>
+        <section id="news-events" className="menwe-section menwe-news-section"><div className="menwe-section-inner menwe-news-grid"><div><p className="menwe-section-kicker">LATEST FROM MENWE</p><div className="menwe-news-heading"><h2>News, Announcements &amp; Events</h2><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>View all news <ArrowRight size={15} /></button></div><div className="menwe-news-cards">{homeNews.map(([tag, title, text]) => <article key={title} className="menwe-news-card"><span>{tag}</span><h3>{title}</h3><p>{text}</p><button className="menwe-text-link min-h-12" onClick={() => navigate("/news")}>Read story <ArrowRight size={14} /></button></article>)}</div></div><div className="menwe-events"><p className="menwe-section-kicker">UPCOMING</p><h2>What’s Next</h2>{homeEvents.map(([month, day, title, meta]) => <button className="menwe-event min-h-12" key={title} onClick={() => navigate("/events")}><span className="menwe-date"><b>{month}</b><strong>{day}</strong></span><span><b>{title}</b><small>{meta}</small></span><ArrowRight size={16} /></button>)}</div></div></section>
 
         <section className="menwe-admissions-banner"><div className="menwe-banner-inner"><div><p className="menwe-section-kicker">ADMISSIONS ARE OPEN</p><h2>Ready to Give Your Child a Brighter Future?</h2><p>Admissions are currently open for the upcoming academic term. Join the Menwe Primary &amp; Junior School family today.</p></div><div className="menwe-banner-actions"><button onClick={() => navigate("/admissions")} className="menwe-banner-primary min-h-12 active:scale-[0.98] transition-all">Apply Now <ArrowRight size={16} /></button><button onClick={() => navigate("/admissions")} className="menwe-banner-outline min-h-12 active:scale-[0.98] transition-all">Download Fee Structure / Prospectus</button></div></div></section>
 
