@@ -11,7 +11,7 @@ const fallbackSlides = [
   { key: "homepage_hero_1", src: "/hero-learning.svg", alt: "Menwe learning pathway illustration", caption: "Primary learners · Strong learning foundations" },
   { key: "homepage_hero_2", src: "/hero-community.svg", alt: "Menwe school community illustration", caption: "Primary school · Everyday learner life" },
   { key: "homepage_hero_3", src: "/hero-arts.svg", alt: "Menwe arts and talent illustration", caption: "Junior learners · Creativity and confidence" },
-  { key: "homepage_hero_4", src: "/hero-sport.svg", alt: "Menwe school sports illustration", caption: "Sports culture · Teamwork and fitness" },
+  { key: "homepage_hero_4", src: "/gallery/girls-rugby-county.svg", alt: "Menwe girls' rugby team represented at county level", caption: "Girls' rugby · County representation" },
   { key: "homepage_hero_5", src: "/hero-science.svg", alt: "Menwe science and innovation illustration", caption: "School life · Discovery beyond the classroom" },
 ];
 
