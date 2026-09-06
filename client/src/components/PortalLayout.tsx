@@ -1,4 +1,4 @@
-import { BarChart3, BookOpenCheck, CalendarDays, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, Image, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, ShieldCheck, Users, X, Bell, Megaphone, Clock3, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpenCheck, CalendarDays, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, Image, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, ShieldCheck, Users, X, Bell, Megaphone, Clock3, ClipboardList, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { isAdministrator, type AppRole, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -16,27 +16,9 @@ function buildItems(role:AppRole,pendingAdmissions=0){
  if(role==="TEACHER")primary.splice(3,0,{label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"});
  if(role==="TEACHER")primary.splice(4,0,{label:"Class marksheet",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"});
  const management:PortalNavItem[]=isAdministrator(role)?[
-  {label:"People & enrolment",key:"people",icon:Users,href:"/portal/people",badge:pendingAdmissions},
-  {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
-  {label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},
-  {label:"Exams & report cards",key:"exams",icon:FileText,href:"/portal/exams"},
-  {label:"Class marksheets",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"},
-  {label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"},
-  {label:"Homework",key:"admin-homework",icon:BookOpenCheck,href:"/portal/homework"},
-  {label:"Timetable",key:"admin-timetable",icon:Clock3,href:"/portal/timetable"},
-  {label:"School content",key:"content",icon:Settings,href:"/portal/content"},
-  {label:"Gallery",key:"gallery",icon:Image,href:"/portal/gallery"},
-  {label:"Operations & reports",key:"operations",icon:BarChart3,href:"/portal/operations"}
- ]:[];
- const communication:PortalNavItem[]=isAdministrator(role)?[
-  {label:"Announcements",key:"admin-announcements",icon:Megaphone,href:"/portal/announcements"},
-  {label:"Messages",key:"admin-messages",icon:MessageSquare,href:"/portal/messages"},
-  {label:"Notifications",key:"admin-notifications",icon:Bell,href:"/portal/notifications"}
- ]:[];
- const system:PortalNavItem[]=isAdministrator(role)?[
-  {label:"School settings",key:"settings",icon:Settings,href:"/portal/settings"},
-  {label:"Audit history",key:"audit",icon:ShieldCheck,href:"/portal/audit"}
- ]:[];
+  {label:"People & enrolment",key:"people",icon:Users,href:"/portal/people",badge:pendingAdmissions},{label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},{label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},{label:"Exams & report cards",key:"exams",icon:FileText,href:"/portal/exams"},{label:"Class marksheets",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"},{label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"},{label:"Homework",key:"admin-homework",icon:BookOpenCheck,href:"/portal/homework"},{label:"Timetable",key:"admin-timetable",icon:Clock3,href:"/portal/timetable"},{label:"School content",key:"content",icon:Settings,href:"/portal/content"},{label:"Forms builder",key:"forms",icon:ClipboardList,href:"/portal/forms"},{label:"Gallery",key:"gallery",icon:Image,href:"/portal/gallery"},{label:"Operations & reports",key:"operations",icon:BarChart3,href:"/portal/operations"}]:[];
+ const communication:PortalNavItem[]=isAdministrator(role)?[{label:"Announcements",key:"admin-announcements",icon:Megaphone,href:"/portal/announcements"},{label:"Messages",key:"admin-messages",icon:MessageSquare,href:"/portal/messages"},{label:"Notifications",key:"admin-notifications",icon:Bell,href:"/portal/notifications"}]:[];
+ const system:PortalNavItem[]=isAdministrator(role)?[{label:"School settings",key:"settings",icon:Settings,href:"/portal/settings"},{label:"Audit history",key:"audit",icon:ShieldCheck,href:"/portal/audit"}]:[];
  return{primary,management,communication,system};
 }
 export function PortalLayout({role,children}:{role:AppRole;children:ReactNode}){
