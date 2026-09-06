@@ -14,7 +14,7 @@ export async function listPublished(type: "news_articles" | "events", page = 0, 
   const client = getSupabase();
   const query = type === "news_articles"
     ? client.from("news_articles").select("*", { count: "exact" }).eq("status", "Published").order("published_at", { ascending: false })
-    : client.from("events").select("*", { count: "exact" }).order("starts_at", { ascending: true });
+    : client.from("events").select("*", { count: "exact" }).eq("status", "PUBLISHED").order("starts_at", { ascending: true });
   const { data, error, count } = await query.range(page * size, page * size + size - 1);
   if (error) throw error;
   return { data: (data ?? []) as Record<string, unknown>[], count: count ?? 0 };
