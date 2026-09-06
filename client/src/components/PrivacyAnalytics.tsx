@@ -1,0 +1,6 @@
+import { useEffect } from "react";
+import { getSupabase } from "@/lib/supabase";
+
+const SESSION_KEY="menwe:analytics-session";
+function sessionKey(){if(typeof window==="undefined")return "server";const existing=sessionStorage.getItem(SESSION_KEY);if(existing)return existing;const value=typeof crypto!=="undefined"&&"randomUUID" in crypto?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;sessionStorage.setItem(SESSION_KEY,value);return value;}
+export default function PrivacyAnalytics(){useEffect(()=>{const path=window.location.pathname;if(path.startsWith("/portal")||path.startsWith("/login"))return;const timer=window.setTimeout(()=>{void getSupabase().from("site_analytics").insert({path,event_type:"page_view",session_key:sessionKey(),referrer:document.referrer.slice(0,1000)});},300);return()=>window.clearTimeout(timer);},[]);return null;}
