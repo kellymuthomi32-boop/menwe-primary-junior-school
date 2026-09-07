@@ -28,10 +28,35 @@ export default function ReportCardButton({ userId }: { userId?: string }) {
       const present = attendance.filter(x => x.status === "Present").length;
       const absent = attendance.filter(x => x.status === "Absent").length;
       const late = attendance.filter(x => x.status === "Late").length;
-      const html = `<!doctype html><html><head><title>Menwe CBC Report Card - ${student.name}</title><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#061229;font-size:11px}h1,h2,p{margin:0}.header{text-align:center;border-bottom:3px solid #D89B28;padding-bottom:10px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.box{border:1px solid #ddd;border-radius:8px;padding:8px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background:#f5f3ee}.remarks{margin-top:10px}.footer{margin-top:14px;border-top:1px solid #ddd;padding-top:8px;font-size:9px}@media print{button{display:none}}</style></head><body><div class="header"><h1>Menwe Primary & Junior School</h1><p>Meru Central, South Imenti, Igoki</p><p>CBC Learner Assessment Report</p></div><div class="meta"><div class="box"><b>Learner:</b> ${student.name}</div><div class="box"><b>Admission No:</b> ${student.admission_number}</div><div class="box"><b>UPI:</b> ${student.upi_number}</div><div class="box"><b>Report Date:</b> ${new Date().toLocaleDateString("en-KE")}</div></div><h2>CBC Learning Areas</h2><table><thead><tr><th>Learning Area</th><th>Rubric</th><th>Term</th><th>Teacher Remarks</th></tr></thead><tbody>${grades.map(x => `<tr><td>${x.learning_area}</td><td><b>${x.rubric_score}</b> — ${rubric[x.rubric_score]}</td><td>${x.term}</td><td>${x.teacher_remarks ?? "—"}</td></tr>`).join("") || '<tr><td colspan="4">No assessment records available.</td></tr>'}</tbody></table><div class="meta"><div class="box"><b>Attendance — Present:</b> ${present}</div><div class="box"><b>Absent:</b> ${absent}</div><div class="box"><b>Late:</b> ${late}</div><div class="box"><b>Total Recorded:</b> ${attendance.length}</div></div><div class="remarks"><b>School Remarks:</b> Learner progress is reported using the Competency-Based Curriculum assessment framework. Please contact the class teacher for detailed guidance.</div><div class="footer">Official school record • Menwe Primary & Junior School • Igoki, Abogeta Division, Meru Central District, Eastern Province • South Imenti Constituency</div><script>window.onload=()=>window.print()</script></body></html>`;
-      const w = window.open("", "_blank", "noopener,noreferrer");
-      if (!w) throw new Error("Printing was blocked by your browser. Please allow pop-ups and try again.");
-      w.document.write(html); w.document.close();
+      const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>\"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char] ?? char);
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Menwe CBC Report Card - ${escapeHtml(student.name)}</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#061229;background:#fff;font-size:11px;margin:0}h1,h2,p{margin:0}.header{text-align:center;border-bottom:3px solid #D89B28;padding-bottom:10px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.box{border:1px solid #ddd;border-radius:8px;padding:8px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background:#f5f3ee}.remarks{margin-top:10px}.footer{margin-top:14px;border-top:1px solid #ddd;padding-top:8px;font-size:9px}@media print{button{display:none!important}}</style></head><body><div class="header"><h1>Menwe Primary & Junior School</h1><p>Meru Central, South Imenti, Igoki</p><p>CBC Learner Assessment Report</p></div><div class="meta"><div class="box"><b>Learner:</b> ${escapeHtml(student.name)}</div><div class="box"><b>Admission No:</b> ${escapeHtml(student.admission_number)}</div><div class="box"><b>UPI:</b> ${escapeHtml(student.upi_number)}</div><div class="box"><b>Report Date:</b> ${escapeHtml(new Date().toLocaleDateString("en-KE"))}</div></div><h2>CBC Learning Areas</h2><table><thead><tr><th>Learning Area</th><th>Rubric</th><th>Term</th><th>Teacher Remarks</th></tr></thead><tbody>${grades.map(x => `<tr><td>${escapeHtml(x.learning_area)}</td><td><b>${escapeHtml(x.rubric_score)}</b> — ${escapeHtml(rubric[x.rubric_score])}</td><td>${escapeHtml(x.term)}</td><td>${escapeHtml(x.teacher_remarks ?? "—")}</td></tr>`).join("") || '<tr><td colspan="4">No assessment records available.</td></tr>'}</tbody></table><div class="meta"><div class="box"><b>Attendance — Present:</b> ${present}</div><div class="box"><b>Absent:</b> ${absent}</div><div class="box"><b>Late:</b> ${late}</div><div class="box"><b>Total Recorded:</b> ${attendance.length}</div></div><div class="remarks"><b>School Remarks:</b> Learner progress is reported using the Competency-Based Curriculum assessment framework. Please contact the class teacher for detailed guidance.</div><div class="footer">Official school record • Menwe Primary & Junior School • Igoki, Abogeta Division, Meru Central District, Eastern Province • South Imenti Constituency</div></body></html>`;
+
+      const iframe = document.createElement("iframe");
+      iframe.setAttribute("title", "Printable report card");
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.style.opacity = "0";
+      document.body.appendChild(iframe);
+      const frameWindow = iframe.contentWindow;
+      const frameDocument = iframe.contentDocument;
+      if (!frameWindow || !frameDocument) { iframe.remove(); throw new Error("The print preview could not be prepared."); }
+      frameDocument.open();
+      frameDocument.write(html);
+      frameDocument.close();
+      await new Promise<void>(resolve => {
+        if (frameDocument.readyState === "complete") resolve();
+        else iframe.addEventListener("load", () => resolve(), { once: true });
+      });
+      window.setTimeout(() => {
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(() => iframe.remove(), 1000);
+      }, 100);
     } catch (e) { setMessage(e instanceof Error ? e.message : "Unable to prepare the report card."); }
     finally { setBusy(false); }
   };
