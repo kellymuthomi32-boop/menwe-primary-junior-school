@@ -7,7 +7,7 @@ import { PortalLayout } from "@/components/PortalLayout";
 
 type Row = Record<string, any>;
 const input = "min-h-11 w-full rounded-xl border border-[var(--ink)]/12 bg-white px-3.5 text-sm outline-none focus:border-[var(--gold)] focus:ring-4 focus:ring-[var(--gold)]/10";
-const roles = ["SUPER_ADMIN", "ADMIN", "TEACHER", "PARENT", "STUDENT"];
+const roles = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI", "TEACHER", "PARENT", "STUDENT"];
 
 export default function AdminAnnouncementsPage() {
   const { user, profile, loading: authLoading } = useSchoolAuth();
