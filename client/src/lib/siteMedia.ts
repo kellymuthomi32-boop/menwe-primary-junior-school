@@ -16,6 +16,27 @@ export type SiteMedia = {
 
 const MEDIA_TIMEOUT_MS = 8_000;
 
+const VERIFIED_PUBLIC_MEDIA_FALLBACKS: Record<string, Pick<SiteMedia, "image_url" | "alt_text" | "label" | "section" | "mime_type" | "byte_size" | "updated_at">> = {
+  homepage_hero_1: {
+    image_url: "https://zpmrwdvtchblgntnaloh.supabase.co/storage/v1/object/public/public-media/site-media/homepage_hero_1/714a8da9-5f94-4438-944c-0c65e8ead8d5.jpeg",
+    alt_text: "Menwe learners in a learning environment",
+    label: "Homepage hero — learning",
+    section: "homepage",
+    mime_type: "image/jpeg",
+    byte_size: 228568,
+    updated_at: "2026-09-05T10:37:34.305019+00:00",
+  },
+  homepage_hero_2: {
+    image_url: "https://zpmrwdvtchblgntnaloh.supabase.co/storage/v1/object/public/public-media/site-media/homepage_hero_2/85b56186-c249-45db-8ea8-39c3e10d2042.jpeg",
+    alt_text: "Menwe school community",
+    label: "Homepage hero — community",
+    section: "homepage",
+    mime_type: "image/jpeg",
+    byte_size: 228568,
+    updated_at: "2026-09-05T10:39:46.041648+00:00",
+  },
+};
+
 export function cacheBustedUrl(url: string | null | undefined, version?: string | null) {
   if (!url) return null;
   try {
@@ -55,7 +76,6 @@ export function useSiteMedia(keys?: string[]) {
   const keyString = keys?.join(",") ?? "";
   const [media, setMedia] = useState<Record<string, SiteMedia>>({});
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     let active = true;
     const db = getSupabase();
@@ -64,7 +84,24 @@ export function useSiteMedia(keys?: string[]) {
         const rows = await fetchSiteMedia(keys);
         if (active) setMedia(Object.fromEntries(rows.map(row => [row.media_key, row])));
       } catch {
-        if (active) setMedia({});
+        if (active) {
+          const fallbackEntries = (keys ?? [])
+            .map(key => [key, VERIFIED_PUBLIC_MEDIA_FALLBACKS[key]] as const)
+            .filter((entry): entry is readonly [string, NonNullable<typeof entry[1]>] => Boolean(entry[1]))
+            .map(([key, fallback]) => [key, {
+              id: `verified-fallback-${key}`,
+              media_key: key,
+              image_url: fallback.image_url,
+              storage_key: null,
+              alt_text: fallback.alt_text,
+              label: fallback.label,
+              section: fallback.section,
+              mime_type: fallback.mime_type,
+              byte_size: fallback.byte_size,
+              updated_at: fallback.updated_at,
+            } satisfies SiteMedia]);
+          setMedia(Object.fromEntries(fallbackEntries));
+        }
       } finally {
         if (active) setLoading(false);
       }

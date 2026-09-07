@@ -8,11 +8,11 @@ type Knowledge = { news: { title: string; excerpt: string }[]; events: { title: 
 
 const QUICK_QUESTIONS = ["How do I apply?", "What classes do you offer?", "How much are the fees?", "What is happening soon?"];
 const baseKnowledge = {
-  admissions: { answer: "You can start an application online from the Admissions page. The school team can guide you through the requirements and next steps.", links: [{ label: "Open Admissions", path: "/admissions" }, { label: "Contact the school", path: "/contact" }] },
-  academics: { answer: "Menwe provides Early Childhood & Primary learning, Junior Secondary School pathways, and co-curricular and talent opportunities including sport, music, STEM and leadership.", links: [{ label: "Explore Academics", path: "/academics" }, { label: "Discover School Life", path: "/school-life" }] },
-  contact: { answer: "The school admissions hotline is 0142550882. You can also use the Contact page to send the school a message.", links: [{ label: "Open Contact", path: "/contact" }] },
-  location: { answer: "Menwe Primary & Junior School is in the Kionyo area. The school's postal address is P.O. Box 19, Kionyo.", links: [{ label: "Get contact details", path: "/contact" }] },
-  portal: { answer: "The secure portal is for authorised school users such as staff and families. Use the portal login to access your workspace.", links: [{ label: "Open Portal", path: "/portal/login" }] },
+  admissions: { text: "You can start an application online from the Admissions page. The school team can guide you through the requirements and next steps.", links: [{ label: "Open Admissions", path: "/admissions" }, { label: "Contact the school", path: "/contact" }] },
+  academics: { text: "Menwe provides Early Childhood & Primary learning, Junior Secondary School pathways, and co-curricular and talent opportunities including sport, music, STEM and leadership.", links: [{ label: "Explore Academics", path: "/academics" }, { label: "Discover School Life", path: "/school-life" }] },
+  contact: { text: "The school admissions hotline is 0142550882. You can also use the Contact page to send the school a message.", links: [{ label: "Open Contact", path: "/contact" }] },
+  location: { text: "Menwe Primary & Junior School is in the Kionyo area. The school's postal address is P.O. Box 19, Kionyo.", links: [{ label: "Get contact details", path: "/contact" }] },
+  portal: { text: "The secure portal is for authorised school users such as staff and families. Use the portal login to access your workspace.", links: [{ label: "Open Portal", path: "/portal/login" }] },
 };
 
 function normalize(value: string) { return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim(); }

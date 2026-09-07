@@ -1,4 +1,4 @@
-import { Download, FileText, Loader2, Printer, Save } from "lucide-react";
+import { FileText, Loader2, Printer } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -7,179 +7,142 @@ import { PortalLayout } from "@/components/PortalLayout";
 type Row = Record<string, any>;
 type SubjectPair = Row & { id?: any; code?: any; name?: any; scId?: any; lId?: any };
 const text = (v: unknown, fallback = "—") => v == null || v === "" ? fallback : String(v);
-const nameOf = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ") || text(s.admission_number, "Learner");
+const nameOf = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 
-const LOWER_PRIMARY_LEVELS = [
-  { code: "EE1", level: 8, min: 90, max: 100, points: 8, label: "Exceptional" },
-  { code: "EE2", level: 7, min: 75, max: 89, points: 7, label: "Very Good" },
-  { code: "ME1", level: 6, min: 58, max: 74, points: 6, label: "Good" },
-  { code: "ME2", level: 5, min: 41, max: 57, points: 5, label: "Fair" },
-  { code: "AE1", level: 4, min: 31, max: 40, points: 4, label: "Needs Improvement" },
-  { code: "AE2", level: 3, min: 21, max: 30, points: 3, label: "Below Average" },
-  { code: "BE1", level: 2, min: 11, max: 20, points: 2, label: "Well Below Average" },
-  { code: "BE2", level: 1, min: 1, max: 10, points: 1, label: "Minimal" },
-] as const;
+const printStyles = `
+.marksheet-print {
+  border: 1px solid rgba(6,18,41,.10);
+  border-radius: 1.5rem;
+  box-shadow: 0 18px 50px rgba(6,18,41,.08);
+}
+.marksheet-print > header {
+  position: relative;
+  overflow: hidden;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(216,155,40,.35) !important;
+  border-radius: 1.15rem 1.15rem 0 0;
+  padding: 1.25rem 1.25rem .9rem !important;
+  background: linear-gradient(135deg, #061229 0%, #102143 72%, #17315b 100%);
+  color: #fff;
+}
+.marksheet-print > header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #D89B28;
+}
+.marksheet-print > header h2 { letter-spacing: .08em; }
+.marksheet-print > header p { color: rgba(255,255,255,.72); }
+.marksheet-print > header h3 { color: #fff; letter-spacing: .025em; }
+.marksheet-print > header p:last-child { color: #D89B28; }
+.marksheet-print table { border-color: rgba(6,18,41,.12); }
+.marksheet-print thead tr:first-child th {
+  background: #061229;
+  color: #fff;
+  border-color: rgba(255,255,255,.25) !important;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+.marksheet-print thead tr:nth-child(2) th {
+  background: rgba(216,155,40,.16);
+  color: #061229;
+  font-weight: 800;
+}
+.marksheet-print tbody tr:nth-child(even) { background: rgba(6,18,41,.025); }
+.marksheet-print tbody tr:hover { background: rgba(216,155,40,.09); }
+.marksheet-print tbody td { border-color: rgba(6,18,41,.10) !important; }
+.marksheet-print tbody td:nth-child(3) { color: #061229; }
+.marksheet-print tbody td:nth-last-child(-n+2) {
+  background: rgba(216,155,40,.07);
+  font-weight: 800;
+}
 
-const lowerPrimaryPerformance = (score: number, maximum: number) => {
-  if (!Number.isFinite(score) || !Number.isFinite(maximum) || maximum <= 0) return "";
-  const percentage = Math.max(0, Math.min(100, score / maximum * 100));
-  if (percentage === 0) return "";
-  const match = LOWER_PRIMARY_LEVELS.find(x => percentage >= x.min && percentage <= x.max);
-  return match ? `${match.code} (L${match.level})` : "";
-};
+@media print {
+  @page { size: A4 landscape; margin: 5mm; }
+  html, body { width: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  body * { visibility: hidden; }
+  .marksheet-print, .marksheet-print * { visibility: visible; }
+  .marksheet-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .marksheet-print > header {
+    padding: 2.5mm 2mm 2.2mm !important;
+    border-radius: 0 !important;
+    background: #061229 !important;
+    color: #fff !important;
+  }
+  .marksheet-print > header::after { height: 1mm !important; background: #D89B28 !important; }
+  .marksheet-print header h2 { margin: 0 !important; font-size: 13pt !important; line-height: 1.05 !important; letter-spacing: .07em !important; }
+  .marksheet-print header p { margin: 1mm 0 0 !important; font-size: 6pt !important; line-height: 1.1 !important; }
+  .marksheet-print header h3 { margin: 1mm 0 0 !important; font-size: 8pt !important; line-height: 1.1 !important; }
+  .marksheet-print table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    margin-top: 2mm !important;
+    border-collapse: collapse !important;
+    font-size: 5.5pt !important;
+  }
+  .marksheet-print th, .marksheet-print td {
+    padding: 0.65mm 0.45mm !important;
+    line-height: 1 !important;
+    height: 3.7mm !important;
+    max-height: 3.7mm !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+  .marksheet-print th:nth-child(1), .marksheet-print td:nth-child(1) { width: 7mm !important; }
+  .marksheet-print th:nth-child(2), .marksheet-print td:nth-child(2) { width: 22mm !important; }
+  .marksheet-print th:nth-child(3), .marksheet-print td:nth-child(3) { width: 38mm !important; }
+  .marksheet-print th:nth-child(4), .marksheet-print td:nth-child(4) { width: 9mm !important; }
+  .marksheet-print th:nth-last-child(2), .marksheet-print td:nth-last-child(2) { width: 15mm !important; }
+  .marksheet-print th:last-child, .marksheet-print td:last-child { width: 16mm !important; }
+  .marksheet-print thead { display: table-header-group; }
+  .marksheet-print tr { break-inside: avoid; page-break-inside: avoid; }
+  .marksheet-print tbody tr { height: 3.7mm !important; }
+  .marksheet-print > p { margin-top: 1.5mm !important; font-size: 5pt !important; line-height: 1 !important; }
+  .marksheet-print tbody tr:nth-child(even) { background: #fafafa !important; }
+  .marksheet-print tbody td:nth-last-child(-n+2) { background: #f7f0df !important; }
+}
+`;
 
 export default function ClassMarksheetPage() {
   const { user, profile } = useSchoolAuth();
-  const [years, setYears] = useState<Row[]>([]), [terms, setTerms] = useState<Row[]>([]), [classes, setClasses] = useState<Row[]>([]), [subjects, setSubjects] = useState<Row[]>([]), [exams, setExams] = useState<Row[]>([]), [rows, setRows] = useState<Row[]>([]);
-  const [yearId, setYearId] = useState(""), [termId, setTermId] = useState(""), [classId, setClassId] = useState("");
-  const [teacherClassIds, setTeacherClassIds] = useState<string[]>([]), [teacherId, setTeacherId] = useState("");
-  const [loading, setLoading] = useState(true), [generating, setGenerating] = useState(false), [saving, setSaving] = useState<string | null>(null), [message, setMessage] = useState<string | null>(null);
-  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
+  const [years,setYears]=useState<Row[]>([]),[terms,setTerms]=useState<Row[]>([]),[classes,setClasses]=useState<Row[]>([]),[subjects,setSubjects]=useState<Row[]>([]),[exams,setExams]=useState<Row[]>([]),[rows,setRows]=useState<Row[]>([]);
+  const [yearId,setYearId]=useState(""),[termId,setTermId]=useState(""),[classId,setClassId]=useState(""),[teacherClassIds,setTeacherClassIds]=useState<string[]>([]),[loading,setLoading]=useState(true),[generating,setGenerating]=useState(false),[message,setMessage]=useState<string|null>(null);
+  const admin=["SUPER_ADMIN","ADMIN","HEAD_OF_INSTITUTION","DEPUTY_HOI"].includes(profile?.role??"");
 
-  useEffect(() => {
-    void (async () => {
-      if (!user || (!admin && profile?.role !== "TEACHER")) { setLoading(false); return; }
-      try {
-        const db = getSupabase();
-        if (!admin) {
-          const tr = await db.from("teachers").select("id").eq("profile_id", user.id).maybeSingle();
-          if (tr.error) throw tr.error;
-          if (!tr.data) throw new Error("Your teacher record is not linked yet.");
-          setTeacherId(String(tr.data.id));
-          const ta = await db.from("teacher_assignments").select("class_id").eq("teacher_id", tr.data.id);
-          if (ta.error) throw ta.error;
-          setTeacherClassIds((ta.data ?? []).map(x => String(x.class_id)));
-        } else { setTeacherId(""); setTeacherClassIds([]); }
-        const [y, t, c, s] = await Promise.all([
-          db.from("academic_years").select("id,name,starts_on,ends_on,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
-          db.from("terms").select("id,academic_year_id,name,starts_on,ends_on,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
-          db.from("classes").select("id,academic_year_id,code,name,level,status").eq("status", "ACTIVE").order("name"),
-          db.from("subjects").select("id,code,name,status").eq("status", "ACTIVE").order("name"),
-        ]);
-        for (const r of [y, t, c, s]) if (r.error) throw r.error;
-        setYears((y.data ?? []) as Row[]); setTerms((t.data ?? []) as Row[]); setClasses((c.data ?? []) as Row[]); setSubjects((s.data ?? []) as Row[]);
-        setYearId(String(y.data?.find(x => x.is_current)?.id ?? y.data?.[0]?.id ?? ""));
-      } catch (e) { setMessage(e instanceof Error ? e.message : "Marksheet setup could not be loaded."); }
-      finally { setLoading(false); }
-    })();
-  }, [admin, profile?.role, user]);
+  useEffect(()=>{void(async()=>{if(!user||(!admin&&profile?.role!=="TEACHER"))return;try{const db=getSupabase();let teacherId="";if(!admin){const tr=await db.from("teachers").select("id").eq("profile_id",user.id).maybeSingle();if(tr.error)throw tr.error;if(!tr.data)throw new Error("Your teacher record is not linked yet.");teacherId=String(tr.data.id);const ta=await db.from("teacher_assignments").select("class_id").eq("teacher_id",teacherId);if(ta.error)throw ta.error;setTeacherClassIds((ta.data??[]).map(x=>String(x.class_id)));}else setTeacherClassIds([]);const[y,t,c,s]=await Promise.all([db.from("academic_years").select("id,name,starts_on,ends_on,is_current,status").eq("status","ACTIVE").order("starts_on",{ascending:false}),db.from("terms").select("id,academic_year_id,name,starts_on,ends_on,is_current,status").eq("status","ACTIVE").order("starts_on",{ascending:false}),db.from("classes").select("id,academic_year_id,code,name,level,status").eq("status","ACTIVE").order("name"),db.from("subjects").select("id,code,name,status").eq("status","ACTIVE").order("name")]);for(const r of[y,t,c,s])if(r.error)throw r.error;setYears((y.data??[]) as Row[]);setTerms((t.data??[]) as Row[]);setClasses((c.data??[]) as Row[]);setSubjects((s.data??[]) as Row[]);setYearId(String(y.data?.find(x=>x.is_current)?.id??y.data?.[0]?.id??""));}catch(e){setMessage(e instanceof Error?e.message:"Marksheet setup could not be loaded.")}finally{setLoading(false)}})()},[admin,profile?.role,user]);
+  const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
+  const visibleClasses=useMemo(()=>classes.filter(c=>(!yearId||String(c.academic_year_id)===yearId)&&(admin||teacherClassIds.includes(String(c.id)))),[classes,yearId,admin,teacherClassIds]);
+  const titleClass=classes.find(c=>String(c.id)===classId); const selectedTerm=terms.find(t=>String(t.id)===termId);
 
-  const visibleTerms = useMemo(() => terms.filter(t => !yearId || String(t.academic_year_id) === yearId), [terms, yearId]);
-  const visibleClasses = useMemo(() => classes.filter(c => (!yearId || String(c.academic_year_id) === yearId) && (admin || teacherClassIds.includes(String(c.id)))), [classes, yearId, admin, teacherClassIds]);
-  const titleClass = classes.find(c => String(c.id) === classId), selectedTerm = terms.find(t => String(t.id) === termId);
+  const generate=async()=>{if(!classId||!yearId||!termId){setMessage("Select academic year, term and class first.");return}setGenerating(true);setMessage(null);try{const db=getSupabase();if(!admin){const tr=await db.from("teachers").select("id").eq("profile_id",user?.id??"").maybeSingle();if(tr.error)throw tr.error;if(!tr.data)throw new Error("Your teacher record is not linked yet.");const ta=await db.from("teacher_assignments").select("class_id").eq("teacher_id",tr.data.id).eq("class_id",classId);if(ta.error)throw ta.error;if(!(ta.data??[]).length)throw new Error("You are not assigned to this class.")}
+    const en=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");if(en.error)throw en.error;const ids=[...new Set((en.data??[]).map(x=>String(x.student_id)))];if(!ids.length){setRows([]);setExams([]);setMessage("No active learners are enrolled in this class for the selected academic year.");return}
+    const[s,r,e]=await Promise.all([db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id",ids).order("first_name").order("last_name"),db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on),subjects(id,code,name)").eq("exams.term_id",termId).eq("exams.class_id",classId).in("student_id",ids),db.from("exams").select("id,name,exam_type,starts_on,ends_on").eq("term_id",termId).eq("class_id",classId).order("starts_on")]);for(const q of[s,r,e])if(q.error)throw q.error;setExams((e.data??[]) as Row[]);const resultRows=(r.data??[]) as Row[];const byStudent=new Map<string,Row>();(s.data??[]).forEach(student=>byStudent.set(String(student.id),{...student,results:resultRows.filter(x=>String(x.student_id)===String(student.id))}));setRows([...byStudent.values()]);if(!resultRows.length)setMessage("No persisted assessment results exist for this term and class. Empty marks are shown; no scores are invented.");
+  }catch(e){setRows([]);setMessage(e instanceof Error?e.message:"The class marksheet could not be generated.")}finally{setGenerating(false)}};
 
-  const generate = async () => {
-    if (!classId || !yearId || !termId) { setMessage("Select academic year, term and class first."); return; }
-    setGenerating(true); setMessage(null);
-    try {
-      const db = getSupabase();
-      if (!admin) {
-        if (!teacherId) throw new Error("Your teacher record is not linked yet.");
-        const ta = await db.from("teacher_assignments").select("class_id").eq("teacher_id", teacherId).eq("class_id", classId);
-        if (ta.error) throw ta.error;
-        if (!(ta.data ?? []).length) throw new Error("You are not assigned to this class.");
-      }
-      const en = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("academic_year_id", yearId).eq("status", "ACTIVE");
-      if (en.error) throw en.error;
-      const ids = [...new Set((en.data ?? []).map(x => String(x.student_id)))];
-      if (!ids.length) { setRows([]); setExams([]); setMessage("No active learners are enrolled in this class for the selected academic year."); return; }
-      const [s, r, e] = await Promise.all([
-        db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id", ids).order("first_name").order("last_name"),
-        db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on),subjects(id,code,name)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", ids),
-        db.from("exams").select("id,name,exam_type,starts_on,ends_on").eq("term_id", termId).eq("class_id", classId).order("starts_on"),
-      ]);
-      for (const q of [s, r, e]) if (q.error) throw q.error;
-      const studentRows = (s.data ?? []) as Row[], resultRows = (r.data ?? []) as Row[];
-      const byStudent = new Map<string, Row>();
-      studentRows.forEach(student => byStudent.set(String(student.id), { ...student, results: [] }));
-      resultRows.forEach(result => byStudent.get(String(result.student_id))?.results.push(result));
-      setExams((e.data ?? []) as Row[]); setRows([...byStudent.values()]);
-      if (!resultRows.length) setMessage(`${studentRows.length} learner${studentRows.length === 1 ? "" : "s"} loaded. No marks entered yet — the cells are ready for entry.`);
-    } catch (e) { setRows([]); setExams([]); setMessage(e instanceof Error ? e.message : "The class marksheet could not be generated."); }
-    finally { setGenerating(false); }
-  };
-
-  const subjectPairs = useMemo<SubjectPair[]>(() => subjects.map(s => {
-    const relevant = exams.filter(e => String(e.exam_type ?? "").toUpperCase().includes(String(s.code ?? "").toUpperCase()) || String(e.name ?? "").toUpperCase().includes(String(s.code ?? "").toUpperCase()) || String(e.name ?? "").toUpperCase().includes(String(s.name ?? "").toUpperCase()));
-    const sc = relevant.find(e => /\bSC\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${e.name} ${e.exam_type}`));
-    const l = relevant.find(e => /\bL\b|LISTENING|ORAL|LANGUAGE/i.test(`${e.name} ${e.exam_type}`));
-    return { ...s, scId: sc?.id, lId: l?.id };
-  }), [exams, subjects]);
-
-  const resultFor = (row: Row, subjectId: string, examId?: string) => row.results?.find((x: Row) => String(x.subject_id) === subjectId && String(x.exam_id) === String(examId));
-  const scoreFor = (row: Row, subjectId: string, examId?: string) => { const r = resultFor(row, subjectId, examId); return r?.score == null ? "" : String(r.score); };
-  const localTotals = (row: Row) => row.results?.reduce((sum: number, r: Row) => sum + (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), 0) ?? 0;
-  const localMaximum = (row: Row) => row.results?.reduce((sum: number, r: Row) => sum + (Number.isFinite(Number(r.maximum_score)) ? Number(r.maximum_score) : 0), 0) ?? 0;
-  const performanceFor = (row: Row) => lowerPrimaryPerformance(localTotals(row), localMaximum(row));
-
-  const updateLocalScore = (studentId: string, subjectId: string, examId: string, value: string) => setRows(prev => prev.map(row => {
-    if (String(row.id) !== studentId) return row;
-    const results = [...(row.results ?? [])], index = results.findIndex((x: Row) => String(x.subject_id) === subjectId && String(x.exam_id) === examId);
-    const next = { id: index >= 0 ? results[index].id : `draft-${studentId}-${subjectId}-${examId}`, exam_id: examId, student_id: studentId, subject_id: subjectId, score: value === "" ? 0 : Number(value), maximum_score: index >= 0 ? results[index].maximum_score : 100, grade: index >= 0 ? results[index].grade : null };
-    if (index >= 0) results[index] = { ...results[index], ...next }; else results.push(next);
-    return { ...row, results };
-  }));
-
-  const saveScore = async (row: Row, subject: SubjectPair, examId: string, value: string) => {
-    const key = `${row.id}-${subject.id}-${examId}`; setSaving(key); setMessage(null);
-    try {
-      const db = getSupabase(), exam = exams.find(e => String(e.id) === examId), existing = resultFor(row, String(subject.id), examId), raw = value.trim();
-      if (raw === "") {
-        if (existing?.id && !String(existing.id).startsWith("draft-")) { const del = await db.from("exam_results").delete().eq("id", existing.id); if (del.error) throw del.error; }
-        setRows(prev => prev.map(r => String(r.id) === String(row.id) ? { ...r, results: (r.results ?? []).filter((x: Row) => !(String(x.subject_id) === String(subject.id) && String(x.exam_id) === String(examId))) } : r)); setMessage("Mark cleared."); return;
-      }
-      const score = Number(raw), maximum = Number(existing?.maximum_score ?? 100);
-      if (!Number.isFinite(score) || score < 0 || score > maximum) throw new Error(`Enter a mark from 0 to ${maximum}.`);
-      const payload = { exam_id: examId, student_id: row.id, subject_id: subject.id, score, maximum_score: maximum, entered_by: admin ? null : teacherId };
-      const q = existing?.id && !String(existing.id).startsWith("draft-") ? await db.from("exam_results").update(payload).eq("id", existing.id).select("id,exam_id,student_id,subject_id,score,maximum_score,grade").single() : await db.from("exam_results").insert(payload).select("id,exam_id,student_id,subject_id,score,maximum_score,grade").single();
-      if (q.error) throw q.error;
-      setRows(prev => prev.map(r => String(r.id) === String(row.id) ? { ...r, results: [...(r.results ?? []).filter((x: Row) => !(String(x.subject_id) === String(subject.id) && String(x.exam_id) === String(examId))), q.data] } : r));
-      setMessage(`Saved ${text(exam?.name)} for ${nameOf(row)}.`);
-    } catch (e) { setMessage(e instanceof Error ? e.message : "The mark could not be saved."); await generate(); }
-    finally { setSaving(null); }
-  };
-
-  // PDF generation is intentionally loaded only when the user requests a download.
-  // Keeping jsPDF out of the static import graph prevents it from being preloaded on every public page.
-  const downloadPdf = async () => {
-    if (!rows.length || generating) return;
-    setGenerating(true);
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
-      const pageWidth = doc.internal.pageSize.getWidth(), pageHeight = doc.internal.pageSize.getHeight(), margin = 8, usableWidth = pageWidth - margin * 2;
-      const headers = ["No.", "Assessment No.", "Names", "Gender", ...subjectPairs.flatMap(s => [text(s.code || s.name), "L"]), "TOTAL", "PERF"];
-      const widths = [9, 25, 48, 17, ...subjectPairs.flatMap(() => [12, 12]), 20, 23], scale = usableWidth / widths.reduce((a, b) => a + b, 0), colWidths = widths.map(w => w * scale), lineHeight = 7;
-      let y = margin;
-      const drawHeader = () => {
-        doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.text("MENWE PRIMARY SCHOOL", pageWidth / 2, y, { align: "center" }); y += 7;
-        doc.setFontSize(9); doc.text("P.O. BOX 19, KIONYO, MERU | Email: menwejuniorss23@gmail.com", pageWidth / 2, y, { align: "center" }); y += 6;
-        doc.setFontSize(12); doc.text(`${text(titleClass?.name, "CLASS")} ${text(selectedTerm?.name, "TERM")} PERFORMANCE MARKSHEET YEAR ${text(years.find(x => String(x.id) === yearId)?.name, "2026")}`, pageWidth / 2, y, { align: "center" }); y += 7;
-        doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.text(`Assessments: ${exams.length ? exams.map(e => text(e.name)).join(" · ") : "No assessments recorded"}`, pageWidth / 2, y, { align: "center" }); y += 7;
-        let x = margin; doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
-        headers.forEach((h, i) => { doc.rect(x, y, colWidths[i], lineHeight); doc.text(h, x + colWidths[i] / 2, y + 4.7, { align: "center", maxWidth: colWidths[i] - 1 }); x += colWidths[i]; }); y += lineHeight;
-      };
-      drawHeader(); doc.setFont("helvetica", "normal"); doc.setFontSize(6.5);
-      rows.forEach((r, rowIndex) => {
-        if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; drawHeader(); }
-        let x = margin;
-        const values: string[] = [String(rowIndex + 1), text(r.admission_number, ""), nameOf(r), text(r.gender, ""), ...subjectPairs.flatMap(s => [scoreFor(r, String(s.id), s.scId) || "", scoreFor(r, String(s.id), s.lId) || ""]), localTotals(r) ? String(localTotals(r)) : "", performanceFor(r)];
-        values.forEach((v, i) => { doc.rect(x, y, colWidths[i], lineHeight); doc.text(v, x + colWidths[i] / 2, y + 4.7, { align: "center", maxWidth: colWidths[i] - 1 }); x += colWidths[i]; }); y += lineHeight;
-      });
-      doc.setFontSize(6); doc.text("8-level scale: EE1 L8 90–100 · EE2 L7 75–89 · ME1 L6 58–74 · ME2 L5 41–57 · AE1 L4 31–40 · AE2 L3 21–30 · BE1 L2 11–20 · BE2 L1 1–10", margin, pageHeight - 5);
-      doc.save(`${text(titleClass?.name, "class")}-${text(selectedTerm?.name, "term")}-marksheet.pdf`.replace(/\s+/g, "-"));
-    } catch (e) { setMessage(e instanceof Error ? e.message : "The PDF could not be generated."); }
-    finally { setGenerating(false); }
-  };
-
-  const examLabel = exams.length ? exams.map(e => text(e.name)).join(" · ") : "No assessments recorded";
-  if (loading) return <PortalLayout role={profile?.role ?? "TEACHER"}><main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-[var(--accent)]" /></main></PortalLayout>;
-
-  return <PortalLayout role={profile?.role ?? "TEACHER"}><main className="mx-auto w-full max-w-[1700px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-    <section className="menwe-card rounded-[1.75rem] p-5 print:hidden sm:p-7"><div className="flex flex-wrap items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.14em] text-[var(--gold)]"><FileText size={15} /> Class marksheet</span><h1 className="mt-3 font-serif text-3xl font-semibold">Assessment marksheet</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Learners appear even before marks are entered. Type marks directly in the cells; totals and the 8-level performance update automatically.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void downloadPdf()} disabled={!rows.length || generating} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-3 text-sm font-bold text-white disabled:opacity-40"><Download size={16} /> {generating ? "Preparing PDF…" : "Download PDF"}</button><button type="button" onClick={() => window.print()} disabled={!rows.length} className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold disabled:opacity-40"><Printer size={16} /> Print / Save PDF</button></div></div>
-      <div className="mt-6 grid gap-3 md:grid-cols-3"><select value={yearId} onChange={e => { setYearId(e.target.value); setTermId(""); setClassId(""); }} className="min-h-12 rounded-xl border px-3"><option value="">Academic year</option>{years.map(y => <option key={text(y.id)} value={text(y.id)}>{text(y.name)}</option>)}</select><select value={termId} onChange={e => setTermId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Term</option>{visibleTerms.map(t => <option key={text(t.id)} value={text(t.id)}>{text(t.name)}</option>)}</select><select value={classId} onChange={e => setClassId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Class</option>{visibleClasses.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)}</option>)}</select></div>
-      <button type="button" onClick={() => void generate()} disabled={generating || !classId || !termId} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{generating ? <Loader2 size={16} className="animate-spin" /> : null}{generating ? "Loading…" : "Open marksheet"}</button>{message && <p role="status" className="mt-4 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold">{message}</p>}
-    </section>
-    {classId && <section className="marksheet-print overflow-x-auto rounded-none bg-white p-3 sm:p-6 print:p-0"><header className="border-b-2 border-black pb-3 text-center"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY SCHOOL</h2><p className="text-xs font-semibold">P.O. BOX 19, KIONYO, MERU | Email: menwejuniorss23@gmail.com</p><h3 className="mt-2 text-lg font-black uppercase">{text(titleClass?.name, "CLASS")} {text(selectedTerm?.name, "TERM")} PERFORMANCE MARKSHEET YEAR {text(years.find(y => String(y.id) === yearId)?.name, "2026")}</h3><p className="mt-1 text-[10px] font-semibold">Assessments: {examLabel}</p></header><div className="mt-3 grid grid-cols-2 gap-1 text-[9px] sm:grid-cols-4 print:grid-cols-4">{LOWER_PRIMARY_LEVELS.map(x => <div key={x.code} className="border border-black px-1 py-0.5"><b>{x.code}</b> = L{x.level} · {x.min}–{x.max}% · {x.points} pts</div>)}</div><table className="mt-4 w-full min-w-[1100px] border-collapse text-[10px] print:min-w-0"><thead><tr><th rowSpan={2} className="border border-black p-1">No.</th><th rowSpan={2} className="border border-black p-1">Assessment No.</th><th rowSpan={2} className="border border-black p-1 text-left">Names</th><th rowSpan={2} className="border border-black p-1">Gender</th>{subjectPairs.map(s => <th key={text(s.id)} colSpan={2} className="border border-black p-1">{text(s.code) || text(s.name)}</th>)}<th rowSpan={2} className="border border-black p-1">TOTAL MARKS</th><th rowSpan={2} className="border border-black p-1">PERF LEVEL</th></tr><tr>{subjectPairs.map(s => <Fragment key={`head-${text(s.id)}`}><th className="border border-black p-1">SC</th><th className="border border-black p-1">L</th></Fragment>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={text(r.id)}><td className="border border-black p-1 text-center">{i + 1}</td><td className="border border-black p-1 font-semibold">{text(r.admission_number, "")}</td><td className="border border-black p-1 font-semibold">{nameOf(r)}</td><td className="border border-black p-1 text-center">{text(r.gender, "")}</td>{subjectPairs.map(s => <Fragment key={`${text(s.id)}-${i}`}>{[s.scId, s.lId].map((examId, idx) => { const result = examId ? resultFor(r, String(s.id), String(examId)) : null; const key = `${r.id}-${s.id}-${examId}`; return <td key={idx} className="border border-black p-1 text-center"><div className="flex items-center justify-center gap-1"><input aria-label={`${nameOf(r)} ${text(s.code || s.name)} ${idx === 0 ? "SC" : "L"} mark`} type="number" min="0" max={result?.maximum_score ?? 100} step="0.01" value={examId ? scoreFor(r, String(s.id), String(examId)) : ""} disabled={!examId || saving === key} onChange={e => examId && updateLocalScore(String(r.id), String(s.id), String(examId), e.target.value)} onBlur={e => examId && void saveScore(r, s, String(examId), e.target.value)} placeholder="—" className="w-14 rounded border border-transparent bg-transparent px-1 py-1 text-center font-semibold outline-none focus:border-[var(--gold)] focus:bg-[var(--gold)]/10 print:border-0" />{saving === key ? <Loader2 size={11} className="animate-spin print:hidden" /> : null}</div></td>; })}</Fragment>) }<td className="border border-black p-1 text-center font-bold">{r.results?.length ? localTotals(r) : ""}</td><td className="border border-black p-1 text-center font-bold">{performanceFor(r)}</td></tr>)}</tbody></table><div className="mt-3 flex items-center gap-2 text-[9px] print:hidden"><Save size={12} /> Type a mark, then leave the cell to save it. The total and performance level recalculate immediately.</div><p className="mt-3 text-[9px]">Lower Primary performance uses the supplied 8-level scale and the learner's total score against the total maximum marks. 0% has no level because the adopted scale begins at 1%.</p></section>}
-  </main></PortalLayout>;
+  const subjectPairs=useMemo<SubjectPair[]>(()=>subjects.map(s=>{const relevant=exams.filter(e=>String(e.exam_type??"").toUpperCase().includes(String(s.code??"").toUpperCase())||String(e.name??"").toUpperCase().includes(String(s.code??"").toUpperCase())||String(e.name??"").toUpperCase().includes(String(s.name??"").toUpperCase()));const sc=relevant.find(e=>/\bSC\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${e.name} ${e.exam_type}`));const l=relevant.find(e=>/\bL\b|LISTENING|ORAL|LANGUAGE/i.test(`${e.name} ${e.exam_type}`));return{...s,scId:sc?.id,lId:l?.id}}),[exams,subjects]);
+  const scoreFor=(row:Row,subjectId:string,examId?:string)=>{if(!examId)return"";const r=row.results?.find((x:Row)=>String(x.subject_id)===subjectId&&String(x.exams?.id)===String(examId));return r?.score==null?"":String(r.score)};
+  const totalFor=(row:Row)=>row.results?.reduce((sum:number,r:Row)=>sum+(Number.isFinite(Number(r.score))?Number(r.score):0),0)??0;
+  const examLabel=exams.length?exams.map(e=>text(e.name)).join(" · "):"No assessments recorded";
+  if(loading)return <PortalLayout role={profile?.role??"TEACHER"}><main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-[var(--accent)]"/></main></PortalLayout>;
+  return <PortalLayout role={profile?.role??"TEACHER"}><style>{printStyles}</style><main className="mx-auto w-full max-w-[1700px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><section className="menwe-card rounded-[1.75rem] p-5 print:hidden sm:p-7"><div className="flex items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.14em] text-[var(--gold)]"><FileText size={15}/> Class marksheet</span><h1 className="mt-3 font-serif text-3xl font-semibold">Assessment marksheet</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Real learner, gender and assessment records from Supabase. Empty scores remain empty.</p></div><button type="button" onClick={()=>window.print()} disabled={!rows.length} className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div><div className="mt-6 grid gap-3 md:grid-cols-3"><select value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("");setClassId("")}} className="min-h-12 rounded-xl border px-3"><option value="">Academic year</option>{years.map(y=><option key={text(y.id)} value={text(y.id)}>{text(y.name)}</option>)}</select><select value={termId} onChange={e=>setTermId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Term</option>{visibleTerms.map(t=><option key={text(t.id)} value={text(t.id)}>{text(t.name)}</option>)}</select><select value={classId} onChange={e=>setClassId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Class</option>{visibleClasses.map(c=><option key={text(c.id)} value={text(c.id)}>{text(c.name)}</option>)}</select></div><button type="button" onClick={()=>void generate()} disabled={generating||!classId||!termId} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{generating?<Loader2 size={16} className="animate-spin"/>:null}{generating?"Generating…":"Generate marksheet"}</button>{message&&<p role="status" className="mt-4 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold">{message}</p>}</section>{classId&&<section className="marksheet-print overflow-x-auto rounded-none bg-white p-3 sm:p-6 print:p-0"><header><h2 className="text-2xl font-black uppercase">MENWE PRIMARY SCHOOL</h2><p className="text-xs font-semibold">P.O. BOX 19, KIONYO, MERU | Email: menwejuniorss23@gmail.com</p><h3 className="mt-2 text-lg font-black uppercase">{text(titleClass?.name,"CLASS")} {text(selectedTerm?.name,"TERM")} PERFORMANCE MARKSHEET YEAR {text(years.find(y=>String(y.id)===yearId)?.name,"2026")}</h3><p className="mt-1 text-[10px] font-semibold">Assessments: {examLabel}</p></header><table className="mt-4 w-full min-w-[1100px] border-collapse text-[10px] print:min-w-0"><thead><tr><th rowSpan={2} className="border border-black p-1">No.</th><th rowSpan={2} className="border border-black p-1">Assessment No.</th><th rowSpan={2} className="border border-black p-1 text-left">Names</th><th rowSpan={2} className="border border-black p-1">Gender</th>{subjectPairs.map(s=><th key={text(s.id)} colSpan={2} className="border border-black p-1">{text(s.code)||text(s.name)}</th>)}<th rowSpan={2} className="border border-black p-1">TOTAL MARKS</th><th rowSpan={2} className="border border-black p-1">PERF LEVEL</th></tr><tr>{subjectPairs.map(s=><Fragment key={`head-${text(s.id)}`}><th className="border border-black p-1">SC</th><th className="border border-black p-1">L</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={text(r.id)}><td className="border border-black p-1 text-center">{i+1}</td><td className="border border-black p-1 font-semibold">{text(r.admission_number)}</td><td className="border border-black p-1 font-semibold">{nameOf(r)}</td><td className="border border-black p-1 text-center">{text(r.gender,"Not recorded")}</td>{subjectPairs.map(s=><Fragment key={`${text(s.id)}-${i}`}><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.scId)}</td><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.lId)}</td></Fragment>)}<td className="border border-black p-1 text-center font-bold">{r.results?.length?totalFor(r):""}</td><td className="border border-black p-1 text-center font-bold">{r.results?.map((x:Row)=>x.grade).filter(Boolean).join(" / ")||""}</td></tr>)}</tbody></table><p className="mt-3 text-[9px]">SC/L columns use persisted exam results whose assessment name/type identifies the corresponding component. No grading scale or marks are invented by this report.</p></section>}</main></PortalLayout>;
 }
