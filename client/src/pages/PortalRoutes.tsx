@@ -2,93 +2,12 @@ import { lazy, useEffect, type ComponentType, type ReactNode } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import type { User } from "@supabase/supabase-js";
 import { SupabaseAuthProvider, useSchoolAuth, type AppRole, type SchoolProfile } from "../contexts/SupabaseAuthContext";
-
 function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>>(importer: () => Promise<{ default: T }>, key: string) { return lazy(async () => { try { return await importer(); } catch (error) { const message = error instanceof Error ? error.message : String(error); const chunk = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message); const storage = `menwe:chunk-recovery:${key}`; if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) { sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined); } if (typeof window !== "undefined") sessionStorage.removeItem(storage); throw error; } }); }
-
-const AttendanceDirectory = lazyWithChunkRecovery(() => import("./AttendanceDirectory"), "attendance");
-const AcademicManagementPage = lazyWithChunkRecovery(() => import("./AcademicManagementPage"), "academic-management");
-const ExamManagementPage = lazyWithChunkRecovery(() => import("./ExamManagementPage"), "exam-management");
-const EntryExamsPage = lazyWithChunkRecovery(() => import("./EntryExamsPage"), "entry-exams");
-const FinanceDirectory = lazyWithChunkRecovery(() => import("./FinanceDirectory"), "finance");
-const HomeworkDirectory = lazyWithChunkRecovery(() => import("./HomeworkDirectory"), "homework");
-const LearningMaterialsDirectory = lazyWithChunkRecovery(() => import("./LearningMaterialsDirectory"), "learning-materials");
-const NotificationCenter = lazyWithChunkRecovery(() => import("./NotificationCenter"), "notifications");
-const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./ReportCardsDirectory"), "report-cards");
-const ReportsHubPage = lazyWithChunkRecovery(() => import("./ReportsHubPage"), "reports-hub");
-const ClassMarksheetPage = lazyWithChunkRecovery(() => import("./ClassMarksheetPage"), "class-marksheet");
-const TimetableDirectory = lazyWithChunkRecovery(() => import("./TimetableDirectory"), "timetable");
-const GalleryManagementPage = lazyWithChunkRecovery(() => import("./GalleryManagementPage"), "gallery-management");
-const MediaManagerPage = lazyWithChunkRecovery(() => import("./MediaManagerPage"), "media-manager");
-const AdminSettingsPage = lazyWithChunkRecovery(() => import("./AdminSettingsPage"), "admin-settings");
-const AdminAnnouncementsPage = lazyWithChunkRecovery(() => import("./AdminAnnouncementsPage"), "admin-announcements");
-const AdminAuditLogPage = lazyWithChunkRecovery(() => import("./AdminAuditLogPage"), "admin-audit");
-const FirstAdminPage = lazyWithChunkRecovery(() => import("./FirstAdminPage"), "first-admin");
-const PortalProfilePage = lazyWithChunkRecovery(() => import("./PortalProfilePage"), "profile");
-const ContentManagementRoute = lazyWithChunkRecovery(() => import("./ContentManagement"), "content-management");
-const FormsManagementPage = lazyWithChunkRecovery(() => import("./FormsManagementPage"), "forms-management");
-const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./AdminPeopleManagementPage"), "people-management");
-const AdminRoleManagementPage = lazyWithChunkRecovery(() => import("./AdminRoleManagementPage"), "role-management");
-const AdminOperationsPage = lazyWithChunkRecovery(() => import("./AdminOperationsPage"), "operations");
-const AnalyticsPage = lazyWithChunkRecovery(() => import("./AnalyticsPage"), "analytics");
-const MessageCenter = lazyWithChunkRecovery(() => import("./MessageCenter").then(m => ({ default: (props: { role: AppRole }) => <m.default {...props} /> })), "messages");
-const AdminDashboardHubPage = lazyWithChunkRecovery(() => import("./AdminDashboardHubPage"), "admin-dashboard");
-const TeacherDashboardPage = lazyWithChunkRecovery(() => import("./TeacherDashboardPage"), "teacher-dashboard");
-const ParentDashboardPage = lazyWithChunkRecovery(() => import("./ParentDashboardPage"), "parent-dashboard");
-
-const roles = { admin: ["admin"] as const, teacher: ["teacher"] as const, parent: ["parent", "student"] as const, all: ["admin", "teacher", "parent", "student"] as const };
-type PortalRole = "admin" | "teacher" | "parent" | "student";
-function resolveRole(_user: User, profile: SchoolProfile): PortalRole { if (["SUPER_ADMIN","ADMIN","HEAD_OF_INSTITUTION","DEPUTY_HOI"].includes(profile.role)) return "admin"; if (profile.role === "TEACHER") return "teacher"; if (profile.role === "STUDENT") return "student"; return "parent"; }
-
-function Guard({ allowed, children }: { allowed: readonly PortalRole[]; children: ReactNode }) {
-  const auth = useSchoolAuth(); const [, go] = useLocation();
-  useEffect(() => { if (auth.loading || auth.profileLoading) return; if (!auth.user || !auth.profile || auth.profile.status !== "ACTIVE") { go("/portal/login"); return; } const role = resolveRole(auth.user, auth.profile); if (!allowed.includes(role)) go(role === "admin" ? "/portal/admin" : role === "teacher" ? "/portal/teacher" : "/portal/parent"); }, [auth.loading, auth.profileLoading, auth.user, auth.profile, allowed, go]);
-  if (auth.loading || auth.profileLoading || !auth.user || !auth.profile || auth.profile.status !== "ACTIVE") return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/60">Restoring secure school session…</div>;
-  return allowed.includes(resolveRole(auth.user, auth.profile)) ? <>{children}</> : null;
-}
+const AttendanceDirectory = lazyWithChunkRecovery(() => import("./AttendanceDirectory"), "attendance"); const AcademicManagementPage = lazyWithChunkRecovery(() => import("./AcademicManagementPage"), "academic-management"); const ExamManagementPage = lazyWithChunkRecovery(() => import("./ExamManagementPage"), "exam-management"); const EntryExamsPage = lazyWithChunkRecovery(() => import("./EntryExamsPage"), "entry-exams"); const FinanceDirectory = lazyWithChunkRecovery(() => import("./FinanceDirectory"), "finance"); const HomeworkDirectory = lazyWithChunkRecovery(() => import("./HomeworkDirectory"), "homework"); const LearningMaterialsDirectory = lazyWithChunkRecovery(() => import("./LearningMaterialsDirectory"), "learning-materials"); const PastPapersPage = lazyWithChunkRecovery(() => import("./PastPapersPage"), "past-papers"); const NotificationCenter = lazyWithChunkRecovery(() => import("./NotificationCenter"), "notifications"); const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./ReportCardsDirectory"), "report-cards"); const ReportsHubPage = lazyWithChunkRecovery(() => import("./ReportsHubPage"), "reports-hub"); const ClassMarksheetPage = lazyWithChunkRecovery(() => import("./ClassMarksheetPage"), "class-marksheet"); const TimetableDirectory = lazyWithChunkRecovery(() => import("./TimetableDirectory"), "timetable"); const GalleryManagementPage = lazyWithChunkRecovery(() => import("./GalleryManagementPage"), "gallery-management"); const MediaManagerPage = lazyWithChunkRecovery(() => import("./MediaManagerPage"), "media-manager"); const AdminSettingsPage = lazyWithChunkRecovery(() => import("./AdminSettingsPage"), "admin-settings"); const AdminAnnouncementsPage = lazyWithChunkRecovery(() => import("./AdminAnnouncementsPage"), "admin-announcements"); const AdminAuditLogPage = lazyWithChunkRecovery(() => import("./AdminAuditLogPage"), "admin-audit"); const FirstAdminPage = lazyWithChunkRecovery(() => import("./FirstAdminPage"), "first-admin"); const PortalProfilePage = lazyWithChunkRecovery(() => import("./PortalProfilePage"), "profile"); const ContentManagementRoute = lazyWithChunkRecovery(() => import("./ContentManagement"), "content-management"); const FormsManagementPage = lazyWithChunkRecovery(() => import("./FormsManagementPage"), "forms-management"); const AdminPeopleManagementPage = lazyWithChunkRecovery(() => import("./AdminPeopleManagementPage"), "people-management"); const AdminRoleManagementPage = lazyWithChunkRecovery(() => import("./AdminRoleManagementPage"), "role-management"); const AdminOperationsPage = lazyWithChunkRecovery(() => import("./AdminOperationsPage"), "operations"); const AnalyticsPage = lazyWithChunkRecovery(() => import("./AnalyticsPage"), "analytics"); const MessageCenter = lazyWithChunkRecovery(() => import("./MessageCenter").then(m => ({ default: (props: { role: AppRole }) => <m.default {...props} /> })), "messages"); const AdminDashboardHubPage = lazyWithChunkRecovery(() => import("./AdminDashboardHubPage"), "admin-dashboard"); const TeacherDashboardPage = lazyWithChunkRecovery(() => import("./TeacherDashboardPage"), "teacher-dashboard"); const ParentDashboardPage = lazyWithChunkRecovery(() => import("./ParentDashboardPage"), "parent-dashboard");
+const roles = { admin: ["admin"] as const, teacher: ["teacher"] as const, parent: ["parent", "student"] as const, all: ["admin", "teacher", "parent", "student"] as const }; type PortalRole = "admin" | "teacher" | "parent" | "student"; function resolveRole(_user: User, profile: SchoolProfile): PortalRole { if (["SUPER_ADMIN","ADMIN","HEAD_OF_INSTITUTION","DEPUTY_HOI"].includes(profile.role)) return "admin"; if (profile.role === "TEACHER") return "teacher"; if (profile.role === "STUDENT") return "student"; return "parent"; }
+function Guard({ allowed, children }: { allowed: readonly PortalRole[]; children: ReactNode }) { const auth = useSchoolAuth(); const [, go] = useLocation(); useEffect(() => { if (auth.loading || auth.profileLoading) return; if (!auth.user || !auth.profile || auth.profile.status !== "ACTIVE") { go("/portal/login"); return; } const role = resolveRole(auth.user, auth.profile); if (!allowed.includes(role)) go(role === "admin" ? "/portal/admin" : role === "teacher" ? "/portal/teacher" : "/portal/parent"); }, [auth.loading, auth.profileLoading, auth.user, auth.profile, allowed, go]); if (auth.loading || auth.profileLoading || !auth.user || !auth.profile || auth.profile.status !== "ACTIVE") return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/60">Restoring secure school session…</div>; return allowed.includes(resolveRole(auth.user, auth.profile)) ? <>{children}</> : null; }
 function MessagesRoute() { const { profile } = useSchoolAuth(); return profile ? <MessageCenter role={profile.role}/> : null; }
-
 function PortalWorkspace() { return <Switch>
-  <Route path="/portal/admin"><Guard allowed={roles.admin}><AdminDashboardHubPage/></Guard></Route>
-  <Route path="/portal/teacher"><Guard allowed={roles.teacher}><TeacherDashboardPage/></Guard></Route>
-  <Route path="/portal/parent"><Guard allowed={roles.parent}><ParentDashboardPage/></Guard></Route>
-  <Route path="/portal/people"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
-  <Route path="/portal/academics"><Guard allowed={["admin","teacher"]}><AcademicManagementPage/></Guard></Route>
-  <Route path="/portal/attendance"><Guard allowed={["admin","teacher"]}><AttendanceDirectory/></Guard></Route>
-  <Route path="/portal/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
-  <Route path="/portal/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route>
-  <Route path="/portal/analytics"><Guard allowed={roles.admin}><AnalyticsPage/></Guard></Route>
-  <Route path="/portal/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
-  <Route path="/portal/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
-  <Route path="/portal/finance"><Guard allowed={["admin","teacher","parent","student"]}><FinanceDirectory/></Guard></Route>
-  <Route path="/portal/profile"><Guard allowed={roles.all}><PortalProfilePage/></Guard></Route>
-  <Route path="/portal/exams"><Guard allowed={["admin","teacher"]}><ExamManagementPage/></Guard></Route>
-  <Route path="/portal/entry-exams"><Guard allowed={roles.admin}><EntryExamsPage/></Guard></Route>
-  <Route path="/portal/reports"><Guard allowed={roles.all}><ReportsHubPage/></Guard></Route>
-  <Route path="/portal/report-cards"><Guard allowed={roles.all}><ReportCardsDirectory/></Guard></Route>
-  <Route path="/portal/class-marksheet"><Guard allowed={["admin","teacher"]}><ClassMarksheetPage/></Guard></Route>
-  <Route path="/portal/homework"><Guard allowed={roles.all}><HomeworkDirectory/></Guard></Route>
-  <Route path="/portal/learning"><Guard allowed={roles.all}><LearningMaterialsDirectory/></Guard></Route>
-  <Route path="/portal/timetable"><Guard allowed={roles.all}><TimetableDirectory/></Guard></Route>
-  <Route path="/portal/notifications"><Guard allowed={roles.all}><NotificationCenter/></Guard></Route>
-  <Route path="/portal/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route>
-  <Route path="/portal/messages"><Guard allowed={roles.all}><MessagesRoute/></Guard></Route>
-  <Route path="/portal/gallery"><Guard allowed={roles.admin}><GalleryManagementPage/></Guard></Route>
-  <Route path="/portal/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route>
-  <Route path="/portal/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route>
-  <Route path="/portal/admin/analytics"><Guard allowed={roles.admin}><AnalyticsPage/></Guard></Route>
-  <Route path="/portal/admin/academics"><Guard allowed={roles.admin}><AcademicManagementPage/></Guard></Route>
-  <Route path="/portal/admin/attendance"><Guard allowed={roles.admin}><AttendanceDirectory/></Guard></Route>
-  <Route path="/portal/admin/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route>
-  <Route path="/portal/admin/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route>
-  <Route path="/portal/admin/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route>
-  <Route path="/portal/admin/directory"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route>
-  <Route path="/portal/admin/roles"><Guard allowed={roles.admin}><AdminRoleManagementPage/></Guard></Route>
-  <Route path="/portal/admin/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route>
-  <Route path="/portal/admin/finance"><Guard allowed={roles.admin}><FinanceDirectory/></Guard></Route>
-  <Route path="/portal/admin/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route>
-  <Route path="/portal/admin/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route>
-  <Route path="/portal/admin/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route>
-  <Route path="/portal/setup/first-admin" component={FirstAdminPage}/>
+<Route path="/portal/admin"><Guard allowed={roles.admin}><AdminDashboardHubPage/></Guard></Route><Route path="/portal/teacher"><Guard allowed={roles.teacher}><TeacherDashboardPage/></Guard></Route><Route path="/portal/parent"><Guard allowed={roles.parent}><ParentDashboardPage/></Guard></Route><Route path="/portal/people"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route><Route path="/portal/academics"><Guard allowed={["admin","teacher"]}><AcademicManagementPage/></Guard></Route><Route path="/portal/attendance"><Guard allowed={["admin","teacher"]}><AttendanceDirectory/></Guard></Route><Route path="/portal/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route><Route path="/portal/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route><Route path="/portal/analytics"><Guard allowed={roles.admin}><AnalyticsPage/></Guard></Route><Route path="/portal/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route><Route path="/portal/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route><Route path="/portal/finance"><Guard allowed={["admin","teacher","parent","student"]}><FinanceDirectory/></Guard></Route><Route path="/portal/profile"><Guard allowed={roles.all}><PortalProfilePage/></Guard></Route><Route path="/portal/exams"><Guard allowed={["admin","teacher"]}><ExamManagementPage/></Guard></Route><Route path="/portal/entry-exams"><Guard allowed={roles.admin}><EntryExamsPage/></Guard></Route><Route path="/portal/reports"><Guard allowed={roles.all}><ReportsHubPage/></Guard></Route><Route path="/portal/report-cards"><Guard allowed={roles.all}><ReportCardsDirectory/></Guard></Route><Route path="/portal/class-marksheet"><Guard allowed={["admin","teacher"]}><ClassMarksheetPage/></Guard></Route><Route path="/portal/homework"><Guard allowed={roles.all}><HomeworkDirectory/></Guard></Route><Route path="/portal/learning"><Guard allowed={roles.all}><LearningMaterialsDirectory/></Guard></Route><Route path="/portal/past-papers"><Guard allowed={roles.all}><PastPapersPage/></Guard></Route><Route path="/portal/timetable"><Guard allowed={roles.all}><TimetableDirectory/></Guard></Route><Route path="/portal/notifications"><Guard allowed={roles.all}><NotificationCenter/></Guard></Route><Route path="/portal/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route><Route path="/portal/messages"><Guard allowed={roles.all}><MessagesRoute/></Guard></Route><Route path="/portal/gallery"><Guard allowed={roles.admin}><GalleryManagementPage/></Guard></Route><Route path="/portal/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route><Route path="/portal/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route><Route path="/portal/admin/analytics"><Guard allowed={roles.admin}><AnalyticsPage/></Guard></Route><Route path="/portal/admin/academics"><Guard allowed={roles.admin}><AcademicManagementPage/></Guard></Route><Route path="/portal/admin/attendance"><Guard allowed={roles.admin}><AttendanceDirectory/></Guard></Route><Route path="/portal/admin/content"><Guard allowed={roles.admin}><ContentManagementRoute/></Guard></Route><Route path="/portal/admin/forms"><Guard allowed={roles.admin}><FormsManagementPage/></Guard></Route><Route path="/portal/admin/media"><Guard allowed={roles.admin}><MediaManagerPage/></Guard></Route><Route path="/portal/admin/directory"><Guard allowed={roles.admin}><AdminPeopleManagementPage/></Guard></Route><Route path="/portal/admin/roles"><Guard allowed={roles.admin}><AdminRoleManagementPage/></Guard></Route><Route path="/portal/admin/operations"><Guard allowed={roles.admin}><AdminOperationsPage/></Guard></Route><Route path="/portal/admin/finance"><Guard allowed={roles.admin}><FinanceDirectory/></Guard></Route><Route path="/portal/admin/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route><Route path="/portal/admin/settings"><Guard allowed={roles.admin}><AdminSettingsPage/></Guard></Route><Route path="/portal/admin/audit"><Guard allowed={roles.admin}><AdminAuditLogPage/></Guard></Route><Route path="/portal/setup/first-admin" component={FirstAdminPage}/>
 </Switch>; }
-
 export default function PortalRoutes() { return <SupabaseAuthProvider><PortalWorkspace/></SupabaseAuthProvider>; }
