@@ -10,6 +10,56 @@ const text = (v: unknown, fallback = "—") => v == null || v === "" ? fallback 
 const nameOf = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 
 const printStyles = `
+.marksheet-print {
+  border: 1px solid rgba(6,18,41,.10);
+  border-radius: 1.5rem;
+  box-shadow: 0 18px 50px rgba(6,18,41,.08);
+}
+.marksheet-print > header {
+  position: relative;
+  overflow: hidden;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(216,155,40,.35) !important;
+  border-radius: 1.15rem 1.15rem 0 0;
+  padding: 1.25rem 1.25rem .9rem !important;
+  background: linear-gradient(135deg, #061229 0%, #102143 72%, #17315b 100%);
+  color: #fff;
+}
+.marksheet-print > header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #D89B28;
+}
+.marksheet-print > header h2 { letter-spacing: .08em; }
+.marksheet-print > header p { color: rgba(255,255,255,.72); }
+.marksheet-print > header h3 { color: #fff; letter-spacing: .025em; }
+.marksheet-print > header p:last-child { color: #D89B28; }
+.marksheet-print table { border-color: rgba(6,18,41,.12); }
+.marksheet-print thead tr:first-child th {
+  background: #061229;
+  color: #fff;
+  border-color: rgba(255,255,255,.25) !important;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+.marksheet-print thead tr:nth-child(2) th {
+  background: rgba(216,155,40,.16);
+  color: #061229;
+  font-weight: 800;
+}
+.marksheet-print tbody tr:nth-child(even) { background: rgba(6,18,41,.025); }
+.marksheet-print tbody tr:hover { background: rgba(216,155,40,.09); }
+.marksheet-print tbody td { border-color: rgba(6,18,41,.10) !important; }
+.marksheet-print tbody td:nth-child(3) { color: #061229; }
+.marksheet-print tbody td:nth-last-child(-n+2) {
+  background: rgba(216,155,40,.07);
+  font-weight: 800;
+}
+
 @media print {
   @page { size: A4 landscape; margin: 5mm; }
   html, body { width: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important; }
@@ -26,9 +76,20 @@ const printStyles = `
     padding: 0 !important;
     overflow: visible !important;
     background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .marksheet-print header { padding-bottom: 2mm !important; }
-  .marksheet-print header h2 { margin: 0 !important; font-size: 13pt !important; line-height: 1.05 !important; }
+  .marksheet-print > header {
+    padding: 2.5mm 2mm 2.2mm !important;
+    border-radius: 0 !important;
+    background: #061229 !important;
+    color: #fff !important;
+  }
+  .marksheet-print > header::after { height: 1mm !important; background: #D89B28 !important; }
+  .marksheet-print header h2 { margin: 0 !important; font-size: 13pt !important; line-height: 1.05 !important; letter-spacing: .07em !important; }
   .marksheet-print header p { margin: 1mm 0 0 !important; font-size: 6pt !important; line-height: 1.1 !important; }
   .marksheet-print header h3 { margin: 1mm 0 0 !important; font-size: 8pt !important; line-height: 1.1 !important; }
   .marksheet-print table {
@@ -57,6 +118,8 @@ const printStyles = `
   .marksheet-print tr { break-inside: avoid; page-break-inside: avoid; }
   .marksheet-print tbody tr { height: 3.7mm !important; }
   .marksheet-print > p { margin-top: 1.5mm !important; font-size: 5pt !important; line-height: 1 !important; }
+  .marksheet-print tbody tr:nth-child(even) { background: #fafafa !important; }
+  .marksheet-print tbody td:nth-last-child(-n+2) { background: #f7f0df !important; }
 }
 `;
 
@@ -81,5 +144,5 @@ export default function ClassMarksheetPage() {
   const totalFor=(row:Row)=>row.results?.reduce((sum:number,r:Row)=>sum+(Number.isFinite(Number(r.score))?Number(r.score):0),0)??0;
   const examLabel=exams.length?exams.map(e=>text(e.name)).join(" · "):"No assessments recorded";
   if(loading)return <PortalLayout role={profile?.role??"TEACHER"}><main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin text-[var(--accent)]"/></main></PortalLayout>;
-  return <PortalLayout role={profile?.role??"TEACHER"}><style>{printStyles}</style><main className="mx-auto w-full max-w-[1700px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><section className="menwe-card rounded-[1.75rem] p-5 print:hidden sm:p-7"><div className="flex items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.14em] text-[var(--gold)]"><FileText size={15}/> Class marksheet</span><h1 className="mt-3 font-serif text-3xl font-semibold">Assessment marksheet</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Real learner, gender and assessment records from Supabase. Empty scores remain empty.</p></div><button type="button" onClick={()=>window.print()} disabled={!rows.length} className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div><div className="mt-6 grid gap-3 md:grid-cols-3"><select value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("");setClassId("")}} className="min-h-12 rounded-xl border px-3"><option value="">Academic year</option>{years.map(y=><option key={text(y.id)} value={text(y.id)}>{text(y.name)}</option>)}</select><select value={termId} onChange={e=>setTermId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Term</option>{visibleTerms.map(t=><option key={text(t.id)} value={text(t.id)}>{text(t.name)}</option>)}</select><select value={classId} onChange={e=>setClassId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Class</option>{visibleClasses.map(c=><option key={text(c.id)} value={text(c.id)}>{text(c.name)}</option>)}</select></div><button type="button" onClick={()=>void generate()} disabled={generating||!classId||!termId} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{generating?<Loader2 size={16} className="animate-spin"/>:null}{generating?"Generating…":"Generate marksheet"}</button>{message&&<p role="status" className="mt-4 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold">{message}</p>}</section>{classId&&<section className="marksheet-print overflow-x-auto rounded-none bg-white p-3 sm:p-6 print:p-0"><header className="border-b-2 border-black pb-3 text-center"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY SCHOOL</h2><p className="text-xs font-semibold">P.O. BOX 19, KIONYO, MERU | Email: menwejuniorss23@gmail.com</p><h3 className="mt-2 text-lg font-black uppercase">{text(titleClass?.name,"CLASS")} {text(selectedTerm?.name,"TERM")} PERFORMANCE MARKSHEET YEAR {text(years.find(y=>String(y.id)===yearId)?.name,"2026")}</h3><p className="mt-1 text-[10px] font-semibold">Assessments: {examLabel}</p></header><table className="mt-4 w-full min-w-[1100px] border-collapse text-[10px] print:min-w-0"><thead><tr><th rowSpan={2} className="border border-black p-1">No.</th><th rowSpan={2} className="border border-black p-1">Assessment No.</th><th rowSpan={2} className="border border-black p-1 text-left">Names</th><th rowSpan={2} className="border border-black p-1">Gender</th>{subjectPairs.map(s=><th key={text(s.id)} colSpan={2} className="border border-black p-1">{text(s.code)||text(s.name)}</th>)}<th rowSpan={2} className="border border-black p-1">TOTAL MARKS</th><th rowSpan={2} className="border border-black p-1">PERF LEVEL</th></tr><tr>{subjectPairs.map(s=><Fragment key={`head-${text(s.id)}`}><th className="border border-black p-1">SC</th><th className="border border-black p-1">L</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={text(r.id)}><td className="border border-black p-1 text-center">{i+1}</td><td className="border border-black p-1 font-semibold">{text(r.admission_number)}</td><td className="border border-black p-1 font-semibold">{nameOf(r)}</td><td className="border border-black p-1 text-center">{text(r.gender,"Not recorded")}</td>{subjectPairs.map(s=><Fragment key={`${text(s.id)}-${i}`}><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.scId)}</td><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.lId)}</td></Fragment>)}<td className="border border-black p-1 text-center font-bold">{r.results?.length?totalFor(r):""}</td><td className="border border-black p-1 text-center font-bold">{r.results?.map((x:Row)=>x.grade).filter(Boolean).join(" / ")||""}</td></tr>)}</tbody></table><p className="mt-3 text-[9px]">SC/L columns use persisted exam results whose assessment name/type identifies the corresponding component. No grading scale or marks are invented by this report.</p></section>}</main></PortalLayout>;
+  return <PortalLayout role={profile?.role??"TEACHER"}><style>{printStyles}</style><main className="mx-auto w-full max-w-[1700px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8"><section className="menwe-card rounded-[1.75rem] p-5 print:hidden sm:p-7"><div className="flex items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.14em] text-[var(--gold)]"><FileText size={15}/> Class marksheet</span><h1 className="mt-3 font-serif text-3xl font-semibold">Assessment marksheet</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Real learner, gender and assessment records from Supabase. Empty scores remain empty.</p></div><button type="button" onClick={()=>window.print()} disabled={!rows.length} className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div><div className="mt-6 grid gap-3 md:grid-cols-3"><select value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("");setClassId("")}} className="min-h-12 rounded-xl border px-3"><option value="">Academic year</option>{years.map(y=><option key={text(y.id)} value={text(y.id)}>{text(y.name)}</option>)}</select><select value={termId} onChange={e=>setTermId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Term</option>{visibleTerms.map(t=><option key={text(t.id)} value={text(t.id)}>{text(t.name)}</option>)}</select><select value={classId} onChange={e=>setClassId(e.target.value)} className="min-h-12 rounded-xl border px-3"><option value="">Class</option>{visibleClasses.map(c=><option key={text(c.id)} value={text(c.id)}>{text(c.name)}</option>)}</select></div><button type="button" onClick={()=>void generate()} disabled={generating||!classId||!termId} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{generating?<Loader2 size={16} className="animate-spin"/>:null}{generating?"Generating…":"Generate marksheet"}</button>{message&&<p role="status" className="mt-4 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold">{message}</p>}</section>{classId&&<section className="marksheet-print overflow-x-auto rounded-none bg-white p-3 sm:p-6 print:p-0"><header><h2 className="text-2xl font-black uppercase">MENWE PRIMARY SCHOOL</h2><p className="text-xs font-semibold">P.O. BOX 19, KIONYO, MERU | Email: menwejuniorss23@gmail.com</p><h3 className="mt-2 text-lg font-black uppercase">{text(titleClass?.name,"CLASS")} {text(selectedTerm?.name,"TERM")} PERFORMANCE MARKSHEET YEAR {text(years.find(y=>String(y.id)===yearId)?.name,"2026")}</h3><p className="mt-1 text-[10px] font-semibold">Assessments: {examLabel}</p></header><table className="mt-4 w-full min-w-[1100px] border-collapse text-[10px] print:min-w-0"><thead><tr><th rowSpan={2} className="border border-black p-1">No.</th><th rowSpan={2} className="border border-black p-1">Assessment No.</th><th rowSpan={2} className="border border-black p-1 text-left">Names</th><th rowSpan={2} className="border border-black p-1">Gender</th>{subjectPairs.map(s=><th key={text(s.id)} colSpan={2} className="border border-black p-1">{text(s.code)||text(s.name)}</th>)}<th rowSpan={2} className="border border-black p-1">TOTAL MARKS</th><th rowSpan={2} className="border border-black p-1">PERF LEVEL</th></tr><tr>{subjectPairs.map(s=><Fragment key={`head-${text(s.id)}`}><th className="border border-black p-1">SC</th><th className="border border-black p-1">L</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={text(r.id)}><td className="border border-black p-1 text-center">{i+1}</td><td className="border border-black p-1 font-semibold">{text(r.admission_number)}</td><td className="border border-black p-1 font-semibold">{nameOf(r)}</td><td className="border border-black p-1 text-center">{text(r.gender,"Not recorded")}</td>{subjectPairs.map(s=><Fragment key={`${text(s.id)}-${i}`}><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.scId)}</td><td className="border border-black p-1 text-center">{scoreFor(r,text(s.id),s.lId)}</td></Fragment>)}<td className="border border-black p-1 text-center font-bold">{r.results?.length?totalFor(r):""}</td><td className="border border-black p-1 text-center font-bold">{r.results?.map((x:Row)=>x.grade).filter(Boolean).join(" / ")||""}</td></tr>)}</tbody></table><p className="mt-3 text-[9px]">SC/L columns use persisted exam results whose assessment name/type identifies the corresponding component. No grading scale or marks are invented by this report.</p></section>}</main></PortalLayout>;
 }
