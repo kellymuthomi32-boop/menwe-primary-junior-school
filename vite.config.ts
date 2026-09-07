@@ -90,6 +90,22 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+function manualChunks(id: string) {
+  if (!id.includes("node_modules")) return undefined;
+
+  if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/wouter/")) return "framework";
+  if (id.includes("/@radix-ui/") || id.includes("/cmdk/")) return "radix-ui";
+  if (id.includes("/lucide-react/")) return "icons";
+  if (id.includes("/@supabase/") || id.includes("/jose/")) return "supabase";
+  if (id.includes("/framer-motion/")) return "motion";
+  if (id.includes("/jspdf/") || id.includes("/html2canvas/") || id.includes("/dompurify/")) return "documents";
+  if (id.includes("/@tanstack/")) return "data";
+  if (id.includes("/react-hook-form/") || id.includes("/@hookform/") || id.includes("/zod/")) return "forms";
+  if (id.includes("/date-fns/") || id.includes("/axios/") || id.includes("/sonner/")) return "utilities";
+
+  return "vendor";
+}
+
 export default defineConfig(({ command }) => {
   const isBuild = command === "build";
   return {
@@ -114,11 +130,7 @@ export default defineConfig(({ command }) => {
       emptyOutDir: true,
       rollupOptions: {
         output: {
-          manualChunks: {
-            framework: ["react", "react-dom", "wouter"],
-            forms: ["react-hook-form", "@hookform/resolvers", "zod"],
-            icons: ["lucide-react"],
-          },
+          manualChunks,
         },
       },
     },
