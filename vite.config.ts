@@ -98,7 +98,9 @@ function manualChunks(id: string) {
   if (id.includes("/lucide-react/")) return "icons";
   if (id.includes("/@supabase/") || id.includes("/jose/")) return "supabase";
   if (id.includes("/framer-motion/")) return "motion";
-  if (id.includes("/jspdf/") || id.includes("/html2canvas/") || id.includes("/dompurify/")) return "documents";
+  if (id.includes("/jspdf/")) return "pdf";
+  if (id.includes("/html2canvas/")) return "html2canvas";
+  if (id.includes("/dompurify/")) return "dompurify";
   if (id.includes("/@tanstack/")) return "data";
   if (id.includes("/react-hook-form/") || id.includes("/@hookform/") || id.includes("/zod/")) return "forms";
   if (id.includes("/date-fns/") || id.includes("/axios/") || id.includes("/sonner/")) return "utilities";
