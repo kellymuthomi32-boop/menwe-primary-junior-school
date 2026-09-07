@@ -90,27 +90,6 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-function manualChunks(id: string) {
-  if (!id.includes("node_modules")) return undefined;
-
-  if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/wouter/")) return "framework";
-  if (id.includes("/@radix-ui/") || id.includes("/cmdk/")) return "radix-ui";
-  if (id.includes("/lucide-react/")) return "icons";
-  if (id.includes("/@supabase/") || id.includes("/jose/")) return "supabase";
-  if (id.includes("/framer-motion/")) return "motion";
-  // Do not force jsPDF into a manually named vendor chunk. It is loaded via
-  // a user-triggered dynamic import in ClassMarksheetPage; letting Rollup
-  // create its own dynamic chunk prevents Vite from module-preloading the
-  // PDF generator on the public homepage.
-  if (id.includes("/html2canvas/")) return "html2canvas";
-  if (id.includes("/dompurify/")) return "dompurify";
-  if (id.includes("/@tanstack/")) return "data";
-  if (id.includes("/react-hook-form/") || id.includes("/@hookform/") || id.includes("/zod/")) return "forms";
-  if (id.includes("/date-fns/") || id.includes("/axios/") || id.includes("/sonner/")) return "utilities";
-
-  return "vendor";
-}
-
 export default defineConfig(({ command }) => {
   const isBuild = command === "build";
   return {
@@ -133,11 +112,6 @@ export default defineConfig(({ command }) => {
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
-      rollupOptions: {
-        output: {
-          manualChunks,
-        },
-      },
     },
     server: {
       host: true,
