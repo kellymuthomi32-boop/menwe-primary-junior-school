@@ -11,6 +11,7 @@ const ExamManagementPage = lazyWithChunkRecovery(() => import("./ExamManagementP
 const EntryExamsPage = lazyWithChunkRecovery(() => import("./EntryExamsPage"), "entry-exams");
 const FinanceDirectory = lazyWithChunkRecovery(() => import("./FinanceDirectory"), "finance");
 const HomeworkDirectory = lazyWithChunkRecovery(() => import("./HomeworkDirectory"), "homework");
+const LearningMaterialsDirectory = lazyWithChunkRecovery(() => import("./LearningMaterialsDirectory"), "learning-materials");
 const NotificationCenter = lazyWithChunkRecovery(() => import("./NotificationCenter"), "notifications");
 const ReportCardsDirectory = lazyWithChunkRecovery(() => import("./ReportCardsDirectory"), "report-cards");
 const ReportsHubPage = lazyWithChunkRecovery(() => import("./ReportsHubPage"), "reports-hub");
@@ -66,6 +67,7 @@ function PortalWorkspace() { return <Switch>
   <Route path="/portal/report-cards"><Guard allowed={roles.all}><ReportCardsDirectory/></Guard></Route>
   <Route path="/portal/class-marksheet"><Guard allowed={["admin","teacher"]}><ClassMarksheetPage/></Guard></Route>
   <Route path="/portal/homework"><Guard allowed={roles.all}><HomeworkDirectory/></Guard></Route>
+  <Route path="/portal/learning"><Guard allowed={roles.all}><LearningMaterialsDirectory/></Guard></Route>
   <Route path="/portal/timetable"><Guard allowed={roles.all}><TimetableDirectory/></Guard></Route>
   <Route path="/portal/notifications"><Guard allowed={roles.all}><NotificationCenter/></Guard></Route>
   <Route path="/portal/announcements"><Guard allowed={roles.admin}><AdminAnnouncementsPage/></Guard></Route>
