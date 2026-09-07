@@ -98,7 +98,10 @@ function manualChunks(id: string) {
   if (id.includes("/lucide-react/")) return "icons";
   if (id.includes("/@supabase/") || id.includes("/jose/")) return "supabase";
   if (id.includes("/framer-motion/")) return "motion";
-  if (id.includes("/jspdf/")) return "pdf";
+  // Do not force jsPDF into a manually named vendor chunk. It is loaded via
+  // a user-triggered dynamic import in ClassMarksheetPage; letting Rollup
+  // create its own dynamic chunk prevents Vite from module-preloading the
+  // PDF generator on the public homepage.
   if (id.includes("/html2canvas/")) return "html2canvas";
   if (id.includes("/dompurify/")) return "dompurify";
   if (id.includes("/@tanstack/")) return "data";
