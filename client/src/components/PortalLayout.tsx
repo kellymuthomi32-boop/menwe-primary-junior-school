@@ -21,6 +21,7 @@ function buildItems(role:AppRole,pendingAdmissions=0){
   {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
   {label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},
   {label:"Exams & report cards",key:"exams",icon:FileText,href:"/portal/exams"},
+  {label:"Reports Centre",key:"reports",icon:FileText,href:"/portal/reports"},
   {label:"Class marksheets",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"},
   {label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"},
   {label:"Homework",key:"admin-homework",icon:BookOpenCheck,href:"/portal/homework"},
