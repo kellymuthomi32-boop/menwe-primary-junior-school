@@ -12,10 +12,8 @@ const roleLabel=(role:AppRole)=>role.replaceAll("_"," ").toLowerCase().replace(/
 const overviewPath=(role:AppRole)=>isAdministrator(role)?"/portal/admin":role==="TEACHER"?"/portal/teacher":"/portal/parent";
 function buildItems(role:AppRole,pendingAdmissions=0){
  const primary:PortalNavItem[]=[{label:"Overview",key:"overview",icon:LayoutDashboard,href:overviewPath(role)},{label:"My profile",key:"profile",icon:Settings,href:"/portal/profile"},{label:"Timetable",key:"timetable",icon:CalendarDays,href:"/portal/timetable"},{label:"Homework",key:"homework",icon:BookOpenCheck,href:"/portal/homework"},{label:"Messages",key:"messages",icon:MessageSquare,href:"/portal/messages"}];
- if(role==="PARENT"||role==="STUDENT")primary.push({label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"});
- if(role==="TEACHER")primary.splice(3,0,{label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"});
- if(role==="TEACHER")primary.splice(4,0,{label:"Marks entry",key:"exams",icon:GraduationCap,href:"/portal/exams"});
- if(role==="TEACHER")primary.splice(5,0,{label:"Class marksheet",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"});
+ if(role==="PARENT"||role==="STUDENT"){primary.push({label:"Fees & payments",key:"finance",icon:CreditCard,href:"/portal/finance"},{label:"My reports",key:"reports",icon:FileText,href:"/portal/report-cards"});}
+ if(role==="TEACHER"){primary.splice(3,0,{label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"});primary.splice(4,0,{label:"Marks entry",key:"exams",icon:GraduationCap,href:"/portal/exams"});primary.splice(5,0,{label:"Class marksheet",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"});primary.splice(6,0,{label:"Learner reports",key:"reports",icon:FileText,href:"/portal/reports"});}
  const management:PortalNavItem[]=isAdministrator(role)?[
   {label:"People & enrolment",key:"people",icon:Users,href:"/portal/people",badge:pendingAdmissions},
   {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
