@@ -1,14 +1,21 @@
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, FileText, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { PortalLayout } from "@/components/PortalLayout";
+import { getSupabase } from "@/lib/supabase";
 import ExamDirectory from "./ExamDirectory";
 
-export default function ExamManagementPage() {
-  const { user, profile, loading } = useSchoolAuth(); const [, setLocation] = useLocation();
-  useEffect(() => { if (!loading && !user) setLocation("/portal/login"); }, [loading, setLocation, user]);
-  if (loading) return <div className="grid min-h-screen place-items-center bg-[#f4f5f1]"><Loader2 className="animate-spin text-[var(--accent)]" /></div>;
-  if (!user || !profile) return null;
-  return <PortalLayout role={profile.role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><ExamDirectory /></main></PortalLayout>;
+type Row = Record<string, any>;
+const ADMINS = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"];
+const text=(v:unknown,fallback="—")=>v==null||v===""?fallback:String(v);
+
+export default function ExamManagementPage(){
+ const {user,profile,loading}=useSchoolAuth(); const [,go]=useLocation(); const admin=ADMINS.includes(profile?.role??"");
+ const [exams,setExams]=useState<Row[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState<string|null>(null),[loadingExams,setLoadingExams]=useState(true);
+ const refresh=useCallback(async()=>{if(!user||!admin)return;setLoadingExams(true);try{const r=await getSupabase().from("exams").select("id,name,exam_type,starts_on,ends_on,status,created_at,terms(name),classes(name)").order("created_at",{ascending:false});if(r.error)throw r.error;setExams(r.data??[])}catch(e){setMessage(e instanceof Error?e.message:"Examinations could not be loaded.")}finally{setLoadingExams(false)}},[user,admin]);
+ useEffect(()=>{if(!loading&&!user)go("/portal/login")},[loading,user,go]); useEffect(()=>{void refresh()},[refresh]);
+ const deleteExam=async(exam:Row)=>{if(!admin||!window.confirm(`Delete “${text(exam.name)}”? This will also remove all marks recorded for this examination.`))return;setBusy(true);setMessage(null);try{const db=getSupabase();const r=await db.from("exam_results").delete().eq("exam_id",exam.id);if(r.error)throw r.error;const e=await db.from("exams").delete().eq("id",exam.id);if(e.error)throw e.error;setMessage(`“${text(exam.name)}” was deleted successfully.`);await refresh()}catch(e){setMessage(e instanceof Error?e.message:"The examination could not be deleted.")}finally{setBusy(false)}};
+ if(loading)return <div className="grid min-h-screen place-items-center bg-[#f4f5f1]"><Loader2 className="animate-spin text-[var(--accent)]"/></div>; if(!user||!profile)return null;
+ return <PortalLayout role={profile.role}><main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><div className="mb-6 grid gap-4 md:grid-cols-2"><section className="menwe-card rounded-2xl border border-[var(--gold)]/25 p-5"><div className="flex items-start gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--gold)]/10 text-[var(--gold)]"><FileText size={20}/></div><div><h2 className="font-serif text-2xl font-semibold">Learner reports</h2><p className="mt-1 text-sm opacity-60">Open individual reports or prepare a complete class/term report pack.</p></div></div><button type="button" onClick={()=>go("/portal/reports")} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><FileText size={16}/>Open Reports Centre</button></section><section className="menwe-card rounded-2xl border border-[var(--ink)]/10 p-5"><div className="flex items-start gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ink)]/5"><AlertTriangle size={20}/></div><div><h2 className="font-serif text-2xl font-semibold">Assessment administration</h2><p className="mt-1 text-sm opacity-60">Create assessments above and remove obsolete examinations below.</p></div></div><button type="button" onClick={()=>void refresh()} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--ink)]/15 px-4 text-sm font-bold"><RefreshCw size={16}/>Refresh examinations</button></section></div><ExamDirectory/>{admin&&<section className="mt-6 menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="flex items-start justify-between gap-4"><div><h2 className="font-serif text-2xl font-semibold">Manage examinations</h2><p className="mt-1 text-sm opacity-60">Delete an examination and its recorded marks when it is no longer needed.</p></div><span className="rounded-full bg-[var(--gold)]/10 px-3 py-1 text-xs font-bold">{exams.length} assessments</span></div>{message&&<p className="mt-4 rounded-xl bg-[var(--gold)]/10 p-3 text-sm">{message}</p>}{loadingExams?<div className="flex justify-center py-10"><Loader2 className="animate-spin"/></div>:<div className="mt-5 grid gap-3">{exams.map(exam=><div key={exam.id} className="flex flex-col gap-3 rounded-2xl border border-[var(--ink)]/10 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold">{text(exam.name)}</p><p className="mt-1 text-xs opacity-60">{text(exam.classes?.name)} · {text(exam.terms?.name)} · {text(exam.exam_type)} · {text(exam.starts_on)} → {text(exam.ends_on)} · {text(exam.status)}</p></div><button type="button" disabled={busy} onClick={()=>void deleteExam(exam)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-bold text-red-700 disabled:opacity-50"><Trash2 size={16}/>Delete exam</button></div>)}</div>}</section>}</main></PortalLayout>;
 }
