@@ -145,6 +145,18 @@ export default function MenweHeroHome() {
           <div className="relative z-20 mx-auto mt-6 w-full max-w-7xl rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 backdrop-blur-md"><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[["1961", "Founded"], ["23+", "TSC & BOM Faculty"], ["100%", "CBC Pathway Integration"], ["0142550882", "Direct Admissions Hotline"]].map(([value, label]) => <div key={label} className="min-w-0 text-center sm:text-left"><div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white break-words">{value}</div><div className="mt-1 text-xs sm:text-sm text-white/55 leading-relaxed">{label}</div></div>)}</div></div>
         </section>
 
+        <section className="border-b border-slate-200 bg-white px-4 py-5 sm:px-6 lg:px-8" aria-label="Popular next steps">
+          <div className="mx-auto grid max-w-7xl gap-3 sm:grid-cols-3">
+            {[
+              ["New to Menwe?", "See how admissions work", "/how-it-works", "Start here"],
+              ["Already part of our community?", "Open the family portal", "/portal/login", "Sign in"],
+              ["Planning a visit?", "Find the school and contact us", "/contact", "Get directions"],
+            ].map(([eyebrow, title, path, action]) => <button key={path} type="button" onClick={() => navigate(path)} className="group flex min-h-12 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-[#F8F9FA] px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[#D89B28]/45 hover:bg-white hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D89B28]">
+              <span className="min-w-0"><span className="block text-[10px] font-extrabold uppercase tracking-[.15em] text-[#D89B28]">{eyebrow}</span><span className="mt-1 block truncate text-sm font-bold text-[#061229]">{title}</span></span><span className="shrink-0 text-xs font-extrabold text-[#061229]/55 transition group-hover:text-[#D89B28]">{action} <ArrowRight className="ml-1 inline transition group-hover:translate-x-1" size={14} /></span>
+            </button>)}
+          </div>
+        </section>
+
         <AboutSection />
 
         <section id="academics" className="menwe-section menwe-programs-section"><div className="menwe-section-inner"><div className="menwe-heading-row"><div><p className="menwe-section-kicker">ACADEMIC PROGRAMS &amp; CURRICULUM</p><h2>Learning Designed for Every Stage</h2></div><p>From early foundations to junior secondary and talent pathways, we connect knowledge with confidence, character and practical skills.</p></div><div className="menwe-program-grid">{programs.map(([Icon, title, text]) => <article className="menwe-program-card" key={title}><span className="menwe-program-icon"><Icon size={23} /></span><h3>{title}</h3><p>{text}</p><button onClick={() => navigate("/academics")} className="menwe-text-link min-h-12">Learn More <ArrowRight size={15} /></button></article>)}</div></div></section>
