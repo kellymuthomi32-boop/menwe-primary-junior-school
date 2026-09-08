@@ -37,8 +37,9 @@ export default function PortalLoginPage() {
     const text = typeof error === "string" ? error : error instanceof Error ? error.message : error ? JSON.stringify(error) : "Unknown error";
     if (/invalid login credentials/i.test(text)) return "Incorrect email or password.";
     if (/email not confirmed/i.test(text)) return "Please confirm your email before signing in.";
-    if (/already registered|already been registered/i.test(text)) return "An account already exists with this email.";
+    if (/already registered|already been registered/i.test(text)) return "An account already exists with this email. Please use Sign in instead.";
     if (/rate limit|too many requests|network|timeout|fetch/i.test(text)) return "Network problem. Please try again.";
+    if (/jwt|permission denied|not authorized|forbidden/i.test(text)) return "The portal is not authorized to complete this request. Please contact school ICT.";
     return text || "Something went wrong. Contact school ICT.";
   };
 
@@ -93,13 +94,34 @@ export default function PortalLoginPage() {
       const client = getSupabase();
       let metadata: Record<string, string>;
       if (tab === "staff") {
-        const name = fullName.trim(), id = staffId.trim(), code = schoolCode.trim();
+        const name = fullName.trim();
+        const id = staffId.trim().toUpperCase();
+        const code = schoolCode.trim().toUpperCase();
         if (!name || !id || !code) { setMessage("Complete your full name, Staff ID, and authorization code."); return; }
-        const { data: registrationToken, error } = await client.rpc("verify_staff_registration", { staff_id: id, authorization_code: code });
-        if (error || !registrationToken) { setMessage("Invalid Staff ID or Authorization Code. Please contact administration."); return; }
-        // The one-time token returned by the database MUST travel with signup.
-        // The auth trigger consumes it and creates the teacher record atomically.
-        metadata = { role: "teacher", tsc_number: id, full_name: name, staff_registration_claim: registrationToken as string };
+
+        // Staff ID and the shared school authorization code are intentionally
+        // separate credentials. The database validates both and returns a
+        // one-time claim that must be forwarded unchanged to Auth signup.
+        const { data: registrationToken, error: verificationError } = await client.rpc("verify_staff_registration", {
+          staff_id: id,
+          authorization_code: code,
+        });
+
+        if (verificationError) {
+          setMessage(`We couldn't verify the staff registration right now. ${friendlyError(verificationError)}`);
+          return;
+        }
+        if (!registrationToken || typeof registrationToken !== "string") {
+          setMessage("The Staff ID or School Authorization Code could not be verified. Check both fields and try again.");
+          return;
+        }
+
+        metadata = {
+          role: "teacher",
+          tsc_number: id,
+          full_name: name,
+          staff_registration_claim: registrationToken,
+        };
       } else {
         const lookup = identifier.trim();
         if (!lookup) { setMessage("Enter the learner admission number or UPI number."); return; }
@@ -107,12 +129,30 @@ export default function PortalLoginPage() {
         if (error || !studentId) { setMessage("Learner record not found. Please contact school ICT or administration."); return; }
         metadata = { student_id: studentId as string, role: "parent", account_type: "parent_student" };
       }
-      const { data, error } = await client.auth.signUp({ email: normalizedEmail, password, options: { data: metadata, emailRedirectTo: `${window.location.origin}/portal/callback` } });
+
+      const { data, error } = await client.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: metadata,
+          emailRedirectTo: `${window.location.origin}/portal/callback`,
+        },
+      });
+
       if (error) { setMessage(friendlyError(error)); return; }
       if (!data.user) { setMessage("Account creation did not complete. Please try again."); return; }
-      setPassword(""); setConfirmPassword(""); setSchoolCode(""); setIdentifier(normalizedEmail);
-      if (data.session) { setSuccess("Account created successfully."); await postLoginRedirect(); }
-      else { setSuccess("Account created. Please confirm your email before signing in."); setMode("signin"); }
+
+      setPassword("");
+      setConfirmPassword("");
+      setSchoolCode("");
+      setIdentifier(normalizedEmail);
+      if (data.session) {
+        setSuccess("Account created successfully.");
+        await postLoginRedirect();
+      } else {
+        setSuccess("Account created. Please confirm your email before signing in.");
+        setMode("signin");
+      }
     } catch (error) { setMessage(friendlyError(error)); }
     finally { setBusy(false); }
   };
@@ -132,7 +172,7 @@ export default function PortalLoginPage() {
     <section className="bg-[#F8F9FA]"><div className="mx-auto grid min-h-[calc(100vh-10rem)] max-w-6xl items-center gap-8 px-5 py-16 lg:grid-cols-[1fr_.8fr] lg:px-8">
       <div><p className="text-xs font-bold uppercase tracking-[.22em] text-[#D89B28]">Menwe secure portal</p><h1 className="mt-4 font-serif text-5xl font-semibold leading-tight text-[#061229] sm:text-6xl">Your school information, securely connected.</h1><p className="mt-6 max-w-xl text-base leading-7 text-slate-600">Parents, students and staff receive access according to their authorised school role.</p><div className="mt-8 grid gap-3 sm:grid-cols-3">{features.map(({icon: Icon,text})=><div key={text} className="rounded-xl bg-white p-4 shadow-sm"><Icon className="text-[#D89B28]" size={20}/><p className="mt-3 text-xs font-bold text-[#061229]">{text}</p></div>)}</div></div>
       <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md sm:p-8"><div className="grid grid-cols-2 rounded-xl bg-[#F8F9FA] p-1"><button type="button" onClick={()=>switchTab("family")} className={`min-h-12 rounded-lg px-3 py-3 text-xs font-bold ${tab === "family" ? "bg-white text-[#061229] shadow-sm" : "text-slate-500"}`}>Parent / Student</button><button type="button" onClick={()=>switchTab("staff")} className={`min-h-12 rounded-lg px-3 py-3 text-xs font-bold ${tab === "staff" ? "bg-white text-[#061229] shadow-sm" : "text-slate-500"}`}>Staff / Teacher</button></div>
-      {mode === "signin" ? <form onSubmit={submitSignIn} className="mt-7"><label className="text-sm font-bold text-[#061229]">{tab === "family" ? "Admission Number / UPI / Email" : "Staff ID / Email"}<input required value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder={tab === "family" ? "Admission number, UPI or registered email" : "Staff ID or official registered email"} className={inputClass}/></label>{!magicLinkMode&&<label className="mt-5 block text-sm font-bold text-[#061229]">Password<div className="relative mt-2"><input required type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password" className="w-full min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-base outline-none focus:ring-2 focus:ring-[#D89B28]"/><button type="button" aria-label={showPassword?"Hide password":"Show password"} onClick={()=>setShowPassword(v=>!v)} className="absolute right-2 top-1/2 min-h-10 min-w-10 -translate-y-1/2 text-slate-500">{showPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>}{alert}{successBanner}<button disabled={busy} className="mt-6 min-h-12 w-full rounded-xl bg-[#061229] px-5 py-3.5 text-base font-extrabold text-white disabled:opacity-60">{busy?(magicLinkMode?"Sending magic link…":"Signing in…"):(magicLinkMode?"Send magic link":"Sign in securely")}</button>{tab === "family"&&<button type="button" onClick={()=>{clearFeedback();setMagicLinkMode(v=>!v)}} className="mt-4 min-h-12 w-full text-sm font-bold text-[#D89B28] hover:underline">{magicLinkMode?"Back to password sign in":"Sign in with Email Link (Magic Link)"}</button>}<div className="mt-3 text-center"><button type="button" onClick={()=>switchMode("register")} className="min-h-12 px-2 text-sm font-bold text-[#D89B28] hover:underline">{tab === "staff"?"New teacher or staff member? Create an account here":"Don't have an account yet? Register here"}</button></div></form> : <form onSubmit={submitRegistration} className="mt-7"><h2 className="text-2xl font-bold text-[#061229]">{tab === "staff"?"Staff Registration":"Parent & Student Registration"}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{tab === "staff"?"Create your Menwe teacher / staff portal account using your official details.":"Create a portal account by verifying a learner record already held by Menwe."}</p>{tab === "staff"&&<><label className="mt-5 block text-sm font-bold text-[#061229]">Full Name<input required value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Teacher full name" className={inputClass}/></label><label className="mt-5 block text-sm font-bold text-[#061229]">Staff ID / TSC Number<input required value={staffId} onChange={e=>setStaffId(e.target.value)} placeholder="TSC-123456" className={inputClass}/></label><label className="mt-5 block text-sm font-bold text-[#061229]">School Authorization Code<input required type="password" autoComplete="off" value={schoolCode} onChange={e=>setSchoolCode(e.target.value)} placeholder="Enter school authorization code" className={inputClass}/></label></>}<label className="mt-5 block text-sm font-bold text-[#061229]">{tab === "staff"?"Official Email Address":"Parent / Guardian Email"}<input required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder={tab === "staff"?"teacher@example.com":"parent@example.com"} className={inputClass}/></label>{tab === "family"&&<label className="mt-5 block text-sm font-bold text-[#061229]">Learner Admission No. or UPI Number<input required value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder="Admission number or UPI" className={inputClass}/></label>}<label className="mt-5 block text-sm font-bold text-[#061229]">Password<input required minLength={6} type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} className={inputClass}/></label><label className="mt-5 block text-sm font-bold text-[#061229]">Confirm Password<input required minLength={6} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={inputClass}/></label>{alert}{successBanner}<button disabled={busy} className="mt-6 min-h-12 w-full rounded-xl bg-[#061229] px-5 py-3.5 text-base font-extrabold text-white disabled:opacity-60">{busy?"Creating account…":"Create account"}</button><div className="mt-3 text-center"><button type="button" onClick={()=>switchMode("signin")} className="min-h-12 px-2 text-sm font-bold text-[#D89B28] hover:underline">Back to sign in</button></div></form>}
+      {mode === "signin" ? <form onSubmit={submitSignIn} className="mt-7"><label className="text-sm font-bold text-[#061229]">{tab === "family" ? "Admission Number / UPI / Email" : "Staff ID / Email"}<input required value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder={tab === "family" ? "Admission number, UPI or registered email" : "Staff ID or official registered email"} className={inputClass}/></label>{!magicLinkMode&&<label className="mt-5 block text-sm font-bold text-[#061229]">Password<div className="relative mt-2"><input required type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password" className="w-full min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-base outline-none focus:ring-2 focus:ring-[#D89B28]"/><button type="button" aria-label={showPassword?"Hide password":"Show password"} onClick={()=>setShowPassword(v=>!v)} className="absolute right-2 top-1/2 min-h-10 min-w-10 -translate-y-1/2 text-slate-500">{showPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>}{alert}{successBanner}<button disabled={busy} className="mt-6 min-h-12 w-full rounded-xl bg-[#061229] px-5 py-3.5 text-base font-extrabold text-white disabled:opacity-60">{busy?(magicLinkMode?"Sending magic link…":"Signing in…"):(magicLinkMode?"Send magic link":"Sign in securely")}</button>{tab === "family"&&<button type="button" onClick={()=>{clearFeedback();setMagicLinkMode(v=>!v)}} className="mt-4 min-h-12 w-full text-sm font-bold text-[#D89B28] hover:underline">{magicLinkMode?"Back to password sign in":"Sign in with Email Link (Magic Link)"}</button>}<div className="mt-3 text-center"><button type="button" onClick={()=>switchMode("register")} className="min-h-12 px-2 text-sm font-bold text-[#D89B28] hover:underline">{tab === "staff"?"New teacher or staff member? Create an account here":"Don't have an account yet? Register here"}</button></div></form> : <form onSubmit={submitRegistration} className="mt-7"><h2 className="text-2xl font-bold text-[#061229]">{tab === "staff"?"Staff Registration":"Parent & Student Registration"}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{tab === "staff"?"Create your Menwe teacher / staff portal account using your official details.":"Create a portal account by verifying a learner record already held by Menwe."}</p>{tab === "staff"&&<><label className="mt-5 block text-sm font-bold text-[#061229]">Full Name<input required value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Teacher full name" className={inputClass}/></label><label className="mt-5 block text-sm font-bold text-[#061229]">Staff ID / TSC Number<input required value={staffId} onChange={e=>setStaffId(e.target.value)} placeholder="Your Staff ID / TSC number" className={inputClass}/><p className="mt-1.5 text-xs font-normal leading-5 text-slate-500">Enter your own Staff ID / TSC number. This is different from the School Authorization Code.</p></label><label className="mt-5 block text-sm font-bold text-[#061229]">School Authorization Code<input required type="password" autoComplete="off" value={schoolCode} onChange={e=>setSchoolCode(e.target.value)} placeholder="Enter school authorization code" className={inputClass}/><p className="mt-1.5 text-xs font-normal leading-5 text-slate-500">Use the staff registration code provided by school administration.</p></label></>}<label className="mt-5 block text-sm font-bold text-[#061229]">{tab === "staff"?"Official Email Address":"Parent / Guardian Email"}<input required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder={tab === "staff"?"teacher@example.com":"parent@example.com"} className={inputClass}/></label>{tab === "family"&&<label className="mt-5 block text-sm font-bold text-[#061229]">Learner Admission No. or UPI Number<input required value={identifier} onChange={e=>setIdentifier(e.target.value)} placeholder="Admission number or UPI" className={inputClass}/></label>}<label className="mt-5 block text-sm font-bold text-[#061229]">Password<input required minLength={6} type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} className={inputClass}/></label><label className="mt-5 block text-sm font-bold text-[#061229]">Confirm Password<input required minLength={6} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className={inputClass}/></label>{alert}{successBanner}<button disabled={busy} className="mt-6 min-h-12 w-full rounded-xl bg-[#061229] px-5 py-3.5 text-base font-extrabold text-white disabled:opacity-60">{busy?"Creating account…":"Create account"}</button><div className="mt-3 text-center"><button type="button" onClick={()=>switchMode("signin")} className="min-h-12 px-2 text-sm font-bold text-[#D89B28] hover:underline">Back to sign in</button></div></form>}
       </div></div></section>
   </PublicLayout>;
 }
