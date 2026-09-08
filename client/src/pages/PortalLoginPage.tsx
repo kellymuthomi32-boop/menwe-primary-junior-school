@@ -25,8 +25,6 @@ export default function PortalLoginPage() {
   const [success, setSuccess] = useState("");
   const [magicLinkMode, setMagicLinkMode] = useState(false);
 
-  // Never set redirect state from this effect. The ref makes the navigation one-shot
-  // even if Supabase or wouter publishes a new value during reconciliation.
   useEffect(() => {
     if (redirectStarted.current || auth.loading || !auth.user) return;
     redirectStarted.current = true;
@@ -51,9 +49,7 @@ export default function PortalLoginPage() {
       const profile = await auth.refreshProfile();
       redirectStarted.current = true;
       go(profile ? getPortalRedirect(profile, user) : "/portal");
-    } catch (error) {
-      setMessage(friendlyError(error));
-    }
+    } catch (error) { setMessage(friendlyError(error)); }
   };
 
   const resolveEmail = async () => {
@@ -78,14 +74,10 @@ export default function PortalLoginPage() {
         if (error) setMessage(friendlyError(error)); else setSuccess("Magic link sent. Check your email inbox.");
       } else {
         const result = await auth.signIn(emailAddress, password);
-        if (result.error) setMessage(friendlyError(result.error));
-        else await postLoginRedirect();
+        if (result.error) setMessage(friendlyError(result.error)); else await postLoginRedirect();
       }
-    } catch (error) {
-      setMessage(friendlyError(error));
-    } finally {
-      setBusy(false);
-    }
+    } catch (error) { setMessage(friendlyError(error)); }
+    finally { setBusy(false); }
   };
 
   const submitRegistration = async (event: FormEvent) => {
@@ -103,9 +95,11 @@ export default function PortalLoginPage() {
       if (tab === "staff") {
         const name = fullName.trim(), id = staffId.trim(), code = schoolCode.trim();
         if (!name || !id || !code) { setMessage("Complete your full name, Staff ID, and authorization code."); return; }
-        const { data: valid, error } = await client.rpc("verify_staff_registration", { staff_id: id, authorization_code: code });
-        if (error || !valid) { setMessage("Invalid Staff ID or Authorization Code. Please contact administration."); return; }
-        metadata = { role: "teacher", tsc_number: id, full_name: name };
+        const { data: registrationToken, error } = await client.rpc("verify_staff_registration", { staff_id: id, authorization_code: code });
+        if (error || !registrationToken) { setMessage("Invalid Staff ID or Authorization Code. Please contact administration."); return; }
+        // The one-time token returned by the database MUST travel with signup.
+        // The auth trigger consumes it and creates the teacher record atomically.
+        metadata = { role: "teacher", tsc_number: id, full_name: name, staff_registration_claim: registrationToken as string };
       } else {
         const lookup = identifier.trim();
         if (!lookup) { setMessage("Enter the learner admission number or UPI number."); return; }
@@ -117,27 +111,17 @@ export default function PortalLoginPage() {
       if (error) { setMessage(friendlyError(error)); return; }
       if (!data.user) { setMessage("Account creation did not complete. Please try again."); return; }
       setPassword(""); setConfirmPassword(""); setSchoolCode(""); setIdentifier(normalizedEmail);
-      if (data.session) {
-        setSuccess("Account created successfully.");
-        await postLoginRedirect();
-      } else {
-        setSuccess("Account created. Please confirm your email before signing in.");
-        setMode("signin");
-      }
-    } catch (error) {
-      setMessage(friendlyError(error));
-    } finally {
-      setBusy(false);
-    }
+      if (data.session) { setSuccess("Account created successfully."); await postLoginRedirect(); }
+      else { setSuccess("Account created. Please confirm your email before signing in."); setMode("signin"); }
+    } catch (error) { setMessage(friendlyError(error)); }
+    finally { setBusy(false); }
   };
 
   const switchTab = (next: "family" | "staff") => {
     setTab(next); setMode("signin"); setMagicLinkMode(false); setShowPassword(false); clearFeedback();
     setIdentifier(""); setEmail(""); setFullName(""); setStaffId(""); setPassword(""); setConfirmPassword(""); setSchoolCode("");
   };
-  const switchMode = (next: "signin" | "register") => {
-    setMode(next); setMagicLinkMode(false); setShowPassword(false); clearFeedback(); setPassword(""); setConfirmPassword("");
-  };
+  const switchMode = (next: "signin" | "register") => { setMode(next); setMagicLinkMode(false); setShowPassword(false); clearFeedback(); setPassword(""); setConfirmPassword(""); };
 
   const inputClass = "mt-2 w-full min-h-12 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#D89B28]";
   const alert = message ? <div role="alert" className="mt-5 flex gap-2 rounded-xl bg-red-50 p-3 text-xs leading-5 text-red-700"><AlertCircle className="mt-0.5 shrink-0" size={16}/>{message}</div> : null;
