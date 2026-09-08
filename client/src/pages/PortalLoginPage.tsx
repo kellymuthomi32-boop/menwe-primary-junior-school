@@ -112,7 +112,10 @@ export default function PortalLoginPage() {
           return;
         }
         if (!registrationToken || typeof registrationToken !== "string") {
-          setMessage("The Staff ID or School Authorization Code could not be verified. Check both fields and try again.");
+          // A null claim is also returned when the Staff ID is already linked
+          // to a teacher account. Do not make an already-registered teacher
+          // repeatedly retry a valid one-time registration code.
+          setMessage("This Staff ID is already registered or the details do not match. If you already started registration, use Staff / Teacher sign-in with your official email and password. Contact school ICT if you need the account recovered.");
           return;
         }
 
