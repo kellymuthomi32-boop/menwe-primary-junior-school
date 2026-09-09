@@ -1,12 +1,15 @@
 /* Dedicated print and screen layout for the class marksheet. */
 .marksheet-v2{width:100%;background:#fff;color:#061229}
 .marksheet-v2 .marksheet-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.marksheet-v2 .marksheet-table{table-layout:fixed;border-collapse:collapse}
-.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border:1px solid #cbd5e1;padding:5px 4px;text-align:center;vertical-align:middle;overflow:hidden}
+.marksheet-v2 .marksheet-table{width:100%;min-width:1180px;table-layout:fixed;border-collapse:collapse}
+.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border:1px solid #cbd5e1;padding:6px 4px;text-align:center;vertical-align:middle;overflow:hidden}
 .marksheet-v2 .marksheet-table thead th{background:#061229;color:#fff;font-weight:900;white-space:normal;line-height:1.08}
 .marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
 .marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
-.marksheet-v2 .marksheet-table .name-cell{white-space:nowrap;text-overflow:ellipsis}
+.marksheet-v2 .marksheet-table .name-cell{width:180px;min-width:180px;max-width:180px;white-space:nowrap;text-overflow:ellipsis;font-weight:700}
+.marksheet-v2 .marksheet-table th:nth-child(1),.marksheet-v2 .marksheet-table td:nth-child(1){width:42px}
+.marksheet-v2 .marksheet-table th:nth-child(2),.marksheet-v2 .marksheet-table td:nth-child(2){width:92px}
+.marksheet-v2 .marksheet-table th:nth-child(3),.marksheet-v2 .marksheet-table td:nth-child(3){width:180px;min-width:180px;max-width:180px}
 .marksheet-v2 .subject-code{display:block;color:#D89B28;font-size:11px;font-weight:900;line-height:1}
 .marksheet-v2 .subject-name{display:block;margin-top:3px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
 .marksheet-v2 .mark-cell{font-weight:800;white-space:nowrap}
