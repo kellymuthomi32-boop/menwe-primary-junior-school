@@ -9,7 +9,7 @@
   .menwe-aurora-two { bottom: -10rem; left: -8rem; }
   .menwe-aurora-three { width: 13rem; height: 13rem; left: 42%; }
   pre, code { max-width: 100%; overflow-x: auto; }
-  img, video, svg { max-width: 100%; }
+  img, video, svg { max-width: 100%; height: auto; }
   textarea { max-width: 100%; }
   .overflow-x-auto { max-width: 100%; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
   .overflow-x-auto > table { min-width: 620px; }
@@ -20,16 +20,41 @@
   .menwe-mini-card { min-height: 0; padding: 1rem; border-radius: 1rem; }
   .menwe-value-card { padding: 1rem; border-radius: 1.15rem; min-width: 0; }
   .menwe-news-card { min-height: 0; padding: 1.1rem; border-radius: 1.1rem; }
-  /* Common interactive controls are thumb-safe while preserving compact icon buttons. */
   button, [role="button"], a { -webkit-tap-highlight-color: transparent; }
   button:not(.icon-only), [role="button"] { min-height: 48px; }
   input, select, textarea { min-height: 48px; font-size: 16px; }
-  /* Disable hover movement on touch screens; use active feedback instead. */
   .menwe-feature:hover, .menwe-interactive:hover, .menwe-mini-card:hover, .menwe-value-card:hover, .menwe-news-card:hover { transform: none; box-shadow: inherit; }
   .menwe-feature:active, .menwe-interactive:active, .menwe-mini-card:active, .menwe-value-card:active, .menwe-news-card:active { transform: scale(.98); background-color: rgba(248,250,252,.8); transition: transform .2s ease, background-color .2s ease; }
   .menwe-feature:hover .menwe-feature-orb { transform: none; }
   .menwe-stagger > * { animation-delay: 0ms !important; }
+
+  /* Prevent dense administrative layouts from becoming unusable on phones. */
+  .container, main, section { max-width: 100%; }
+  table { max-width: 100%; }
+  th, td { white-space: nowrap; }
+  .overflow-x-auto { border-radius: .75rem; }
+  .overflow-x-auto table { margin: 0; }
+  /* Keep important action bars visible and easy to tap. */
+  .sticky { z-index: 20; }
+  nav { max-width: 100vw; }
 }
-@media (min-width: 640px) and (max-width: 767px) { .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
-@media (max-width: 430px) { .menwe-hero::after { display:none; } .menwe-orbit { display:none; } .menwe-cta-orb { width:18rem; height:18rem; top:-7rem; } .menwe-section-glow { width:20rem; height:20rem; top:-6rem; right:-9rem; opacity:.55; } .menwe-trust-chip { padding:.55rem .7rem; font-size:.68rem; } }
-@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
+
+@media (min-width: 640px) and (max-width: 767px) {
+  .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 430px) {
+  .menwe-hero::after { display:none; }
+  .menwe-orbit { display:none; }
+  .menwe-cta-orb { width:18rem; height:18rem; top:-7rem; }
+  .menwe-section-glow { width:20rem; height:20rem; top:-6rem; right:-9rem; opacity:.55; }
+  .menwe-trust-chip { padding:.55rem .7rem; font-size:.68rem; }
+  /* Give very small screens slightly tighter page gutters without crushing content. */
+  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .gap-8 { gap: 1.25rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
