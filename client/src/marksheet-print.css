@@ -1,167 +1,45 @@
-/* Dedicated print hardening for the class marksheet. */
+/* Dedicated print and screen layout for the class marksheet. */
+.marksheet-v2{width:100%;background:#fff;color:#061229}
+.marksheet-v2 .marksheet-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.marksheet-v2 .marksheet-table{table-layout:fixed;border-collapse:collapse}
+.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border:1px solid #cbd5e1;padding:5px 4px;text-align:center;vertical-align:middle;overflow:hidden}
+.marksheet-v2 .marksheet-table thead th{background:#061229;color:#fff;font-weight:900;white-space:normal;line-height:1.08}
+.marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
+.marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
+.marksheet-v2 .marksheet-table .name-cell{white-space:nowrap;text-overflow:ellipsis}
+.marksheet-v2 .subject-code{display:block;color:#D89B28;font-size:11px;font-weight:900;line-height:1}
+.marksheet-v2 .subject-name{display:block;margin-top:3px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
+.marksheet-v2 .mark-cell{font-weight:800;white-space:nowrap}
+.marksheet-v2 .level-cell{font-weight:900;white-space:nowrap}
+.marksheet-v2 .points-cell,.marksheet-v2 .mean-cell{font-weight:900}
+.marksheet-v2 .marksheet-summary-row td{background:#f7f0df;font-weight:900;border-top:2px solid #061229}
+.marksheet-v2 .level-legend{font-size:10px;line-height:1.45;color:#334155;background:#fff}
 
-/* Strong subject labels on the on-screen marksheet. */
-.marksheet-v2 .subject-heading {
-  display: flex !important;
-  color: #D89B28 !important;
-  visibility: visible !important;
-}
-.marksheet-v2 .subject-heading > span:first-child {
-  color: #D89B28 !important;
-  font-weight: 900 !important;
-}
-.marksheet-v2 .subject-heading .subject-name {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-}
-
-@media print {
-  @page {
-    size: A4 landscape;
-    margin: 5mm;
-  }
-
-  html, body {
-    width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
-  }
-
-  body * { visibility: hidden !important; }
-  html body .marksheet-v2,
-  html body .marksheet-v2 * { visibility: visible !important; }
-
-  html body .marksheet-v2 {
-    position: static !important;
-    inset: auto !important;
-    display: block !important;
-    overflow: visible !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-
-  html body .marksheet-v2 table {
-    display: table !important;
-    position: static !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-    font-size: 7px !important;
-  }
-
-  html body .marksheet-v2 thead {
-    display: table-header-group !important;
-    break-after: avoid-page !important;
-    page-break-after: avoid !important;
-  }
-  html body .marksheet-v2 tbody { display: table-row-group !important; }
-  html body .marksheet-v2 tbody tr {
-    display: table-row !important;
-    break-inside: avoid-page !important;
-    page-break-inside: avoid !important;
-  }
-  html body .marksheet-v2 tbody td,
-  html body .marksheet-v2 tbody th {
-    break-inside: avoid-page !important;
-    page-break-inside: avoid !important;
-  }
-
-  html body .marksheet-v2 thead th {
-    min-width: 0 !important;
-    width: auto !important;
-    height: auto !important;
-    padding: 2px 1px !important;
-    white-space: normal !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
-    line-height: 1.05 !important;
-    font-size: 7px !important;
-  }
-
-  html body .marksheet-v2 tbody td,
-  html body .marksheet-v2 tbody th {
-    min-width: 0 !important;
-    width: auto !important;
-    height: auto !important;
-    max-height: none !important;
-    padding: 2px 1px !important;
-    white-space: nowrap !important;
-    word-break: normal !important;
-    overflow: hidden !important;
-    text-overflow: clip !important;
-    line-height: 1.1 !important;
-    font-size: 7px !important;
-  }
-
-  html body .marksheet-v2 thead th:first-child,
-  html body .marksheet-v2 tbody td:first-child { width: 6mm !important; }
-  html body .marksheet-v2 thead th:nth-child(2),
-  html body .marksheet-v2 tbody td:nth-child(2) { width: 23mm !important; }
-  html body .marksheet-v2 thead th:nth-child(3),
-  html body .marksheet-v2 tbody td:nth-child(3) { width: 43mm !important; }
-  html body .marksheet-v2 thead th:nth-child(4),
-  html body .marksheet-v2 tbody td:nth-child(4) { width: 7mm !important; }
-
-  html body .marksheet-v2 .subject-heading,
-  html body .marksheet-v2 .subject-heading * {
-    font-size: 7px !important;
-    line-height: 1 !important;
-    min-width: 0 !important;
-  }
-  html body .marksheet-v2 .subject-heading span:first-child {
-    color: #061229 !important;
-    font-size: 8px !important;
-  }
-  html body .marksheet-v2 .subject-heading .subject-name {
-    color: #334155 !important;
-    font-size: 7px !important;
-  }
-
-  html body .marksheet-v2 header {
-    padding: 3mm !important;
-    margin: 0 !important;
-    break-after: avoid-page !important;
-    page-break-after: avoid !important;
-  }
-  html body .marksheet-v2 header h2 { font-size: 13px !important; line-height: 1.1 !important; }
-  html body .marksheet-v2 header h3 { font-size: 10px !important; line-height: 1.1 !important; }
-  html body .marksheet-v2 header p { font-size: 7px !important; line-height: 1.1 !important; }
-  html body .marksheet-v2 .level-cell { font-size: 7px !important; font-weight: 900 !important; }
-
-  html body .marksheet-v2 .marksheet-summary-row,
-  html body .marksheet-v2 .marksheet-summary-row td,
-  html body .marksheet-v2 tr:last-child,
-  html body .marksheet-v2 tr:last-child td {
-    break-inside: avoid-page !important;
-    page-break-inside: avoid !important;
-  }
-
-  html body .marksheet-v2 button,
-  html body .marksheet-v2 [data-print-hide="true"],
-  html body .marksheet-v2 .print-hide,
-  html body .marksheet-v2 .no-print { display: none !important; }
-
-  html body .marksheet-v2 img,
-  html body .marksheet-v2 svg {
-    break-inside: avoid-page !important;
-    page-break-inside: avoid !important;
-    max-width: 100% !important;
-  }
+@media print{
+  @page{size:A4 landscape;margin:5mm}
+  html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  body *{visibility:hidden!important}
+  html body .marksheet-v2,html body .marksheet-v2 *{visibility:visible!important}
+  .print-hide,.print-hidden,.no-print,.print-hide *{display:none!important}
+  html body .marksheet-v2{position:static!important;display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  html body .marksheet-v2 .marksheet-header{padding:3mm!important;margin:0!important;background:#061229!important;color:#fff!important;break-after:avoid-page!important;page-break-after:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-header h2{font-size:13pt!important;line-height:1.05!important;margin:0!important}
+  html body .marksheet-v2 .marksheet-header h3{font-size:9pt!important;line-height:1.05!important;margin:1.5mm 0 0!important}
+  html body .marksheet-v2 .marksheet-header p{font-size:6pt!important;line-height:1.1!important;margin:1mm 0 0!important}
+  html body .marksheet-v2 .marksheet-table-wrap{padding:2mm 0 0!important;overflow:visible!important}
+  html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:5.7pt!important}
+  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
+  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
+  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.75mm .35mm!important;height:4.5mm!important;line-height:1.05!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:1px solid #64748b!important}
+  html body .marksheet-v2 .marksheet-table thead th{background:#061229!important;color:#fff!important;font-size:5.8pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-table thead th:first-child,html body .marksheet-v2 .marksheet-table tbody td:first-child{width:6mm!important}
+  html body .marksheet-v2 .marksheet-table thead th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:21mm!important}
+  html body .marksheet-v2 .marksheet-table thead th:nth-child(3),html body .marksheet-v2 .marksheet-table tbody td:nth-child(3){width:40mm!important}
+  html body .marksheet-v2 .subject-code{font-size:6.2pt!important;color:#D89B28!important}
+  html body .marksheet-v2 .subject-name{font-size:5pt!important;color:#fff!important}
+  html body .marksheet-v2 .level-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .mean-cell{font-size:5.7pt!important;font-weight:900!important}
+  html body .marksheet-v2 .marksheet-summary-row td{background:#f7f0df!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .level-legend{font-size:5.5pt!important;line-height:1.25!important;padding:1.5mm 0!important;border:0!important}
+  html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
