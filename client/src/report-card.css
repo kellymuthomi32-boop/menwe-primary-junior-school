@@ -1,0 +1,56 @@
+@page{size:A4 portrait;margin:9mm}
+:root{--rc-green:#0B5D3B;--rc-dark:#064A30;--rc-gold:#D7A52A;--rc-cream:#FFF9EE;--rc-sage:#F1F7F3;--rc-ink:#17352A;--rc-line:#D7E5DC}
+.report-card-print{color:var(--rc-ink);background:#fff}
+.report-hero{display:flex;align-items:stretch;justify-content:space-between;gap:20px;padding:22px 24px;background:linear-gradient(135deg,var(--rc-dark),var(--rc-green));color:#fff;border-bottom:4px solid var(--rc-gold)}
+.report-eyebrow{font-size:12px;font-weight:900;letter-spacing:.17em;text-transform:uppercase;color:#F2D38D}
+.report-contact{margin-top:5px;font-size:10px;font-weight:600;color:rgba(255,255,255,.76)}
+.report-hero h2{margin:15px 0 4px;font-size:22px;line-height:1.05;font-weight:900;letter-spacing:.03em;text-transform:uppercase}
+.report-hero p{margin:0;font-size:11px;font-weight:700;color:rgba(255,255,255,.82)}
+.report-badge{min-width:86px;display:grid;place-items:center;align-content:center;align-self:stretch;border:1px solid rgba(255,255,255,.2);border-radius:18px;background:rgba(255,255,255,.09);padding:10px 14px;text-align:center}
+.report-badge span{font-size:8px;letter-spacing:.12em;font-weight:900;color:#F2D38D}
+.report-badge strong{font-size:30px;line-height:1;font-weight:900}
+.report-identity{display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr;border-bottom:1px solid var(--rc-line);background:var(--rc-cream)}
+.report-identity>div{padding:12px 15px;border-right:1px solid var(--rc-line)}
+.report-identity>div:last-child{border-right:0}
+.report-identity span,.report-identity strong{display:block}
+.report-identity span{font-size:8px;text-transform:uppercase;letter-spacing:.12em;font-weight:900;color:#6B7E73}
+.report-identity strong{margin-top:3px;font-size:12px;font-weight:900}
+.report-body{padding:18px 20px 12px}
+.report-section{margin-bottom:18px}
+.report-section-head{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+.report-section-head>span{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:var(--rc-gold);color:#fff;font-size:10px;font-weight:900}
+.report-section-head h3{margin:0;font-size:15px;line-height:1.1;font-weight:900;color:var(--rc-dark)}
+.report-section-head p{margin:3px 0 0;font-size:9px;color:#718178}
+.report-table-wrap{overflow:hidden;border:1px solid var(--rc-line);border-radius:12px}
+.report-table-wrap table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}
+.report-table-wrap th{background:var(--rc-dark);color:#fff;padding:8px 7px;font-size:8px;letter-spacing:.06em;text-transform:uppercase;text-align:left}
+.report-table-wrap td{padding:8px 7px;border-top:1px solid var(--rc-line);vertical-align:middle}
+.report-table-wrap tbody tr:nth-child(even){background:#FBFDFC}
+.report-table-wrap td:first-child{width:24%}
+.report-table-wrap td:nth-child(2){width:15%;text-align:center}
+.report-table-wrap td:nth-child(3){width:11%;text-align:center}
+.report-table-wrap td:nth-child(4){width:22%}
+.report-table-wrap td:nth-child(5){width:28%}
+.report-table-wrap td strong{display:block;font-size:10px;color:var(--rc-dark)}
+.report-table-wrap td small{display:block;margin-top:2px;color:#6B7E73;font-size:7.5px}
+.report-table-wrap .score{text-align:center;font-size:10px;font-weight:900;white-space:nowrap}
+.level-pill{display:inline-grid;min-width:30px;padding:3px 5px;border-radius:999px;background:var(--rc-sage);color:var(--rc-dark);font-size:8px;font-weight:900;text-align:center}
+.report-table-wrap tfoot td{background:var(--rc-cream);border-top:2px solid var(--rc-gold);font-weight:900}
+.report-section.report-annual{margin-top:2px}
+.annual-cards,.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.annual-cards>div,.summary-grid>div{border:1px solid var(--rc-line);border-radius:11px;padding:11px 12px;background:#fff}
+.annual-cards span,.summary-grid span{display:block;font-size:7px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#718178}
+.annual-cards strong,.summary-grid strong{display:block;margin-top:4px;font-size:14px;font-weight:900;color:var(--rc-dark)}
+.report-comment-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:4px}
+.report-comment-grid label{display:block;margin-bottom:5px;font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#718178}
+.comment-box{min-height:56px;border:1px solid var(--rc-line);border-radius:11px;background:#FCFEFD;padding:10px;font-size:8.5px;line-height:1.5;color:#29453A}
+.report-footer{display:grid;grid-template-columns:1fr 1.8fr 1fr;gap:14px;align-items:end;padding:12px 20px 18px;border-top:1px solid var(--rc-line);background:#FBFDFC}
+.report-footer>div{min-height:54px}
+.report-footer span{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#718178}
+.signature-line{margin-top:20px;border-bottom:1px solid #7C8B83;width:100%}
+.report-footer small{display:block;margin-top:4px;font-size:7px;color:#7C8B83}
+.footer-note{text-align:center;padding:8px;border-radius:10px;background:var(--rc-cream)}
+.footer-note strong{display:block;font-size:8px;color:var(--rc-dark)}
+.footer-note small{line-height:1.45}
+@media screen and (max-width:900px){.report-identity{grid-template-columns:1fr 1fr}.report-identity>div:nth-child(2){border-right:0}.report-identity>div:nth-child(-n+2){border-bottom:1px solid var(--rc-line)}.report-hero{padding:18px}.report-body{padding:15px}.report-footer{grid-template-columns:1fr}.annual-cards,.summary-grid{grid-template-columns:1fr 1fr}}
+@media print{.no-print{display:none!important}.report-card-print{box-shadow:none!important;border:0!important;border-radius:0!important}.report-hero{padding:15px 18px}.report-hero h2{font-size:19px}.report-body{padding:12px 14px 8px}.report-section{margin-bottom:12px}.report-table-wrap{border-radius:7px}.report-table-wrap th{padding:6px 5px;font-size:7px}.report-table-wrap td{padding:6px 5px;font-size:8px}.report-table-wrap td strong{font-size:8.5px}.report-table-wrap td small{font-size:6.5px}.report-comment-grid{gap:8px}.comment-box{min-height:44px;padding:7px}.report-footer{padding:8px 14px 11px}.signature-line{margin-top:13px}.annual-cards>div,.summary-grid>div{padding:8px}.annual-cards strong,.summary-grid strong{font-size:11px}}
