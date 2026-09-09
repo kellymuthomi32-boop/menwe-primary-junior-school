@@ -1,64 +1,36 @@
 .marksheet-v2{width:100%;background:#fff;color:#061229}
-.marksheet-v2 .marksheet-header{background:#061229;color:#fff}
-.marksheet-v2 .marksheet-school{font-size:18px;font-weight:900;letter-spacing:.02em;line-height:1.15}
-.marksheet-v2 .marksheet-contact{margin-top:3px;font-size:10px;font-weight:600;color:rgba(255,255,255,.72)}
-.marksheet-v2 .marksheet-header h2{margin:10px 0 0;font-size:15px;font-weight:900;letter-spacing:.02em;text-transform:uppercase}
-.marksheet-v2 .marksheet-meta{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:6px;font-size:10px;font-weight:800;color:rgba(255,255,255,.76);text-transform:uppercase}
-.marksheet-v2 .marksheet-meta span:last-child{color:#D89B28}
 .marksheet-v2 .marksheet-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:10px;background:#fff}
-.marksheet-v2 .marksheet-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:11px}
-.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border-right:1px solid #d7dee8;border-bottom:1px solid #d7dee8;padding:7px 5px;text-align:center;vertical-align:middle;overflow:hidden}
+.marksheet-v2 .marksheet-table{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:11px}
+.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border-right:1px solid #d7dee8;border-bottom:1px solid #d7dee8;padding:6px 4px;text-align:center;vertical-align:middle;overflow:hidden}
 .marksheet-v2 .marksheet-table th:first-child,.marksheet-v2 .marksheet-table td:first-child{border-left:1px solid #d7dee8}
 .marksheet-v2 .marksheet-table thead th{background:#0b1730;color:#fff;font-weight:900;line-height:1.1}
 .marksheet-v2 .marksheet-table thead .subject-group{background:#122343;color:#D89B28;border-left:1px solid rgba(255,255,255,.15);font-size:11px;letter-spacing:.04em}
-.marksheet-v2 .marksheet-table thead .score-level-row th{background:#eef2f7;color:#334155;font-size:8px;letter-spacing:.03em}
 .marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
 .marksheet-v2 .marksheet-table tbody tr:hover{background:#f1f5f9}
-.marksheet-v2 .name-column,.marksheet-v2 .name-cell{text-align:left!important}
-.marksheet-v2 .name-cell{font-weight:700;white-space:nowrap;text-overflow:ellipsis}
-.marksheet-v2 .score-cell{font-weight:800;white-space:nowrap}
-.marksheet-v2 .level-cell{font-weight:900;white-space:nowrap}
-.marksheet-v2 .total-marks-cell,.marksheet-v2 .points-cell,.marksheet-v2 .rank-cell{font-weight:900;white-space:nowrap;background:#f8fafc}
+.marksheet-v2 .name-column{text-align:left!important}
+.marksheet-v2 .score-cell,.marksheet-v2 .level-cell{font-weight:900;white-space:nowrap}
+.marksheet-v2 .level-cell{font-size:10px}
+.marksheet-v2 .total-cell,.marksheet-v2 .rank-cell{font-weight:900;white-space:nowrap}
 .marksheet-v2 .rank-cell{font-size:12px}
-.marksheet-v2 .marksheet-summary-row td{background:#f7f0df;font-weight:900;border-top:2px solid #061229}
-.marksheet-v2 .marksheet-mean-row td{background:#fffaf0;font-weight:800}
-.marksheet-v2 .level-legend{padding:9px 12px;border-top:1px solid #d7dee8;background:#fff;font-size:9px;line-height:1.45;color:#475569}
-.marksheet-v2 .level-legend span{float:right;font-weight:900;color:#061229}
-.marksheet-v2 .col-no{width:34px}.marksheet-v2 .col-adm{width:78px}.marksheet-v2 .col-learner{width:170px}
-.marksheet-v2 .col-score{width:48px}.marksheet-v2 .col-level{width:45px}.marksheet-v2 .col-total{width:70px}.marksheet-v2 .col-points{width:70px}.marksheet-v2 .col-rank{width:52px}
-
-@media screen and (max-width:900px){
-  .marksheet-v2 .marksheet-table-wrap{padding:6px}
-  .marksheet-v2 .marksheet-table{min-width:1050px}
-  .marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{padding:6px 4px}
-}
-
+.marksheet-v2 .col-no{width:34px}.marksheet-v2 .col-adm{width:72px}.marksheet-v2 .col-learner{width:180px}
+.marksheet-v2 .col-score{width:47px}.marksheet-v2 .col-level{width:58px}.marksheet-v2 .col-total-marks{width:70px}.marksheet-v2 .col-total-points{width:70px}.marksheet-v2 .col-rank{width:50px}
+@media screen and (max-width:900px){.marksheet-v2 .marksheet-table-wrap{padding:6px}.marksheet-v2 .marksheet-table{min-width:980px}.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{padding:6px 4px}}
 @media print{
-  @page{size:A4 landscape;margin:6mm 5mm}
-  html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
-  body *{visibility:hidden!important}
-  html body .marksheet-v2,html body .marksheet-v2 *{visibility:visible!important}
-  .print-hide,.print-hidden,.no-print,.print-hide *{display:none!important}
-  html body .marksheet-v2{position:static!important;display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
-  html body .marksheet-v2 .marksheet-header{padding:3mm 4mm!important;margin:0!important;break-after:avoid-page!important;page-break-after:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html body .marksheet-v2 .marksheet-school{font-size:12pt!important;line-height:1.05!important}
-  html body .marksheet-v2 .marksheet-contact{font-size:6.5pt!important;margin-top:1mm!important}
-  html body .marksheet-v2 .marksheet-header h2{font-size:9pt!important;margin:2mm 0 0!important}
-  html body .marksheet-v2 .marksheet-meta{font-size:5.8pt!important;margin-top:1mm!important;gap:1mm 5mm!important}
-  html body .marksheet-v2 .marksheet-table-wrap{padding:1.5mm 0 0!important;overflow:visible!important}
-  html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:5.4pt!important}
-  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
-  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
-  html body .marksheet-v2 .marksheet-table tfoot{display:table-footer-group!important}
-  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
-  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{height:4.5mm!important;padding:.55mm .25mm!important;line-height:1.05!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:.6px solid #64748b!important}
-  html body .marksheet-v2 .marksheet-table thead th{background:#0b1730!important;color:#fff!important;font-size:5pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html body .marksheet-v2 .marksheet-table thead .subject-group{background:#122343!important;color:#D89B28!important}
-  html body .marksheet-v2 .marksheet-table thead .score-level-row th{background:#eef2f7!important;color:#334155!important;font-size:4.5pt!important}
-  html body .marksheet-v2 .name-cell{font-size:5pt!important;text-align:left!important}
-  html body .marksheet-v2 .score-cell,html body .marksheet-v2 .level-cell,html body .marksheet-v2 .total-marks-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .rank-cell{font-size:5pt!important;font-weight:900!important}
-  html body .marksheet-v2 .marksheet-summary-row td{background:#f7f0df!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html body .marksheet-v2 .level-legend{font-size:4.5pt!important;line-height:1.15!important;padding:1.2mm 0!important}
-  html body .marksheet-v2 .level-legend span{float:right!important}
+ @page{size:A4 landscape;margin:6mm 5mm}
+ html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+ body *{visibility:hidden!important}
+ html body .marksheet-v2,html body .marksheet-v2 *{visibility:visible!important}
+ .print-hide,.print-hidden,.no-print,.print-hide *{display:none!important}
+ html body .marksheet-v2{position:static!important;display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+ html body .marksheet-v2 .marksheet-table-wrap{padding:1.5mm 0 0!important;overflow:visible!important}
+ html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:5.3pt!important}
+ html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
+ html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
+ html body .marksheet-v2 .marksheet-table tfoot{display:table-footer-group!important}
+ html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+ html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{height:4.4mm!important;padding:.5mm .2mm!important;line-height:1.05!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:.6px solid #64748b!important}
+ html body .marksheet-v2 .marksheet-table thead th{background:#0b1730!important;color:#fff!important;font-size:4.8pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ html body .marksheet-v2 .marksheet-table thead .subject-group{background:#122343!important;color:#D89B28!important}
+ html body .marksheet-v2 .level-cell{font-size:4.4pt!important;font-weight:900!important}
+ html body .marksheet-v2 .name-column{font-size:4.8pt!important;text-align:left!important}
 }
