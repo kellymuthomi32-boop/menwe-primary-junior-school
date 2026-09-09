@@ -11,105 +11,170 @@
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    overflow: visible !important;
   }
 
-  /* The component's legacy print rule positioned the marksheet absolutely.
-     That can clip the continuation instead of allowing a second A4 page. */
-  html body .marksheet-print {
+  /* Print only the actual marksheet and let the browser paginate vertically. */
+  body * {
+    visibility: hidden !important;
+  }
+
+  html body .marksheet-v2,
+  html body .marksheet-v2 * {
+    visibility: visible !important;
+  }
+
+  html body .marksheet-v2 {
     position: static !important;
-    left: auto !important;
-    top: auto !important;
+    inset: auto !important;
     display: block !important;
     overflow: visible !important;
-    max-width: none !important;
-    min-width: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     height: auto !important;
     max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
-  html body .marksheet-print table {
+  /* The screen version uses min-widths for scrolling. Those MUST disappear
+     during printing or the browser will shrink/clip the PDF unnecessarily. */
+  html body .marksheet-v2 table {
     display: table !important;
     position: static !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
     height: auto !important;
+    margin: 0 !important;
+    table-layout: fixed !important;
     border-collapse: collapse !important;
     break-inside: auto !important;
     page-break-inside: auto !important;
+    font-size: 7px !important;
   }
 
-  /* Repeat the column headings whenever the table continues onto page 2. */
-  html body .marksheet-print thead {
+  /* Repeat column headings on every PDF page when the learner list continues. */
+  html body .marksheet-v2 thead {
     display: table-header-group !important;
     break-after: avoid-page !important;
     page-break-after: avoid !important;
   }
 
-  /* Never split an individual learner across the page boundary. */
-  html body .marksheet-print tbody tr {
+  html body .marksheet-v2 tbody {
+    display: table-row-group !important;
+  }
+
+  html body .marksheet-v2 tbody tr {
     display: table-row !important;
     break-inside: avoid-page !important;
     page-break-inside: avoid !important;
   }
 
-  html body .marksheet-print tbody td,
-  html body .marksheet-print tbody th {
+  html body .marksheet-v2 tbody td,
+  html body .marksheet-v2 tbody th {
     break-inside: avoid-page !important;
     page-break-inside: avoid !important;
   }
 
-  /* Keep the final TOTAL / overall LEVEL line intact. */
-  html body .marksheet-print .marksheet-summary-row,
-  html body .marksheet-print .marksheet-summary-row td {
-    break-inside: avoid-page !important;
-    page-break-inside: avoid !important;
+  /* Compact, controlled columns. This prevents the old 76/105/150px minimums
+     from forcing the PDF wider than the A4 landscape printable area. */
+  html body .marksheet-v2 thead th {
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 2px 1px !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    line-height: 1.05 !important;
+    font-size: 7px !important;
   }
 
-  /* Screen-only controls must never consume paper space. */
-  html body .marksheet-print button,
-  html body .marksheet-print [data-print-hide="true"],
-  html body .marksheet-print .print-hide,
-  html body .marksheet-print .no-print {
-    display: none !important;
-  }
-
-  /* Preserve the selected overall level while removing the interactive chrome. */
-  html body .marksheet-print select {
-    appearance: none !important;
-    -webkit-appearance: none !important;
-    border: 0 !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    color: inherit !important;
-    font: inherit !important;
-  }
-
-  /* Prevent long names from changing row height and creating accidental splits. */
-  html body .marksheet-print th,
-  html body .marksheet-print td {
+  html body .marksheet-v2 tbody td,
+  html body .marksheet-v2 tbody th {
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 2px 1px !important;
     white-space: nowrap !important;
     word-break: normal !important;
     overflow: hidden !important;
     text-overflow: clip !important;
+    line-height: 1.1 !important;
+    font-size: 7px !important;
   }
 
-  /* Compact density without a fixed row height that can clip printer text. */
-  html body .marksheet-print tbody td,
-  html body .marksheet-print tbody th {
-    min-height: 3.5mm !important;
-    height: auto !important;
-    max-height: none !important;
+  html body .marksheet-v2 thead th:first-child,
+  html body .marksheet-v2 tbody td:first-child { width: 6mm !important; }
+  html body .marksheet-v2 thead th:nth-child(2),
+  html body .marksheet-v2 tbody td:nth-child(2) { width: 23mm !important; }
+  html body .marksheet-v2 thead th:nth-child(3),
+  html body .marksheet-v2 tbody td:nth-child(3) { width: 43mm !important; }
+  html body .marksheet-v2 thead th:nth-child(4),
+  html body .marksheet-v2 tbody td:nth-child(4) { width: 7mm !important; }
+
+  /* Subject headers stay readable while fitting the full marks table. */
+  html body .marksheet-v2 .subject-heading,
+  html body .marksheet-v2 .subject-heading * {
+    font-size: 7px !important;
+    line-height: 1 !important;
+    min-width: 0 !important;
   }
 
-  html body .marksheet-print img,
-  html body .marksheet-print svg {
+  html body .marksheet-v2 .subject-heading span:first-child {
+    font-size: 8px !important;
+  }
+
+  html body .marksheet-v2 header {
+    padding: 3mm !important;
+    margin: 0 !important;
+    break-after: avoid-page !important;
+    page-break-after: avoid !important;
+  }
+
+  html body .marksheet-v2 header h2 {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  html body .marksheet-v2 header h3 {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+
+  html body .marksheet-v2 header p {
+    font-size: 7px !important;
+    line-height: 1.1 !important;
+  }
+
+  html body .marksheet-v2 .level-cell {
+    font-size: 7px !important;
+    font-weight: 900 !important;
+  }
+
+  html body .marksheet-v2 .marksheet-summary-row,
+  html body .marksheet-v2 .marksheet-summary-row td,
+  html body .marksheet-v2 tr:last-child,
+  html body .marksheet-v2 tr:last-child td {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  html body .marksheet-v2 button,
+  html body .marksheet-v2 [data-print-hide="true"],
+  html body .marksheet-v2 .print-hide,
+  html body .marksheet-v2 .no-print {
+    display: none !important;
+  }
+
+  html body .marksheet-v2 img,
+  html body .marksheet-v2 svg {
     break-inside: avoid-page !important;
     page-break-inside: avoid !important;
     max-width: 100% !important;
