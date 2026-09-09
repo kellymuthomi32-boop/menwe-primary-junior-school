@@ -35,4 +35,6 @@ if (typeof indexedDB !== "undefined") {
   }
 }
 
+// Keep the marksheet print stylesheet in the production entrypoint so every
+// production build receives the latest A4 print rules.
 createRoot(document.getElementById("root")!).render(<App />);
