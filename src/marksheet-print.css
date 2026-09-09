@@ -1,0 +1,51 @@
+/* Professional class marksheet print layout. Screen remains horizontally scrollable; print fits A4 landscape. */
+.marksheet-v2{width:100%;background:#fff;color:#061229}
+.marksheet-v2 .marksheet-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.marksheet-v2 .marksheet-table{border-collapse:collapse;table-layout:fixed}
+.marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border:1px solid #cbd5e1;padding:6px 4px;text-align:center;vertical-align:middle;overflow:hidden}
+.marksheet-v2 .marksheet-table thead th{background:#061229;color:#fff;font-weight:900;line-height:1.08}
+.marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
+.marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
+.marksheet-v2 .marksheet-table .name-cell{white-space:nowrap;text-overflow:ellipsis}
+.marksheet-v2 .subject-code{display:block;color:#D89B28;font-size:11px;font-weight:900;line-height:1}
+.marksheet-v2 .subject-name{display:block;margin-top:3px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
+.marksheet-v2 .mark-cell{font-weight:800;white-space:nowrap}
+.marksheet-v2 .level-cell,.marksheet-v2 .points-cell,.marksheet-v2 .rank-cell,.marksheet-v2 .total-marks-cell{font-weight:900;white-space:nowrap}
+.marksheet-v2 .marksheet-summary-row td{background:#f7f0df;font-weight:900;border-top:2px solid #061229}
+.marksheet-v2 .marksheet-mean-row td{background:#fffaf0}
+.marksheet-v2 .level-legend{font-size:10px;line-height:1.45;color:#334155;background:#fff}
+
+@media screen and (max-width:900px){
+  .marksheet-v2 .marksheet-table{min-width:1050px}
+  .marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{padding:5px 3px}
+}
+
+@media print{
+  @page{size:A4 landscape;margin:4mm}
+  html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  body *{visibility:hidden!important}
+  html body .marksheet-v2,html body .marksheet-v2 *{visibility:visible!important}
+  .print-hide,.print-hidden,.no-print,.print-hide *{display:none!important}
+  html body .marksheet-v2{position:static!important;display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  html body .marksheet-v2 .marksheet-header{padding:2.5mm 3mm!important;margin:0!important;background:#061229!important;color:#fff!important;break-after:avoid-page!important;page-break-after:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-header h2{font-size:12pt!important;line-height:1.05!important;margin:0!important}
+  html body .marksheet-v2 .marksheet-header h3{font-size:8pt!important;line-height:1.05!important;margin:1.2mm 0 0!important}
+  html body .marksheet-v2 .marksheet-header p,html body .marksheet-v2 .marksheet-header span{font-size:5.5pt!important;line-height:1.1!important;margin:0.7mm 0 0!important}
+  html body .marksheet-v2 .marksheet-table-wrap{padding:1.5mm 0 0!important;overflow:visible!important}
+  html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:5.3pt!important}
+  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
+  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
+  html body .marksheet-v2 .marksheet-table tfoot{display:table-footer-group!important}
+  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.55mm .22mm!important;height:4mm!important;line-height:1.02!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:0.7px solid #64748b!important}
+  html body .marksheet-v2 .marksheet-table thead th{background:#061229!important;color:#fff!important;font-size:5.2pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-table th:first-child,html body .marksheet-v2 .marksheet-table td:first-child{width:6mm!important}
+  html body .marksheet-v2 .marksheet-table th:nth-child(2),html body .marksheet-v2 .marksheet-table td:nth-child(2){width:19mm!important}
+  html body .marksheet-v2 .marksheet-table th:nth-child(3),html body .marksheet-v2 .marksheet-table td:nth-child(3){width:38mm!important}
+  html body .marksheet-v2 .subject-code{font-size:5.6pt!important;color:#D89B28!important}
+  html body .marksheet-v2 .subject-name{font-size:4pt!important;color:#fff!important}
+  html body .marksheet-v2 .level-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .rank-cell,html body .marksheet-v2 .total-marks-cell{font-size:5pt!important;font-weight:900!important}
+  html body .marksheet-v2 .marksheet-summary-row td{background:#f7f0df!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important}
+  html body .marksheet-v2 .level-legend{font-size:4.8pt!important;line-height:1.15!important;padding:1mm 0!important;border:0!important}
+}
