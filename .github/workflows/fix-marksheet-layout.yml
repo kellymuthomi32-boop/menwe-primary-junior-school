@@ -1,0 +1,89 @@
+name: Fix marksheet layout
+
+on:
+  push:
+    paths:
+      - .github/workflows/fix-marksheet-layout.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply marksheet layout fixes
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('client/src/pages/ClassMarksheetV2.tsx')
+          text = path.read_text()
+
+          # Lower Primary: always expose the six agreed school report areas when configured.
+          anchor = 'const priority = (code: string) => ({ ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, CAS: 60, "AGR NUT": 70, RE: 80, "PRE TECH": 90, HSC: 100, ICT: 110, ART: 120, MUS: 130, PE: 140 }[code] ?? 999);'
+          helper = '''const lowerPrimaryPatterns: Array<[RegExp,string]> = [
+            [/ENGLISH|^ENG\\b/, "ENG"],
+            [/KISWAHILI|^KIS\\b|^KSW\\b/, "KIS"],
+            [/MATHEMATICS|^MATH?\\b|^MAT\\b/, "MATH"],
+            [/ENVIRONMENTAL ACTIVITIES|ENVIRONMENTAL ACTIVITY|^ENV\\b/, "ENV ACT"],
+            [/CREATIVE ACTIVITIES|CREATIVE ACTIVITY|^CRE ACT\\b/, "CRE ACT"],
+            [/RELIGIOUS EDUCATION|ISLAMIC RELIGIOUS|CHRISTIAN RELIGIOUS|^RE\\b|^IRE\\b|^CRE\\b/, "RE"],
+          ];
+          const lowerPrimarySubjects = (available: Subject[]) => {
+            const chosen: Subject[] = [];
+            for (const [pattern, code] of lowerPrimaryPatterns) {
+              const found = available.find(s => pattern.test(normalized(s)));
+              if (found && !chosen.some(x => str(x.id) === str(found.id))) chosen.push({ ...found, code });
+            }
+            return chosen;
+          };
+
+          '''
+          if 'const lowerPrimaryPatterns:' not in text:
+              text = text.replace(anchor, anchor + '\n' + helper)
+
+          old = 'const selectedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;'
+          new = '''const mappedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
+      const selectedSubjects = band === "LOWER_PRIMARY"
+        ? lowerPrimarySubjects(allSubjects)
+        : mappedSubjects;'''
+          if old in text:
+              text = text.replace(old, new)
+
+          # Keep Upper Primary as the agreed compiled report: INT SCI and CAS are synthetic
+          # learning areas; their component subjects remain sources, not separate report columns.
+          old_upper = '''const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) }));'''
+          new_upper = '''const normal = subjects.filter(s =>
+        !CAS(s) && !INT_SCI(s) &&
+        !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])
+      ).map(s => ({ ...s, code: subjectCode(s) }));'''
+          if old_upper in text:
+              text = text.replace(old_upper, new_upper)
+
+          # Scores are marks only; never append /maximum.
+          pattern = re.compile(r'''const markFor = \(row: Row, subject: ReportSubject\) => \{.*?\n  \};''', re.S)
+          replacement = '''const markFor = (row: Row, subject: ReportSubject) => {
+    const pct = percentageFor(row, subject);
+    return pct == null ? "—" : fmt(pct);
+  };'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('markFor block was not found; refusing unsafe edit')
+
+          path.write_text(text)
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/ClassMarksheetV2.tsx
+          if git diff --cached --quiet; then
+            echo "No marksheet changes required"
+            exit 0
+          fi
+          git commit -m "fix: align lower and upper primary marksheet layout"
+          git push
