@@ -1,15 +1,20 @@
 /* Dedicated print and screen layout for the class marksheet. */
 .marksheet-v2{width:100%;background:#fff;color:#061229}
 .marksheet-v2 .marksheet-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.marksheet-v2 .marksheet-table{width:100%;min-width:1180px;table-layout:fixed;border-collapse:collapse}
+.marksheet-v2 .marksheet-table{width:100%;min-width:980px;table-layout:fixed;border-collapse:collapse}
 .marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{border:1px solid #cbd5e1;padding:6px 4px;text-align:center;vertical-align:middle;overflow:hidden}
 .marksheet-v2 .marksheet-table thead th{background:#061229;color:#fff;font-weight:900;white-space:normal;line-height:1.08}
 .marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
 .marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
-.marksheet-v2 .marksheet-table .name-cell{width:180px;min-width:180px;max-width:180px;white-space:nowrap;text-overflow:ellipsis;font-weight:700}
-.marksheet-v2 .marksheet-table th:nth-child(1),.marksheet-v2 .marksheet-table td:nth-child(1){width:42px}
-.marksheet-v2 .marksheet-table th:nth-child(2),.marksheet-v2 .marksheet-table td:nth-child(2){width:92px}
-.marksheet-v2 .marksheet-table th:nth-child(3),.marksheet-v2 .marksheet-table td:nth-child(3){width:180px;min-width:180px;max-width:180px}
+.marksheet-v2 .marksheet-table .name-cell{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marksheet-v2 .marksheet-table .col-no{width:42px}
+.marksheet-v2 .marksheet-table .col-adm{width:86px}
+.marksheet-v2 .marksheet-table .col-learner{width:155px}
+.marksheet-v2 .marksheet-table .col-score{width:46px}
+.marksheet-v2 .marksheet-table .col-level{width:52px}
+.marksheet-v2 .marksheet-table .col-total{width:72px}
+.marksheet-v2 .marksheet-table .col-points{width:72px}
+.marksheet-v2 .marksheet-table .col-rank{width:52px}
 .marksheet-v2 .subject-code{display:block;color:#D89B28;font-size:11px;font-weight:900;line-height:1}
 .marksheet-v2 .subject-name{display:block;margin-top:3px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
 .marksheet-v2 .mark-cell{font-weight:800;white-space:nowrap}
@@ -17,6 +22,20 @@
 .marksheet-v2 .points-cell,.marksheet-v2 .mean-cell{font-weight:900}
 .marksheet-v2 .marksheet-summary-row td{background:#f7f0df;font-weight:900;border-top:2px solid #061229}
 .marksheet-v2 .level-legend{font-size:10px;line-height:1.45;color:#334155;background:#fff}
+
+@media screen and (max-width:900px){
+  .marksheet-v2 .marksheet-table-wrap{padding:6px}
+  .marksheet-v2 .marksheet-table{min-width:980px}
+  .marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{padding:6px 3px}
+  .marksheet-v2 .marksheet-table .col-no{width:34px}
+  .marksheet-v2 .marksheet-table .col-adm{width:76px}
+  .marksheet-v2 .marksheet-table .col-learner{width:138px}
+  .marksheet-v2 .marksheet-table .col-score{width:42px}
+  .marksheet-v2 .marksheet-table .col-level{width:48px}
+  .marksheet-v2 .marksheet-table .col-total{width:68px}
+  .marksheet-v2 .marksheet-table .col-points{width:68px}
+  .marksheet-v2 .marksheet-table .col-rank{width:48px}
+}
 
 @media print{
   @page{size:A4 landscape;margin:5mm}
@@ -33,16 +52,25 @@
   html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:5.7pt!important}
   html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
   html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
+  html body .marksheet-v2 .marksheet-table tfoot{display:table-footer-group!important}
   html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
-  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.75mm .35mm!important;height:4.5mm!important;line-height:1.05!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:1px solid #64748b!important}
-  html body .marksheet-v2 .marksheet-table thead th{background:#061229!important;color:#fff!important;font-size:5.8pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html body .marksheet-v2 .marksheet-table thead th:first-child,html body .marksheet-v2 .marksheet-table tbody td:first-child{width:6mm!important}
-  html body .marksheet-v2 .marksheet-table thead th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:21mm!important}
-  html body .marksheet-v2 .marksheet-table thead th:nth-child(3),html body .marksheet-v2 .marksheet-table tbody td:nth-child(3){width:40mm!important}
+  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.7mm .3mm!important;height:4.4mm!important;line-height:1.05!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:clip!important;color:#061229!important;border:1px solid #64748b!important}
+  html body .marksheet-v2 .marksheet-table thead th{background:#061229!important;color:#fff!important;font-size:5.7pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-table thead th.subject-group,.marksheet-v2 .marksheet-table thead .subject-group{background:#122343!important;color:#D89B28!important}
+  html body .marksheet-v2 .marksheet-table .col-no{width:7mm!important}
+  html body .marksheet-v2 .marksheet-table .col-adm{width:19mm!important}
+  html body .marksheet-v2 .marksheet-table .col-learner{width:39mm!important}
+  html body .marksheet-v2 .marksheet-table .col-score{width:8mm!important}
+  html body .marksheet-v2 .marksheet-table .col-level{width:9mm!important}
+  html body .marksheet-v2 .marksheet-table .col-total{width:14mm!important}
+  html body .marksheet-v2 .marksheet-table .col-points{width:14mm!important}
+  html body .marksheet-v2 .marksheet-table .col-rank{width:10mm!important}
   html body .marksheet-v2 .subject-code{font-size:6.2pt!important;color:#D89B28!important}
   html body .marksheet-v2 .subject-name{font-size:5pt!important;color:#fff!important}
-  html body .marksheet-v2 .level-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .mean-cell{font-size:5.7pt!important;font-weight:900!important}
+  html body .marksheet-v2 .name-cell{font-size:5.2pt!important;text-align:left!important}
+  html body .marksheet-v2 .mark-cell,html body .marksheet-v2 .level-cell,html body .marksheet-v2 .total-marks-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .rank-cell{font-size:5.3pt!important;font-weight:900!important}
   html body .marksheet-v2 .marksheet-summary-row td{background:#f7f0df!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   html body .marksheet-v2 .level-legend{font-size:5.5pt!important;line-height:1.25!important;padding:1.5mm 0!important;border:0!important}
   html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
