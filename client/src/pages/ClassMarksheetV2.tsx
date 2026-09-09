@@ -8,26 +8,25 @@ import "../marksheet-print.css";
 type Row = Record<string, any>;
 type Subject = { id: string; code: string; name: string; status?: string };
 type Band = "LOWER_PRIMARY" | "UPPER_PRIMARY" | "JUNIOR_SCHOOL";
-
-type Achievement = { band: string; code: string; level: number; points: number; remark: string };
+type Achievement = { code: string; points: number };
+type ReportSubject = Subject & { synthetic?: boolean; componentIds?: string[] };
 
 const str = (v: unknown) => v == null ? "" : String(v);
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const fmt = (v: number | null) => v == null ? "" : Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, "");
 const learnerName = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 
-/** KJSEA/CBE 8-level achievement mapping. The level is derived from percentage, never selected manually. */
 function achievementForPercentage(value: number | null): Achievement | null {
   if (value == null || !Number.isFinite(value)) return null;
   const p = Math.max(0, Math.min(100, value));
-  if (p >= 90) return { band: "Exceeding Expectations", code: "EE1", level: 8, points: 8, remark: "Exceptional" };
-  if (p >= 75) return { band: "Exceeding Expectations", code: "EE2", level: 7, points: 7, remark: "Very Good" };
-  if (p >= 58) return { band: "Meeting Expectations", code: "ME1", level: 6, points: 6, remark: "Good" };
-  if (p >= 41) return { band: "Meeting Expectations", code: "ME2", level: 5, points: 5, remark: "Fair" };
-  if (p >= 31) return { band: "Approaching Expectations", code: "AE1", level: 4, points: 4, remark: "Needs Improvement" };
-  if (p >= 21) return { band: "Approaching Expectations", code: "AE2", level: 3, points: 3, remark: "Below Average" };
-  if (p >= 11) return { band: "Below Expectations", code: "BE1", level: 2, points: 2, remark: "Well Below Average" };
-  return { band: "Below Expectations", code: "BE2", level: 1, points: 1, remark: "Minimal" };
+  if (p >= 90) return { code: "EE1", points: 8 };
+  if (p >= 75) return { code: "EE2", points: 7 };
+  if (p >= 58) return { code: "ME1", points: 6 };
+  if (p >= 41) return { code: "ME2", points: 5 };
+  if (p >= 31) return { code: "AE1", points: 4 };
+  if (p >= 21) return { code: "AE2", points: 3 };
+  if (p >= 11) return { code: "BE1", points: 2 };
+  return { code: "BE2", points: 1 };
 }
 
 function getGrade(c?: Row) {
@@ -45,33 +44,60 @@ function getBand(c?: Row): Band {
   return "JUNIOR_SCHOOL";
 }
 
-const priority = (s: Subject) => {
-  const order: Record<string, number> = { ENG: 10, KSW: 20, MAT: 30, SCI: 40, SSA: 40, SST: 50, AGR: 60, CAS: 70, PRE: 80, CRE: 90, IRE: 100, HRE: 110 };
-  return order[str(s.code).toUpperCase()] ?? 1000;
+const normalized = (s: Subject) => `${str(s.code)} ${str(s.name)}`.toUpperCase().replace(/[^A-Z0-9]+/g, " ");
+const matches = (s: Subject, patterns: RegExp[]) => patterns.some(p => p.test(normalized(s)));
+const subjectCode = (s: Subject) => {
+  if (matches(s, [/ENGLISH/, /^ENG\b/])) return "ENG";
+  if (matches(s, [/KISWAHILI/, /^KIS\b/, /^KSW\b/])) return "KIS";
+  if (matches(s, [/MATHEMATICS/, /^MATH?\b/, /^MAT\b/])) return "MATH";
+  if (matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])) return "INT SCI";
+  if (matches(s, [/SOCIAL STUDIES/, /^SST\b/])) return "SST";
+  if (matches(s, [/CREATIVE ARTS.*SPORT/, /^CAS\b/])) return "CAS";
+  if (matches(s, [/AGRICULTURE.*NUTRITION/, /AGRICULTURE/, /^AGR\b/])) return "AGR NUT";
+  if (matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\b/, /^IRE\b/, /^CRE\b/])) return "RE";
+  if (matches(s, [/PRE TECHNICAL/, /PRE TECH/, /^PRE\b/])) return "PRE TECH";
+  if (matches(s, [/HOME SCIENCE/, /^HSC\b/])) return "HSC";
+  if (matches(s, [/INFORMATION.*COMMUNICATION TECHNOLOGY/, /^ICT\b/])) return "ICT";
+  if (matches(s, [/MUSIC/, /^MUS\b/])) return "MUS";
+  if (matches(s, [/PHYSICAL EDUCATION/, /^PE\b/])) return "PE";
+  if (matches(s, [/CREATIVE ARTS/, /^ART\b/])) return "ART";
+  return str(s.code).trim().toUpperCase().slice(0, 8) || "SUBJ";
 };
-const sortSubjects = (items: Subject[]) => [...items].sort((a, b) => priority(a) - priority(b) || str(a.name).localeCompare(str(b.name)));
-const CAS_CODES = ["ART", "MUS", "PE"];
-const isCasComponent = (s: Subject) => CAS_CODES.includes(str(s.code).toUpperCase());
-const resultsFor = (row: Row, subjectId: string) => (row.results ?? []).filter((r: Row) => str(r.subject_id) === str(subjectId));
 
+const priority = (code: string) => ({ ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, CAS: 60, "AGR NUT": 70, RE: 80, "PRE TECH": 90, HSC: 100, ICT: 110, ART: 120, MUS: 130, PE: 140 }[code] ?? 999);
+const sortReportSubjects = (items: ReportSubject[]) => [...items].sort((a, b) => priority(subjectCode(a)) - priority(subjectCode(b)) || subjectCode(a).localeCompare(subjectCode(b)));
+
+const resultsFor = (row: Row, subjectId: string) => (row.results ?? []).filter((r: Row) => str(r.subject_id) === str(subjectId));
 function latestPercentage(row: Row, subjectId: string) {
   const values = resultsFor(row, subjectId).map((r: Row) => {
-    const score = num(r.score); const max = num(r.maximum_score);
+    const score = num(r.score), max = num(r.maximum_score);
     return score != null && max != null && max > 0 ? (score / max) * 100 : null;
   }).filter((v: number | null): v is number => v != null);
   return values.length ? values[values.length - 1] : null;
 }
-
 function latestRaw(row: Row, subjectId: string) {
   const values = resultsFor(row, subjectId).map((r: Row) => num(r.score)).filter((v: number | null): v is number => v != null);
   return values.length ? values[values.length - 1] : null;
 }
 
-function casComposite(row: Row, subjects: Subject[]) {
-  const components = subjects.filter(isCasComponent);
-  if (components.length < 3) return null;
-  const values = components.map(s => latestPercentage(row, s.id));
-  return values.every(v => v != null) ? values.reduce((a, b) => a + (b ?? 0), 0) / values.length : null;
+const CAS = (s: Subject) => matches(s, [/CREATIVE ARTS/, /MUSIC/, /PHYSICAL EDUCATION/, /^ART\b/, /^MUS\b/, /^PE\b/]) && !matches(s, [/CREATIVE ARTS.*SPORT/]);
+const INT_SCI = (s: Subject) => matches(s, [/AGRICULTURE/, /HOME SCIENCE/, /^HSC\b/, /INFORMATION.*COMMUNICATION TECHNOLOGY/, /^ICT\b/]);
+
+function componentPercentage(row: Row, subjects: Subject[], predicate: (s: Subject) => boolean) {
+  const components = subjects.filter(predicate);
+  const values = components.map(s => latestPercentage(row, s.id)).filter((v): v is number => v != null);
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+}
+
+function fixedJuniorSubject(code: string, subjects: Subject[]): ReportSubject | null {
+  const patterns: Record<string, RegExp[]> = {
+    ENG: [/ENGLISH/, /^ENG\b/], KIS: [/KISWAHILI/, /^KIS\b/, /^KSW\b/], MATH: [/MATHEMATICS/, /^MATH?\b/, /^MAT\b/],
+    "INT SCI": [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/], SST: [/SOCIAL STUDIES/, /^SST\b/],
+    "AGR NUT": [/AGRICULTURE.*NUTRITION/, /AGRICULTURE/, /^AGR\b/], RE: [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\b/, /^IRE\b/, /^CRE\b/],
+    "PRE TECH": [/PRE TECHNICAL/, /PRE TECH/, /^PRE\b/]
+  };
+  const found = subjects.find(s => matches(s, patterns[code] ?? []));
+  return found ? { ...found, code } : null;
 }
 
 export default function ClassMarksheetV2() {
@@ -99,22 +125,17 @@ export default function ClassMarksheetV2() {
 
   const visibleTerms = useMemo(() => terms.filter(t => !yearId || str(t.academic_year_id) === yearId), [terms, yearId]);
   const visibleClasses = useMemo(() => classes.filter(c => !yearId || str(c.academic_year_id) === yearId), [classes, yearId]);
-  const selectedClass = classes.find(c => str(c.id) === classId);
-  const selectedTerm = terms.find(t => str(t.id) === termId);
-  const band = getBand(selectedClass);
-  const grade = getGrade(selectedClass);
+  const selectedClass = classes.find(c => str(c.id) === classId), selectedTerm = terms.find(t => str(t.id) === termId);
+  const band = getBand(selectedClass), grade = getGrade(selectedClass);
   const bandTitle = band === "LOWER_PRIMARY" ? "LOWER PRIMARY CBC ASSESSMENT MARKSHEET" : band === "UPPER_PRIMARY" ? "UPPER PRIMARY CBC ASSESSMENT MARKSHEET" : "JUNIOR SCHOOL PERFORMANCE MARKSHEET";
 
-  const loadSubjectsForClass = async (selectedClassId: string) => {
-    try {
-      const mapping = await getSupabase().from("class_subjects").select("subject_id").eq("class_id", selectedClassId);
-      if (mapping.error) throw mapping.error;
-      const ids = [...new Set((mapping.data ?? []).map(x => str(x.subject_id)))];
-      setSubjects(sortSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : allSubjects));
-    } catch { setSubjects(sortSubjects(allSubjects)); }
+  const loadSubjects = async (cid: string) => {
+    const q = await getSupabase().from("class_subjects").select("subject_id").eq("class_id", cid);
+    if (q.error) { setSubjects(allSubjects); return; }
+    const ids = [...new Set((q.data ?? []).map(x => str(x.subject_id)))];
+    setSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : allSubjects);
   };
-
-  useEffect(() => { setSubjects([]); setRows([]); setMessage(""); if (classId && allSubjects.length) void loadSubjectsForClass(classId); }, [classId, allSubjects]);
+  useEffect(() => { setRows([]); setSubjects([]); setMessage(""); if (classId && allSubjects.length) void loadSubjects(classId); }, [classId, allSubjects]);
 
   const generate = async () => {
     if (!classId || !yearId || !termId) { setMessage("Select academic year, term and class first."); return; }
@@ -132,7 +153,7 @@ export default function ClassMarksheetV2() {
       const mapping = await db.from("class_subjects").select("subject_id").eq("class_id", classId);
       if (mapping.error) throw mapping.error;
       const ids = [...new Set((mapping.data ?? []).map(x => str(x.subject_id)))];
-      const selectedSubjects = sortSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects);
+      const selectedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
       setSubjects(selectedSubjects);
       const en = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("academic_year_id", yearId).eq("status", "ACTIVE");
       if (en.error) throw en.error;
@@ -157,41 +178,104 @@ export default function ClassMarksheetV2() {
     finally { setBusy(false); }
   };
 
-  const displaySubjects = useMemo(() => band === "UPPER_PRIMARY" ? subjects.filter(s => !isCasComponent(s)) : subjects, [subjects, band]);
-  const levelFor = (row: Row, subject: Subject) => {
-    const pct = str(subject.code).toUpperCase() === "CAS" ? casComposite(row, subjects) : latestPercentage(row, subject.id);
-    return achievementForPercentage(pct);
-  };
-  const markFor = (row: Row, subject: Subject) => {
-    if (str(subject.code).toUpperCase() === "CAS") { const p = casComposite(row, subjects); return p == null ? "" : fmt(p) + "%"; }
-    const raw = latestRaw(row, subject.id); const result = resultsFor(row, subject.id).slice(-1)[0]; const max = num(result?.maximum_score);
-    return raw == null ? "" : max && max > 0 ? `${fmt(raw)}/${fmt(max)}` : fmt(raw);
-  };
-  const learnerAverage = (row: Row) => {
-    const levels = displaySubjects.map(s => str(s.code).toUpperCase() === "CAS" ? casComposite(row, subjects) : latestPercentage(row, s.id)).filter((v): v is number => v != null);
-    return levels.length ? levels.reduce((a, b) => a + b, 0) / levels.length : null;
-  };
-  const subjectSummary = (subject: Subject) => {
-    const values = rows.map(r => str(subject.code).toUpperCase() === "CAS" ? casComposite(r, subjects) : latestPercentage(r, subject.id)).filter((v): v is number => v != null);
+  const displaySubjects = useMemo<ReportSubject[]>(() => {
+    if (band === "LOWER_PRIMARY") return sortReportSubjects(subjects.map(s => ({ ...s, code: subjectCode(s) })));
+    if (band === "UPPER_PRIMARY") {
+      const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) }));
+      const out: ReportSubject[] = [...normal];
+      if (subjects.some(INT_SCI) || subjects.some(s => matches(s, [/INTEGRATED SCIENCE/]))) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: subjects.filter(INT_SCI).map(s => s.id) });
+      if (subjects.some(CAS) || subjects.some(s => matches(s, [/CREATIVE ARTS.*SPORT/]))) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: subjects.filter(CAS).map(s => s.id) });
+      return sortReportSubjects(out);
+    }
+    const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"];
+    const out: ReportSubject[] = [];
+    for (const code of codes) {
+      if (code === "INT SCI") {
+        const s = subjects.find(x => matches(x, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/]));
+        if (s) out.push({ ...s, code });
+      } else if (code === "CAS") {
+        const s = subjects.find(x => matches(x, [/CREATIVE ARTS.*SPORT/]));
+        const components = subjects.filter(CAS);
+        if (s) out.push({ ...s, code }); else if (components.length) out.push({ id: "__junior_cas__", code, name: "Creative Arts & Sports", synthetic: true, componentIds: components.map(x => x.id) });
+      } else {
+        const s = fixedJuniorSubject(code, subjects);
+        if (s) out.push(s);
+      }
+    }
+    return out.length ? out : sortReportSubjects(subjects.slice(0, 9).map(s => ({ ...s, code: subjectCode(s) })));
+  }, [subjects, band]);
+
+  const percentageFor = (row: Row, subject: ReportSubject) => {
+    if (!subject.synthetic) return latestPercentage(row, subject.id);
+    const ids = subject.componentIds ?? [];
+    const values = ids.map(id => latestPercentage(row, id)).filter((v): v is number => v != null);
     return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
   };
-  const overallAverage = rows.length ? (() => { const v = rows.map(learnerAverage).filter((x): x is number => x != null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; })() : null;
-  const overallAchievement = achievementForPercentage(overallAverage);
+  const markFor = (row: Row, subject: ReportSubject) => {
+    const pct = percentageFor(row, subject);
+    if (pct == null) return "—";
+    if (subject.synthetic) return `${fmt(pct)}%`;
+    const raw = latestRaw(row, subject.id), result = resultsFor(row, subject.id).slice(-1)[0], max = num(result?.maximum_score);
+    return raw == null ? "—" : max && max > 0 ? `${fmt(raw)}/${fmt(max)}` : `${fmt(raw)}%`;
+  };
+  const stats = (row: Row) => {
+    const percentages = displaySubjects.map(s => percentageFor(row, s)).filter((v): v is number => v != null);
+    const totalMarks = percentages.length ? percentages.reduce((a, b) => a + b, 0) : null;
+    const totalPoints = percentages.length ? percentages.reduce((a, b) => a + (achievementForPercentage(b)?.points ?? 0), 0) : null;
+    return { totalMarks, totalPoints, mean: percentages.length ? (totalMarks ?? 0) / percentages.length : null };
+  };
+  const rankedRows = useMemo(() => {
+    const mapped = rows.map(row => ({ row, ...stats(row) }));
+    const ordered = [...mapped].sort((a, b) => {
+      const av = band === "JUNIOR_SCHOOL" ? (a.totalPoints ?? -1) : (a.totalMarks ?? -1);
+      const bv = band === "JUNIOR_SCHOOL" ? (b.totalPoints ?? -1) : (b.totalMarks ?? -1);
+      return bv - av || learnerName(a.row).localeCompare(learnerName(b.row));
+    });
+    let previous: number | null = null, previousRank = 0;
+    const ranks = new Map<string, number>();
+    ordered.forEach((x, i) => {
+      const value = band === "JUNIOR_SCHOOL" ? x.totalPoints : x.totalMarks;
+      const rank = value === previous ? previousRank : i + 1;
+      ranks.set(str(x.row.id), rank); previous = value; previousRank = rank;
+    });
+    return mapped.map(x => ({ ...x, rank: ranks.get(str(x.row.id)) ?? null })).sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
+  }, [rows, displaySubjects, band]);
+
+  const subjectTotal = (s: ReportSubject) => rows.reduce((sum, row) => sum + (percentageFor(row, s) ?? 0), 0);
+  const subjectMean = (s: ReportSubject) => { const vals = rows.map(row => percentageFor(row, s)).filter((v): v is number => v != null); return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null; };
+  const classTotalMarks = rankedRows.reduce((sum, x) => sum + (x.totalMarks ?? 0), 0);
+  const classTotalPoints = rankedRows.reduce((sum, x) => sum + (x.totalPoints ?? 0), 0);
 
   if (loading) return <PortalLayout role={profile?.role ?? "TEACHER"}><main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin" /></main></PortalLayout>;
 
   return <PortalLayout role={profile?.role ?? "TEACHER"}>
     <main className="mx-auto w-full max-w-[1800px] space-y-5 px-3 py-4 sm:px-6 lg:px-8">
       <section className="rounded-[1.5rem] border border-[var(--ink)]/10 bg-white shadow-sm print-hide">
-        <div className="bg-[var(--ink)] px-5 py-6 text-white sm:px-7"><span className="text-xs font-black uppercase tracking-[.16em] text-[var(--gold)]">Class marksheet</span><h1 className="mt-2 font-serif text-3xl font-semibold">CBC assessment marksheet</h1><p className="mt-2 max-w-3xl text-sm text-white/65">Marks, achievement levels and points are calculated automatically from each learner's percentage.</p></div>
-        <div className="grid gap-3 p-5 md:grid-cols-3"><label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Academic year<select value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("");setClassId("");setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select year</option>{years.map(y=><option key={str(y.id)} value={str(y.id)}>{str(y.name)}</option>)}</select></label><label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Term<select value={termId} onChange={e=>{setTermId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select term</option>{visibleTerms.map(t=><option key={str(t.id)} value={str(t.id)}>{str(t.name)}</option>)}</select></label><label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Class<select value={classId} onChange={e=>{setClassId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select class</option>{visibleClasses.map(c=><option key={str(c.id)} value={str(c.id)}>{str(c.name)}</option>)}</select></label></div>
+        <div className="bg-[var(--ink)] px-5 py-6 text-white sm:px-7"><span className="text-xs font-black uppercase tracking-[.16em] text-[var(--gold)]">Class marksheet</span><h1 className="mt-2 font-serif text-3xl font-semibold">CBC assessment marksheet</h1><p className="mt-2 max-w-3xl text-sm text-white/65">Scores are shown first; achievement levels and points are derived automatically from percentage performance.</p></div>
+        <div className="grid gap-3 p-5 md:grid-cols-3">
+          <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Academic year<select value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("");setClassId("");setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select year</option>{years.map(y=><option key={str(y.id)} value={str(y.id)}>{str(y.name)}</option>)}</select></label>
+          <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Term<select value={termId} onChange={e=>{setTermId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select term</option>{visibleTerms.map(t=><option key={str(t.id)} value={str(t.id)}>{str(t.name)}</option>)}</select></label>
+          <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Class<select value={classId} onChange={e=>{setClassId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select class</option>{visibleClasses.map(c=><option key={str(c.id)} value={str(c.id)}>{str(c.name)}</option>)}</select></label>
+        </div>
         <div className="flex flex-wrap gap-3 px-5 pb-5 sm:px-7"><button type="button" onClick={()=>void generate()} disabled={busy||!classId||!termId} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{busy?<Loader2 size={16} className="animate-spin"/>:<FileText size={16}/>} {busy?"Generating…":"Generate marksheet"}</button><button type="button" onClick={()=>window.print()} disabled={!rows.length} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-5 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div>
         {message&&<p role="status" className="mx-5 mb-5 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold sm:mx-7">{message}</p>}
       </section>
 
       {classId&&<section className="marksheet-v2 overflow-hidden rounded-none bg-white shadow-sm">
-        <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name) || "CLASS"} · {str(selectedTerm?.name) || "TERM"} · {str(years.find(y=>str(y.id)===yearId)?.name) || "YEAR"}</h3><p className="mt-1 text-[10px] font-semibold text-white/65">Achievement levels are derived automatically from percentage performance.</p></header>
-        {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No subjects are configured for this class.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4"><table className="marksheet-table w-full min-w-[980px] border-collapse text-[10px]"><thead><tr><th rowSpan={2}>No.</th><th rowSpan={2}>Assessment No.</th><th rowSpan={2} className="name-column">Learner</th>{displaySubjects.map(s=><th key={s.id} colSpan={2}><span className="subject-code">{str(s.code)||"—"}</span><span className="subject-name">{str(s.name)}</span></th>)}<th rowSpan={2}>MEAN %</th><th rowSpan={2}>LEVEL</th><th rowSpan={2}>PTS</th></tr><tr>{displaySubjects.map(s=><span key={s.id} className="contents"><th>MARK</th><th>LEVEL</th></span>)}</tr></thead><tbody>{rows.map((row,i)=>{const avg=learnerAverage(row),achievement=achievementForPercentage(avg);return <tr key={str(row.id)}><td>{i+1}</td><td>{str(row.admission_number)||"—"}</td><td className="name-cell">{learnerName(row)}</td>{displaySubjects.map(s=>{const a=levelFor(row,s);return <td key={`${row.id}-${s.id}-mark`} className="mark-cell">{markFor(row,s)} </td>}).flatMap((_,idx)=>{const s=displaySubjects[idx];const a=levelFor(row,s);return [<td key={`${row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>];})}<td className="mean-cell">{avg==null?"":`${fmt(avg)}%`}</td><td className="level-cell">{achievement?.code||"—"}</td><td className="points-cell">{achievement?.points??"—"}</td></tr>})}</tbody><tfoot><tr className="marksheet-summary-row"><td colSpan={3}>CLASS MEAN</td>{displaySubjects.map(s=><td colSpan={2} key={`mean-${s.id}`}>{subjectSummary(s)==null?"":`${fmt(subjectSummary(s))}%`}</td>)}<td>{overallAverage==null?"":`${fmt(overallAverage)}%`}</td><td>{overallAchievement?.code||"—"}</td><td>{overallAchievement?.points??"—"}</td></tr></tfoot></table></div>}
+        <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name)||"CLASS"} · {str(selectedTerm?.name)||"TERM"} · {str(years.find(y=>str(y.id)===yearId)?.name)||"YEAR"}</h3><div className="mt-1 text-[10px] font-semibold text-white/70">{band === "JUNIOR_SCHOOL" ? "RANKING: TOTAL POINTS" : "RANKING: TOTAL MARKS"} · GRADE {grade ?? "—"}</div></header>
+        {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No reportable subjects are configured for this class.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4">
+          <table className="marksheet-table w-full min-w-[1180px] border-collapse text-[10px]" aria-label="Class marksheet">
+            <thead>
+              <tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr>
+              <tr>{displaySubjects.flatMap(s=>[<th key={`${s.id}-score`}>SCORE</th>,<th key={`${s.id}-level`}>LEVEL</th>])}</tr>
+            </thead>
+            <tbody>{rankedRows.map((item, i)=><tr key={str(item.row.id)}><td>{i+1}</td><td>{str(item.row.admission_number)||"—"}</td><td className="name-cell">{learnerName(item.row)}</td>{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s));return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td></tr>)}</tbody>
+            <tfoot>
+              <tr className="marksheet-summary-row"><td colSpan={3}>TOTAL MARKS</td>{displaySubjects.flatMap(s=>[<td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>])}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr>
+              <tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={3}>MEAN</td>{displaySubjects.flatMap(s=>[<td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>])}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td></tr>
+            </tfoot>
+          </table>
+        </div>}
         <div className="level-legend border-t border-[var(--ink)]/10 px-4 py-3 sm:px-6"><strong>Achievement scale:</strong> EE1 90–100% (8) · EE2 75–89% (7) · ME1 58–74% (6) · ME2 41–57% (5) · AE1 31–40% (4) · AE2 21–30% (3) · BE1 11–20% (2) · BE2 0–10% (1).</div>
       </section>}
     </main>
