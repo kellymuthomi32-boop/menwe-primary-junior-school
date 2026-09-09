@@ -90,6 +90,20 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
+// Keep heavy, widely shared dependencies out of page chunks. This reduces
+// duplicated code, improves browser caching between routes, and prevents a
+// single page from becoming an unnecessarily large JavaScript chunk.
+function manualChunks(id: string) {
+  if (!id.includes("node_modules")) return undefined;
+  if (id.includes("jspdf") || id.includes("canvg") || id.includes("html2canvas")) return "pdf-vendor";
+  if (id.includes("@supabase")) return "supabase-vendor";
+  if (id.includes("framer-motion")) return "motion-vendor";
+  if (id.includes("react") || id.includes("scheduler")) return "react-vendor";
+  if (id.includes("lucide-react") || id.includes("@radix-ui")) return "ui-vendor";
+  if (id.includes("@tanstack") || id.includes("zod") || id.includes("date-fns")) return "data-vendor";
+  return "vendor";
+}
+
 export default defineConfig(({ command }) => {
   const isBuild = command === "build";
   return {
@@ -112,6 +126,11 @@ export default defineConfig(({ command }) => {
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks,
+        },
+      },
     },
     server: {
       host: true,
