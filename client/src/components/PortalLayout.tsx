@@ -30,7 +30,6 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
 
  if(role==="TEACHER"){
   teaching.push(
-   {label:"My classes",key:"classes",icon:Users,href:"/portal/classes"},
    {label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},
    {label:"Marks entry",key:"exams",icon:GraduationCap,href:"/portal/exams"},
    {label:"Class marksheet",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"},
@@ -139,7 +138,7 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
  const displayName=profile?.display_name||profile?.email||"School account";
  const initials=displayName.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]?.toUpperCase()).join("")||"M";
  const move=(href:string)=>{setLocation(href);setMobileOpen(false);window.scrollTo({top:0,behavior:"auto"})};
- const isActive=(href:string)=>location===href||location.startsWith(`${href}/`);
+ const isActive=(href:string)=>href===overviewPath(safe)?location===href:location===href||location.startsWith(`${href}/`);
  const allItems=[...primary,...teaching,...school,...academics,...people,...operations,...resources,...content,...communication,...system];
  const currentLabel=allItems.find(i=>isActive(i.href))?.label||"Overview";
 
@@ -166,14 +165,9 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
  };
 
  const sidebar=<aside className="menwe-portal-scroll flex h-full w-[17.5rem] flex-col overflow-y-auto border-r border-white/8 bg-[var(--ink)] px-3 py-4 text-white">
-  <button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center rounded-2xl px-2 text-left" aria-label="Return to Menwe public website">
-   <span className="font-black tracking-tight">MENWE <span className="text-[var(--gold)]">SCHOOL</span></span>
-  </button>
+  <button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center rounded-2xl px-2 text-left" aria-label="Return to Menwe public website"><span className="font-black tracking-tight">MENWE <span className="text-[var(--gold)]">SCHOOL</span></span></button>
   <div className="mx-1 mt-3 rounded-2xl border border-white/10 bg-white/[.045] p-3">
-   <div className="flex items-center gap-3">
-    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--gold)] text-sm font-black text-[var(--ink)]">{initials}</span>
-    <div className="min-w-0"><p className="truncate text-sm font-bold text-white">{displayName}</p><p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[.12em] text-white/50">{roleLabel(safe)}</p></div>
-   </div>
+   <div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--gold)] text-sm font-black text-[var(--ink)]">{initials}</span><div className="min-w-0"><p className="truncate text-sm font-bold text-white">{displayName}</p><p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[.12em] text-white/50">{roleLabel(safe)}</p></div></div>
    <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold text-white/55"><span className="menwe-live-dot"/> Secure school account</div>
    <div className="mt-2 flex items-center gap-2 rounded-lg bg-[var(--gold)]/10 px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[.1em] text-[var(--gold)]"><CalendarDays size={12}/> Term 3 · 2026</div>
   </div>
@@ -189,25 +183,8 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
   {communication.length>0&&<NavGroup title="Communications" items={communication}/>} 
   {system.length>0&&<NavGroup title="Governance" items={system}/>} 
 
-  <div className="mt-auto pt-5">
-   <div className="mx-1 rounded-2xl border border-white/10 bg-white/[.035] p-3">
-    <p className="text-[10px] font-bold uppercase tracking-[.16em] text-white/45">Menwe Primary & Junior School</p>
-    <p className="mt-1 text-xs leading-5 text-white/60">Secure portal for authorised school users.</p>
-    <button onClick={()=>void signOut()} className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-white/72 transition hover:bg-white/8 hover:text-white"><LogOut size={16}/>Sign out</button>
-   </div>
-  </div>
+  <div className="mt-auto pt-5"><div className="mx-1 rounded-2xl border border-white/10 bg-white/[.035] p-3"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-white/45">Menwe Primary & Junior School</p><p className="mt-1 text-xs leading-5 text-white/60">Secure portal for authorised school users.</p><button onClick={()=>void signOut()} className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-white/72 transition hover:bg-white/8 hover:text-white"><LogOut size={16}/>Sign out</button></div></div>
  </aside>;
 
- return <div className="menwe-portal">
-  <div className="hidden min-h-screen lg:fixed lg:inset-y-0 lg:left-0 lg:block">{sidebar}</div>
-  <header className="sticky top-0 z-40 flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-[var(--ink)]/8 bg-[var(--paper)]/90 px-4 backdrop-blur-2xl lg:ml-[17.5rem] lg:px-8">
-   <div className="flex min-w-0 items-center gap-3">
-    <button onClick={()=>setMobileOpen(true)} className="menwe-focus-ring grid min-h-11 min-w-11 place-items-center rounded-xl border border-[var(--ink)]/12 bg-white lg:hidden" aria-label="Open portal navigation" aria-expanded={mobileOpen} aria-controls="portal-mobile-navigation"><Menu size={19}/></button>
-    <div className="min-w-0"><p className="hidden text-[10px] font-extrabold uppercase tracking-[.2em] text-[var(--accent)] sm:block">Menwe secure portal</p><div className="mt-0.5 flex min-w-0 items-center gap-2 text-sm font-semibold"><span className="truncate text-[var(--ink)]/62">{roleLabel(safe)}</span><span className="text-[var(--ink)]/20">/</span><span className="truncate text-[var(--ink)]">{currentLabel}</span></div></div>
-   </div>
-   <div className="flex shrink-0 items-center gap-1.5 sm:gap-2"><div className="hidden items-center gap-2 rounded-full border border-[var(--ink)]/8 bg-white/70 px-3 py-2 text-[11px] font-bold text-[var(--ink)]/65 md:flex"><span className="menwe-live-dot"/> Live</div><div className="hidden items-center gap-2 rounded-full border border-[var(--gold)]/25 bg-[var(--gold)]/10 px-3 py-2 text-[11px] font-extrabold text-[var(--ink)] sm:flex"><CalendarDays size={13}/> Term 3 · 2026</div><NotificationBell/><button onClick={()=>move("/")} className="menwe-interactive hidden min-h-11 items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-white px-3 text-xs font-bold text-[var(--ink)] sm:flex"><ChevronLeft size={15}/>Public site</button></div>
-  </header>
-  {mobileOpen&&<div id="portal-mobile-navigation" className="fixed inset-0 z-50 bg-[var(--ink)]/60 backdrop-blur-sm lg:hidden" role="dialog" aria-modal="true" aria-label="Portal navigation" onClick={()=>setMobileOpen(false)}><div className="h-full w-[17.5rem] shadow-2xl" onClick={event=>event.stopPropagation()}>{sidebar}</div><button onClick={()=>setMobileOpen(false)} className="absolute right-4 top-4 grid min-h-11 min-w-11 place-items-center rounded-xl bg-white text-[var(--ink)] shadow-xl" aria-label="Close portal navigation"><X size={18}/></button></div>}
-  <div className="min-h-[calc(100vh-4.5rem)] bg-[var(--paper)] lg:ml-[17.5rem]">{children}</div>
- </div>;
+ return <div className="menwe-portal"><div className="hidden min-h-screen lg:fixed lg:inset-y-0 lg:left-0 lg:block">{sidebar}</div><header className="sticky top-0 z-40 flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-[var(--ink)]/8 bg-[var(--paper)]/90 px-4 backdrop-blur-2xl lg:ml-[17.5rem] lg:px-8"><div className="flex min-w-0 items-center gap-3"><button onClick={()=>setMobileOpen(true)} className="menwe-focus-ring grid min-h-11 min-w-11 place-items-center rounded-xl border border-[var(--ink)]/12 bg-white lg:hidden" aria-label="Open portal navigation" aria-expanded={mobileOpen} aria-controls="portal-mobile-navigation"><Menu size={19}/></button><div className="min-w-0"><p className="hidden text-[10px] font-extrabold uppercase tracking-[.2em] text-[var(--accent)] sm:block">Menwe secure portal</p><div className="mt-0.5 flex min-w-0 items-center gap-2 text-sm font-semibold"><span className="truncate text-[var(--ink)]/62">{roleLabel(safe)}</span><span className="text-[var(--ink)]/20">/</span><span className="truncate text-[var(--ink)]">{currentLabel}</span></div></div></div><div className="flex shrink-0 items-center gap-1.5 sm:gap-2"><div className="hidden items-center gap-2 rounded-full border border-[var(--ink)]/8 bg-white/70 px-3 py-2 text-[11px] font-bold text-[var(--ink)]/65 md:flex"><span className="menwe-live-dot"/> Live</div><div className="hidden items-center gap-2 rounded-full border border-[var(--gold)]/25 bg-[var(--gold)]/10 px-3 py-2 text-[11px] font-extrabold text-[var(--ink)] sm:flex"><CalendarDays size={13}/> Term 3 · 2026</div><NotificationBell/><button onClick={()=>move("/")} className="menwe-interactive hidden min-h-11 items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-white px-3 text-xs font-bold text-[var(--ink)] sm:flex"><ChevronLeft size={15}/>Public site</button></div></header>{mobileOpen&&<div id="portal-mobile-navigation" className="fixed inset-0 z-50 bg-[var(--ink)]/60 backdrop-blur-sm lg:hidden" role="dialog" aria-modal="true" aria-label="Portal navigation" onClick={()=>setMobileOpen(false)}><div className="h-full w-[17.5rem] shadow-2xl" onClick={event=>event.stopPropagation()}>{sidebar}</div><button onClick={()=>setMobileOpen(false)} className="absolute right-4 top-4 grid min-h-11 min-w-11 place-items-center rounded-xl bg-white text-[var(--ink)] shadow-xl" aria-label="Close portal navigation"><X size={18}/></button></div>}<div className="min-h-[calc(100vh-4.5rem)] bg-[var(--paper)] lg:ml-[17.5rem]">{children}</div></div>;
 }
