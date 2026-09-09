@@ -10,7 +10,7 @@ import "@/portal-polish.css";
 type PortalNavItem={label:string;key:string;icon:LucideIcon;href:string;badge?:number};
 const safeRole=(role:unknown):AppRole=>typeof role==="string"&&role.trim()?role as AppRole:"STUDENT";
 const roleLabel=(role:unknown)=>safeRole(role).replaceAll("_"," ").toLowerCase().replace(/(^|\s)\S/g,v=>v.toUpperCase());
-const overviewPath=(role:unknown)=>isAdministrator(safeRole(role))?"/portal/admin":safeRole(role)==="TEACHER"?"/portal/teacher":"/portal/parent";
+const overviewPath=(role:unknown)=>isAdministrator(safeRole(role)?safeRole(role):"STUDENT")?"/portal/admin":safeRole(role)==="TEACHER"?"/portal/teacher":"/portal/parent";
 
 function buildItems(roleInput:unknown,pendingAdmissions=0){
  const role=safeRole(roleInput);
@@ -173,15 +173,23 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
   </div>
 
   <NavGroup title="Overview" items={primary} defaultOpen/>
-  {teaching.length>0&&<NavGroup title="Teaching" items={teaching} defaultOpen/>}
-  {school.length>0&&<NavGroup title="My school" items={school} defaultOpen/>}
-  {people.length>0&&<NavGroup title="People & enrolment" items={people} defaultOpen/>}
-  {academics.length>0&&<NavGroup title="Academics" items={academics}/>} 
-  {operations.length>0&&<NavGroup title="Operations" items={operations}/>} 
-  {resources.length>0&&<NavGroup title="Learning & resources" items={resources}/>} 
-  {content.length>0&&<NavGroup title="School content" items={content}/>} 
-  {communication.length>0&&<NavGroup title="Communications" items={communication}/>} 
-  {system.length>0&&<NavGroup title="Governance" items={system}/>} 
+  {isAdministrator(safe)?<>
+    <NavGroup title="People" items={people} defaultOpen/>
+    <NavGroup title="Academics" items={academics}/>
+    <NavGroup title="Finance & operations" items={operations}/>
+    <NavGroup title="Learning & resources" items={resources}/>
+    <NavGroup title="Website & communications" items={[...content,...communication]}/>
+    <NavGroup title="Governance & settings" items={system}/>
+  </>:<>
+    {teaching.length>0&&<NavGroup title="Teaching" items={teaching} defaultOpen/>}
+    {school.length>0&&<NavGroup title="My school" items={school} defaultOpen/>}
+    {academics.length>0&&<NavGroup title="Academics" items={academics}/>} 
+    {operations.length>0&&<NavGroup title="Operations" items={operations}/>} 
+    {resources.length>0&&<NavGroup title="Learning & resources" items={resources}/>} 
+    {content.length>0&&<NavGroup title="School content" items={content}/>} 
+    {communication.length>0&&<NavGroup title="Communications" items={communication}/>} 
+    {system.length>0&&<NavGroup title="Governance" items={system}/>} 
+  </>}
 
   <div className="mt-auto pt-5"><div className="mx-1 rounded-2xl border border-white/10 bg-white/[.035] p-3"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-white/45">Menwe Primary & Junior School</p><p className="mt-1 text-xs leading-5 text-white/60">Secure portal for authorised school users.</p><button onClick={()=>void signOut()} className="mt-2 flex min-h-10 w-full items-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-white/72 transition hover:bg-white/8 hover:text-white"><LogOut size={16}/>Sign out</button></div></div>
  </aside>;
