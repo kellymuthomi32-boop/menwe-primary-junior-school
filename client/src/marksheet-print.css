@@ -13,17 +13,30 @@
     background: #fff !important;
   }
 
-  /* Keep the marksheet as a normal flowing document so Chromium can create
-     a clean second A4 page instead of clipping an absolutely positioned view. */
+  /* The component's legacy print rule positioned the marksheet absolutely.
+     That can clip the continuation instead of allowing a second A4 page. */
   html body .marksheet-print {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    display: block !important;
     overflow: visible !important;
     max-width: none !important;
+    min-width: 0 !important;
     width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   html body .marksheet-print table {
+    display: table !important;
+    position: static !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
+    height: auto !important;
     border-collapse: collapse !important;
     break-inside: auto !important;
     page-break-inside: auto !important;
@@ -38,6 +51,7 @@
 
   /* Never split an individual learner across the page boundary. */
   html body .marksheet-print tbody tr {
+    display: table-row !important;
     break-inside: avoid-page !important;
     page-break-inside: avoid !important;
   }
@@ -77,8 +91,7 @@
     font: inherit !important;
   }
 
-  /* Prevent a long school/learner name from changing row height and creating
-     accidental page splits. */
+  /* Prevent long names from changing row height and creating accidental splits. */
   html body .marksheet-print th,
   html body .marksheet-print td {
     white-space: nowrap !important;
@@ -87,8 +100,7 @@
     text-overflow: clip !important;
   }
 
-  /* Keep the compact print density, but don't force rows to a fixed height
-     that could clip text on printers with different font metrics. */
+  /* Compact density without a fixed row height that can clip printer text. */
   html body .marksheet-print tbody td,
   html body .marksheet-print tbody th {
     min-height: 3.5mm !important;
