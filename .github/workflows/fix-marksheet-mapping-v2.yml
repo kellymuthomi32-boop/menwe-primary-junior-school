@@ -1,9 +1,6 @@
 name: Apply marksheet subject mapping fix
 
-on:
-  push:
-    paths:
-      - README.md
+on: push
 
 permissions:
   contents: write
