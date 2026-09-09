@@ -19,19 +19,8 @@ jobs:
           from pathlib import Path
           p = Path('client/src/pages/ClassMarksheetV2.tsx')
           s = p.read_text()
-          old = '''function getResultForSubject(row: Row, subjectId: string) {
-            const target = str(subjectId);
-            return (row.results ?? []).filter((r: Row) => str(r.subject_id) === target);
-          }'''
-          new = '''function getResultForSubject(row: Row, subjectId: string, subjects: Subject[] = []) {
-            const target = str(subjectId);
-            const subject = subjects.find(s => str(s.id) === target);
-            const code = str(subject?.code).toUpperCase();
-            return (row.results ?? []).filter((r: Row) =>
-              str(r.subject_id) === target ||
-              (!!code && str(r.subjects?.code).toUpperCase() === code)
-            );
-          }'''
+          old = "function getResultForSubject(row: Row, subjectId: string) {\n  const target = str(subjectId);\n  return (row.results ?? []).filter((r: Row) => str(r.subject_id) === target);\n}"
+          new = "function getResultForSubject(row: Row, subjectId: string, subjects: Subject[] = []) {\n  const target = str(subjectId);\n  const subject = subjects.find(s => str(s.id) === target);\n  const code = str(subject?.code).toUpperCase();\n  return (row.results ?? []).filter((r: Row) =>\n    str(r.subject_id) === target ||\n    (!!code && str(r.subjects?.code).toUpperCase() === code)\n  );\n}"
           if old not in s:
               raise SystemExit('Expected getResultForSubject block not found')
           s = s.replace(old, new, 1)
