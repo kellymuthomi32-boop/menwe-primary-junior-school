@@ -7,14 +7,11 @@ import "../marksheet-print.css";
 
 type Row = Record<string, any>;
 type Subject = { id: string; code: string; name: string; status?: string };
-
 type Band = "LOWER_PRIMARY" | "UPPER_PRIMARY" | "JUNIOR_SCHOOL";
-
 const str = (v: unknown) => v == null ? "" : String(v);
 const learnerName = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const fmt = (v: number | null) => v == null ? "" : Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-
 function getGrade(c?: Row) {
   const raw = `${str(c?.name)} ${str(c?.code)} ${str(c?.level)}`.toUpperCase();
   const match = raw.match(/(?:GRADE|CLASS|STD|STANDARD|G)\s*([1-9])\b/);
@@ -29,26 +26,18 @@ function getBand(c?: Row): Band {
   if (/UPPER|PRIMARY 4|PRIMARY 5|PRIMARY 6/.test(raw)) return "UPPER_PRIMARY";
   return "JUNIOR_SCHOOL";
 }
-
 const priority = (s: Subject) => {
   const order: Record<string, number> = { ENG: 10, KSW: 20, MAT: 30, SCI: 40, SSA: 40, SST: 50, AGR: 60, CAS: 70, PRE: 80, CRE: 90, IRE: 100, HRE: 110 };
   return order[str(s.code).toUpperCase()] ?? 1000;
 };
 const sortSubjects = (items: Subject[]) => [...items].sort((a, b) => priority(a) - priority(b) || str(a.name).localeCompare(str(b.name)));
-
 const CAS_PARENT = "CAS";
 const CAS_COMPONENTS = ["ART", "MUS", "PE"] as const;
 const isCasComponent = (s: Subject) => CAS_COMPONENTS.includes(str(s.code).toUpperCase() as typeof CAS_COMPONENTS[number]);
-const isUpperPrimaryCas = (band: Band, s: Subject) => band === "UPPER_PRIMARY" && (str(s.code).toUpperCase() === CAS_PARENT || isCasComponent(s));
-
-function componentResult(row: Row, code: string) {
-  return (row.results ?? []).filter((r: Row) => str(r.subjects?.code || r.subject_code || r.code).toUpperCase() === code || str(r.subject_id) === code);
-}
-
 function getResultForSubject(row: Row, subjectId: string) {
-  return (row.results ?? []).filter((r: Row) => str(r.subject_id) === subjectId);
+  const target = str(subjectId);
+  return (row.results ?? []).filter((r: Row) => str(r.subject_id) === target);
 }
-
 function casComposite(row: Row, subjects: Subject[]) {
   const components = subjects.filter(s => CAS_COMPONENTS.includes(str(s.code).toUpperCase() as typeof CAS_COMPONENTS[number]));
   if (components.length < 3) return null;
@@ -64,7 +53,6 @@ function casComposite(row: Row, subjects: Subject[]) {
   if (values.some(v => v == null)) return null;
   return values.reduce((a, b) => a + (b ?? 0), 0) / values.length;
 }
-
 function casStatus(row: Row, subjects: Subject[]) {
   const components = subjects.filter(s => CAS_COMPONENTS.includes(str(s.code).toUpperCase() as typeof CAS_COMPONENTS[number]));
   const entered = components.filter(s => getResultForSubject(row, str(s.id)).length).length;
@@ -72,13 +60,11 @@ function casStatus(row: Row, subjects: Subject[]) {
   if (entered < 3) return `Pending (${entered}/3)`;
   return "";
 }
-
 export default function ClassMarksheetV2() {
   const { user, profile } = useSchoolAuth();
   const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
   const [years, setYears] = useState<Row[]>([]), [terms, setTerms] = useState<Row[]>([]), [classes, setClasses] = useState<Row[]>([]), [allSubjects, setAllSubjects] = useState<Subject[]>([]), [subjects, setSubjects] = useState<Subject[]>([]), [rows, setRows] = useState<Row[]>([]);
   const [yearId, setYearId] = useState(""), [termId, setTermId] = useState(""), [classId, setClassId] = useState(""), [loading, setLoading] = useState(true), [subjectsLoading, setSubjectsLoading] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
-
   useEffect(() => { void (async () => {
     if (!user) return;
     try {
@@ -95,7 +81,6 @@ export default function ClassMarksheetV2() {
     } catch (e) { setMessage(e instanceof Error ? e.message : "Marksheet setup could not be loaded."); }
     finally { setLoading(false); }
   })(); }, [user]);
-
   const visibleTerms = useMemo(() => terms.filter(t => !yearId || str(t.academic_year_id) === yearId), [terms, yearId]);
   const visibleClasses = useMemo(() => classes.filter(c => !yearId || str(c.academic_year_id) === yearId), [classes, yearId]);
   const selectedClass = classes.find(c => str(c.id) === classId);
@@ -103,7 +88,6 @@ export default function ClassMarksheetV2() {
   const band = getBand(selectedClass);
   const grade = getGrade(selectedClass);
   const bandTitle = band === "LOWER_PRIMARY" ? "LOWER PRIMARY CBC ASSESSMENT MARKSHEET" : band === "UPPER_PRIMARY" ? "UPPER PRIMARY CBC ASSESSMENT MARKSHEET" : "JUNIOR SCHOOL PERFORMANCE MARKSHEET";
-
   const loadSubjectsForClass = async (selectedClassId: string) => {
     setSubjectsLoading(true);
     try {
@@ -119,9 +103,7 @@ export default function ClassMarksheetV2() {
       setMessage(e instanceof Error ? "The class curriculum could not be read. Showing the configured subject list instead." : "Subjects could not be loaded.");
     } finally { setSubjectsLoading(false); }
   };
-
   useEffect(() => { setSubjects([]); setRows([]); setMessage(""); if (classId && allSubjects.length) void loadSubjectsForClass(classId); }, [classId, allSubjects]);
-
   const generate = async () => {
     if (!classId || !yearId || !termId) { setMessage("Select academic year, term and class first."); return; }
     setBusy(true); setMessage("");
@@ -156,15 +138,14 @@ export default function ClassMarksheetV2() {
     } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); }
     finally { setBusy(false); }
   };
-
   const displaySubjects = useMemo(() => {
     if (band !== "UPPER_PRIMARY") return subjects;
-    // Grade 4–6: ART + MUSIC + PE are teacher-entry components and appear as one final CAS column.
     return subjects.filter(s => !isCasComponent(s));
   }, [subjects, band]);
-
   const resultMark = (r: Row, subjectId: string) => {
-    const vals = getResultForSubject(r, subjectId).map(x => num(x.score)).filter((x: number | null): x is number => x != null);
+    const subject = subjects.find(s => str(s.id) === subjectId);
+    const code = str(subject?.code).toUpperCase();
+    const vals = (r.results ?? []).filter((x: Row) => str(x.subject_id) === subjectId || (!!code && str(x.subjects?.code).toUpperCase() === code)).map(x => num(x.score)).filter((x: number | null): x is number => x != null);
     return vals.length ? fmt(vals[vals.length - 1]) : "";
   };
   const resultLevel = (r: Row, subjectId: string) => getResultForSubject(r, subjectId).map(x => str(x.grade)).filter(Boolean).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(" / ");
@@ -173,7 +154,6 @@ export default function ClassMarksheetV2() {
     const stored = existing.map(x => str(x.grade)).filter(Boolean).pop();
     return stored || "";
   };
-
   const subjectTotals = useMemo(() => displaySubjects.map(s => {
     if (band === "UPPER_PRIMARY" && str(s.code).toUpperCase() === CAS_PARENT) {
       const vals = rows.map(r => casComposite(r, subjects)).filter((v): v is number => v != null);
@@ -183,7 +163,6 @@ export default function ClassMarksheetV2() {
     const total = vals.reduce((a, b) => a + b, 0);
     return { ...s, total, mean: vals.length ? total / vals.length : null };
   }), [displaySubjects, rows, subjects, band]);
-
   const learnerTotal = (r: Row) => displaySubjects.reduce((sum, s) => {
     if (band === "UPPER_PRIMARY" && str(s.code).toUpperCase() === CAS_PARENT) return sum + (casComposite(r, subjects) ?? 0);
     return sum + (num(resultMark(r, str(s.id))) ?? 0);
@@ -194,9 +173,7 @@ export default function ClassMarksheetV2() {
   });
   const overallMean = rows.length ? (() => { const vals = rows.filter(completedLearnerTotal).map(learnerTotal); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null; })() : null;
   const overallTotal = rows.length ? (() => { const vals = rows.filter(completedLearnerTotal).map(learnerTotal); return vals.length ? vals.reduce((a,b)=>a+b,0) : null; })() : null;
-
-  const subjectHeader = (s: Subject) => <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 leading-tight"><span title={str(s.name)} className="block text-center text-[13px] font-black uppercase leading-tight text-white">{str(s.code) || str(s.name)}</span><span className="text-[8px] font-medium uppercase tracking-wide text-white/60">{str(s.name)}</span></div>;
-
+  const subjectHeader = (s: Subject) => <div className="subject-heading flex min-w-0 flex-col items-center justify-center gap-0.5 leading-tight"><span title={str(s.name)} className="block text-center text-[13px] font-black uppercase leading-tight text-[#D89B28]">{str(s.code) || str(s.name)}</span><span className="subject-name text-[9px] font-bold uppercase tracking-wide text-white">{str(s.name)}</span></div>;
   if (loading) return <PortalLayout role={profile?.role ?? "TEACHER"}><main className="grid min-h-[60vh] place-items-center"><Loader2 className="animate-spin" /></main></PortalLayout>;
   return <PortalLayout role={profile?.role ?? "TEACHER"}>
     <main className="mx-auto w-full max-w-[1800px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -205,7 +182,7 @@ export default function ClassMarksheetV2() {
         {band === "UPPER_PRIMARY" && <div className="border-x border-b border-[#D89B28]/30 bg-[#D89B28]/10 px-4 py-3 text-xs font-semibold">Creative Arts and Sports = Creative Arts + Music + Physical Education. Teachers enter each component separately; the final CAS mark appears only when all three are entered.</div>}
         {subjectsLoading && <div className="border-x border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">Loading the subjects assigned to {str(selectedClass?.name)}…</div>}
         {!subjectsLoading && !displaySubjects.length && <div className="border-x border-b border-[#D89B28]/30 bg-[#D89B28]/10 px-4 py-3 text-sm font-bold">No subjects are configured for this class.</div>}
-        {!subjectsLoading && displaySubjects.length > 0 && (band !== "JUNIOR_SCHOOL" ? <table className="w-full min-w-[1100px] border-collapse text-xs"><thead><tr><th rowSpan={2} className="border p-2">No.</th><th rowSpan={2} className="border p-2">Assessment No.</th><th rowSpan={2} className="border p-2 text-left">Learner Name</th><th rowSpan={2} className="border p-2">Gender</th>{displaySubjects.map(s => <th key={s.id} colSpan={2} className="border p-2">{subjectHeader(s)}</th>)}<th rowSpan={2} className="border p-2">TOTAL MARKS</th><th rowSpan={2} className="border p-2">OVERALL LEVEL</th></tr><tr className="bg-[#D89B28]/20">{displaySubjects.map(s => <Fragment key={s.id}><th className="border p-1 text-[10px]">MARK</th><th className="border p-1 text-[10px]">LEVEL</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={str(r.id)} className="even:bg-slate-50"><td className="border p-2 text-center">{i+1}</td><td className="border p-2">{str(r.admission_number)}</td><td className="border p-2 font-semibold">{learnerName(r)}</td><td className="border p-2 text-center">{str(r.gender).toUpperCase().startsWith("M")?"M":str(r.gender).toUpperCase().startsWith("F")?"F":""}</td>{displaySubjects.map(s=>{const isCas=band==="UPPER_PRIMARY"&&str(s.code).toUpperCase()===CAS_PARENT;const composite=isCas?casComposite(r,subjects):null;const status=isCas?casStatus(r,subjects):"";return <Fragment key={s.id}><td className="border p-2 text-center font-semibold">{isCas?(composite!=null?fmt(composite):status):resultMark(r,str(s.id))}</td><td className="border p-2 text-center font-semibold">{isCas?compositeLevel(r):resultLevel(r,str(s.id))}</td></Fragment>})}<td className="border p-2 text-center font-black">{completedLearnerTotal(r)?fmt(learnerTotal(r)):""}</td><td className="border p-2 text-center">{displaySubjects.map(s=>{const isCas=band==="UPPER_PRIMARY"&&str(s.code).toUpperCase()===CAS_PARENT;return isCas?compositeLevel(r):resultLevel(r,str(s.id))}).filter(Boolean).join(" / ")}</td></tr>)}<tr className="bg-[#D89B28]/15 font-black"><td colSpan={4} className="border p-2 text-right">TOTAL MARKS</td>{subjectTotals.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{fmt(s.total)}</td><td className="border p-2"/></Fragment>)}<td className="border p-2 text-center">{fmt(overallTotal)}</td><td className="border p-2"/></tr><tr className="bg-[#D89B28]/10 font-black"><td colSpan={4} className="border p-2 text-right">MEAN MARK</td>{subjectTotals.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{fmt(s.mean)}</td><td className="border p-2"/></Fragment>)}<td className="border p-2 text-center">{fmt(overallMean)}</td><td className="border p-2"/></tr></tbody></table> : <table className="w-full min-w-[1250px] border-collapse text-xs"><thead><tr><th rowSpan={2} className="border p-2">No.</th><th rowSpan={2} className="border p-2">Assessment No.</th><th rowSpan={2} className="border p-2 text-left">Learner Name</th><th rowSpan={2} className="border p-2">Gender</th>{displaySubjects.map(s=><th key={s.id} colSpan={3} className="border p-2">{subjectHeader(s)}</th>)}<th rowSpan={2} className="border p-2">TOTAL MARKS</th><th rowSpan={2} className="border p-2">OVERALL LEVEL</th></tr><tr className="bg-[#D89B28]/20">{displaySubjects.map(s=><Fragment key={s.id}><th className="border p-1 text-[10px]">SC</th><th className="border p-1 text-[10px]">L</th><th className="border p-1 text-[10px]">LEVEL</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={str(r.id)} className="even:bg-slate-50"><td className="border p-2">{i+1}</td><td className="border p-2">{str(r.admission_number)}</td><td className="border p-2 font-semibold">{learnerName(r)}</td><td className="border p-2 text-center">{str(r.gender).toUpperCase().startsWith("M")?"M":str(r.gender).toUpperCase().startsWith("F")?"F":""}</td>{displaySubjects.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\bSC\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\bL\b|LISTENING|ORAL|LANGUAGE/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td><td className="border p-2 text-center font-semibold">{resultLevel(r,str(s.id))}</td></Fragment>)}<td className="border p-2 text-center font-black">{fmt((r.results??[]).map((x:Row)=>num(x.score)).filter((x:number|null):x is number=>x!=null).reduce((a:number,b:number)=>a+b,0)||null)}</td><td className="border p-2">{(r.results??[]).map((x:Row)=>str(x.grade)).filter(Boolean).filter((v:string,i:number,a:string[])=>a.indexOf(v)===i).join(" / ")}</td></tr>)}</tbody></table>)}
+        {!subjectsLoading && displaySubjects.length > 0 && (band !== "JUNIOR_SCHOOL" ? <table className="w-full min-w-[1100px] border-collapse text-xs"><thead><tr><th rowSpan={2} className="border p-2">No.</th><th rowSpan={2} className="border p-2">Assessment No.</th><th rowSpan={2} className="border p-2 text-left">Learner Name</th><th rowSpan={2} className="border p-2">Gender</th>{displaySubjects.map(s => <th key={s.id} colSpan={2} className="border p-2">{subjectHeader(s)}</th>)}<th rowSpan={2} className="border p-2">TOTAL MARKS</th><th rowSpan={2} className="border p-2">OVERALL LEVEL</th></tr><tr className="bg-[#D89B28]/20">{displaySubjects.map(s => <Fragment key={s.id}><th className="border p-1 text-[10px]">MARK</th><th className="border p-1 text-[10px]">LEVEL</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={str(r.id)} className="even:bg-slate-50"><td className="border p-2 text-center">{i+1}</td><td className="border p-2">{str(r.admission_number)}</td><td className="border p-2 font-semibold">{learnerName(r)}</td><td className="border p-2 text-center">{str(r.gender).toUpperCase().startsWith("M")?"M":str(r.gender).toUpperCase().startsWith("F")?"F":""}</td>{displaySubjects.map(s=>{const isCas=band==="UPPER_PRIMARY"&&str(s.code).toUpperCase()===CAS_PARENT;const composite=isCas?casComposite(r,subjects):null;const status=isCas?casStatus(r,subjects):"";return <Fragment key={s.id}><td className="border p-2 text-center font-semibold">{isCas?(composite!=null?fmt(composite):status):resultMark(r,str(s.id))}</td><td className="border p-2 text-center font-semibold">{isCas?compositeLevel(r):resultLevel(r,str(s.id))}</td></Fragment>})}<td className="border p-2 text-center font-black">{completedLearnerTotal(r)?fmt(learnerTotal(r)):""}</td><td className="border p-2 text-center">{displaySubjects.map(s=>{const isCas=band==="UPPER_PRIMARY"&&str(s.code).toUpperCase()===CAS_PARENT;return isCas?compositeLevel(r):resultLevel(r,str(s.id))}).filter(Boolean).join(" / ")}</td></tr>)}<tr className="bg-[#D89B28]/15 font-black"><td colSpan={4} className="border p-2 text-right">TOTAL MARKS</td>{subjectTotals.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{fmt(s.total)}</td><td className="border p-2"/></Fragment>)}<td className="border p-2 text-center">{fmt(overallTotal)}</td><td className="border p-2"/></tr><tr className="bg-[#D89B28]/10 font-black"><td colSpan={4} className="border p-2 text-right">MEAN MARK</td>{subjectTotals.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{fmt(s.mean)}</td><td className="border p-2"/></Fragment>)}<td className="border p-2 text-center">{fmt(overallMean)}</td><td className="border p-2"/></tr></tbody></table> : <table className="w-full min-w-[1250px] border-collapse text-xs"><thead><tr><th rowSpan={2} className="border p-2">No.</th><th rowSpan={2} className="border p-2">Assessment No.</th><th rowSpan={2} className="border p-2 text-left">Learner Name</th><th rowSpan={2} className="border p-2">Gender</th>{displaySubjects.map(s=><th key={s.id} colSpan={3} className="border p-2">{subjectHeader(s)}</th>)}<th rowSpan={2} className="border p-2">TOTAL MARKS</th><th rowSpan={2} className="border p-2">OVERALL LEVEL</th></tr><tr className="bg-[#D89B28]/20">{displaySubjects.map(s=><Fragment key={s.id}><th className="border p-1 text-[10px]">SC</th><th className="border p-1 text-[10px]">L</th><th className="border p-1 text-[10px]">LEVEL</th></Fragment>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={str(r.id)} className="even:bg-slate-50"><td className="border p-2">{i+1}</td><td className="border p-2">{str(r.admission_number)}</td><td className="border p-2 font-semibold">{learnerName(r)}</td><td className="border p-2 text-center">{str(r.gender).toUpperCase().startsWith("M")?"M":str(r.gender).toUpperCase().startsWith("F")?"F":""}</td>{displaySubjects.map(s=><Fragment key={s.id}><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\bSC\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\bL\b|LISTENING|ORAL|LANGUAGE/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td><td className="border p-2 text-center font-semibold">{resultLevel(r,str(s.id))}</td></Fragment>)}<td className="border p-2 text-center font-black">{completedLearnerTotal(r)?fmt(learnerTotal(r)):""}</td><td className="border p-2">{(r.results??[]).map((x:Row)=>str(x.grade)).filter(Boolean).filter((v:string,i:number,a:string[])=>a.indexOf(v)===i).join(" / ")}</td></tr>)}</tbody></table>)}
       </section>}
     </main>
   </PortalLayout>;
