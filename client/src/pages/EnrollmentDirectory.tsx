@@ -88,7 +88,7 @@ export default function EnrollmentDirectory() {
           admission_date: form.admissionDate || null, status: form.status
         }).select("id").single();
         if (studentError) throw studentError;
-        const year = await db.from("academic_years").select("id").eq("status", "ACTIVE").order("start_date", { ascending: false }).limit(1).maybeSingle();
+        const year = await db.from("academic_years").select("id").eq("status", "ACTIVE").order("starts_on", { ascending: false }).limit(1).maybeSingle();
         if (year.error) throw year.error;
         if (!year.data) throw new Error("No active academic year is configured.");
         const { error: enrollmentError } = await db.from("enrollments").insert({ student_id: student.id, class_id: form.classId, stream_id: form.streamId || null, academic_year_id: year.data.id, enrolled_on: form.admissionDate || new Date().toISOString().slice(0, 10), status: "ACTIVE" });
