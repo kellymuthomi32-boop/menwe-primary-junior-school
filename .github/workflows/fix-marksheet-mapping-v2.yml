@@ -1,0 +1,39 @@
+name: Apply marksheet subject mapping fix
+
+on:
+  push:
+    paths:
+      - README.md
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch marksheet mapping
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('client/src/pages/ClassMarksheetV2.tsx')
+          s = p.read_text()
+          old = "function getResultForSubject(row: Row, subjectId: string) {\n  const target = str(subjectId);\n  return (row.results ?? []).filter((r: Row) => str(r.subject_id) === target);\n}"
+          new = "function getResultForSubject(row: Row, subjectId: string, subjects: Subject[] = []) {\n  const target = str(subjectId);\n  const subject = subjects.find(s => str(s.id) === target);\n  const code = str(subject?.code).toUpperCase();\n  return (row.results ?? []).filter((r: Row) =>\n    str(r.subject_id) === target ||\n    (!!code && str(r.subjects?.code).toUpperCase() === code)\n  );\n}"
+          if old not in s:
+              raise SystemExit('Expected marksheet helper not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('getResultForSubject(row, str(subject.id))', 'getResultForSubject(row, str(subject.id), subjects)')
+          s = s.replace('getResultForSubject(r, subjectId)', 'getResultForSubject(r, subjectId, subjects)')
+          s = s.replace('getResultForSubject(r, str(subjects.find(s => str(s.code).toUpperCase() === CAS_PARENT)?.id ?? ""))', 'getResultForSubject(r, str(subjects.find(s => str(s.code).toUpperCase() === CAS_PARENT)?.id ?? ""), subjects)')
+          s = s.replace('getResultForSubject(r, str(s.id))', 'getResultForSubject(r, str(s.id), subjects)')
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add client/src/pages/ClassMarksheetV2.tsx
+          git diff --cached --quiet || git commit -m 'fix marksheet mapping for all subject fields'
+          git push
