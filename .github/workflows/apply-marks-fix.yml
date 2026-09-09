@@ -1,0 +1,53 @@
+name: Apply marks workflow fix
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch marks workflow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('client/src/pages/ExamDirectory.tsx')
+          s=p.read_text()
+          old='if(r.error)throw r.error;setMessage(`${rows.length} learner result${rows.length===1?"":"s"} saved successfully.`);await loadResults(selected,resultSubjectId)'
+          new='if(r.error)throw r.error;await loadResults(selected,resultSubjectId);setMessage(`${rows.length} learner result${rows.length===1?"":"s"} saved successfully.`)'
+          if old not in s: raise SystemExit('ExamDirectory target not found')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('client/src/pages/ClassMarksheetV2.tsx')
+          s=p.read_text()
+          old='''  const resultMark = (r: Row, subjectId: string) => {\n    const vals = getResultForSubject(r, subjectId).map(x => num(x.score)).filter((x: number | null): x is number => x != null);\n    return vals.length ? fmt(vals[vals.length - 1]) : "";\n  };'''
+          new='''  const resultMark = (r: Row, subjectId: string) => {\n    const subject = subjects.find(s => str(s.id) === subjectId);\n    const code = str(subject?.code).toUpperCase();\n    const vals = (r.results ?? []).filter((x: Row) =>\n      str(x.subject_id) === subjectId ||\n      (!!code && str(x.subjects?.code).toUpperCase() === code)\n    ).map(x => num(x.score)).filter((x: number | null): x is number => x != null);\n    return vals.length ? fmt(vals[vals.length - 1]) : "";\n  };'''
+          if old not in s: raise SystemExit('resultMark target not found')
+          s=s.replace(old,new,1)
+          old='''  const subjectHeader = (s: Subject) => <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 leading-tight"><span title={str(s.name)} className="block text-center text-[13px] font-black uppercase leading-tight text-white">{str(s.code) || str(s.name)}</span><span className="text-[8px] font-medium uppercase tracking-wide text-white/60">{str(s.name)}</span></div>;'''
+          new='''  const subjectHeader = (s: Subject) => <div className="subject-heading flex min-w-0 flex-col items-center justify-center gap-0.5 leading-tight"><span title={str(s.name)} className="block text-center text-[13px] font-black uppercase leading-tight text-[#D89B28]">{str(s.code) || str(s.name)}</span><span className="subject-name text-[9px] font-bold uppercase tracking-wide text-white">{str(s.name)}</span></div>;'''
+          if old not in s: raise SystemExit('subjectHeader target not found')
+          s=s.replace(old,new,1)
+          old='''<td className="border p-2 text-center font-black">{fmt((r.results??[]).map((x:Row)=>num(x.score)).filter((x:number|null):x is number=>x!=null).reduce((a:number,b:number)=>a+b,0)||null)}</td>'''
+          new='''<td className="border p-2 text-center font-black">{completedLearnerTotal(r)?fmt(learnerTotal(r)):""}</td>'''
+          if old not in s: raise SystemExit('junior total target not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('client/src/marksheet-print.css')
+          s=p.read_text()
+          addition='''\n/* Subject labels: strong contrast on screen and paper. */\n.marksheet-v2 .subject-heading { display:block; color:#D89B28 !important; visibility:visible !important; }\n.marksheet-v2 .subject-heading .subject-name { color:#fff !important; }\n@media print {\n  .marksheet-v2 .subject-heading { color:#061229 !important; }\n  .marksheet-v2 .subject-heading .subject-name { color:#334155 !important; }\n}\n'''
+          if 'Subject labels: strong contrast on screen and paper.' not in s:
+              p.write_text(s+addition)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add client/src/pages/ExamDirectory.tsx client/src/pages/ClassMarksheetV2.tsx client/src/marksheet-print.css
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix marksheet subject mapping and save confirmation'
+          git push
