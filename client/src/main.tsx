@@ -5,6 +5,7 @@ import "./mobile-responsive.css";
 import "./homepage-premium.css";
 import "./header-micro.css";
 import "./brand-alignment.css";
+import "./marksheet-print.css";
 
 // Application delivery no longer uses a service worker. Do not enumerate or
 // delete browser caches during startup: that defeats normal HTTP/CDN caching

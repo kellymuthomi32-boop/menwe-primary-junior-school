@@ -1,0 +1,105 @@
+/* Dedicated print hardening for the class marksheet. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 5mm;
+  }
+
+  html, body {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Keep the marksheet as a normal flowing document so Chromium can create
+     a clean second A4 page instead of clipping an absolutely positioned view. */
+  html body .marksheet-print {
+    overflow: visible !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  html body .marksheet-print table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Repeat the column headings whenever the table continues onto page 2. */
+  html body .marksheet-print thead {
+    display: table-header-group !important;
+    break-after: avoid-page !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Never split an individual learner across the page boundary. */
+  html body .marksheet-print tbody tr {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  html body .marksheet-print tbody td,
+  html body .marksheet-print tbody th {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Keep the final TOTAL / overall LEVEL line intact. */
+  html body .marksheet-print .marksheet-summary-row,
+  html body .marksheet-print .marksheet-summary-row td {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Screen-only controls must never consume paper space. */
+  html body .marksheet-print button,
+  html body .marksheet-print [data-print-hide="true"],
+  html body .marksheet-print .print-hide,
+  html body .marksheet-print .no-print {
+    display: none !important;
+  }
+
+  /* Preserve the selected overall level while removing the interactive chrome. */
+  html body .marksheet-print select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: inherit !important;
+    font: inherit !important;
+  }
+
+  /* Prevent a long school/learner name from changing row height and creating
+     accidental page splits. */
+  html body .marksheet-print th,
+  html body .marksheet-print td {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+  }
+
+  /* Keep the compact print density, but don't force rows to a fixed height
+     that could clip text on printers with different font metrics. */
+  html body .marksheet-print tbody td,
+  html body .marksheet-print tbody th {
+    min-height: 3.5mm !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  html body .marksheet-print img,
+  html body .marksheet-print svg {
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+    max-width: 100% !important;
+  }
+}
