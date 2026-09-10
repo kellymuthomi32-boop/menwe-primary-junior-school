@@ -150,7 +150,7 @@ export default function ReportCardsDirectory() {
     finally{setBusy(false);}
   };
 
-  const band=bandFromClass(classRow), grade=gradeFromClass(classRow);
+  const band=bandFromClass(classRow ?? undefined), grade=gradeFromClass(classRow ?? undefined);
   const displaySubjects=useMemo<ReportSubject[]>(()=>{
     const source=subjects as Row[];
     if(band === "LOWER_PRIMARY"){
@@ -161,7 +161,7 @@ export default function ReportCardsDirectory() {
     }
     if(band === "UPPER_PRIMARY"){
       const out:ReportSubject[]=[];
-      const add=(code:string,pred:(s:Row)=>boolean)=>{const s=source.find(pred);if(s)out.push({...s,code});};
+      const add=(code:string,pred:(s:Row)=>boolean)=>{const s=source.find(pred);if(s)out.push({...s,code} as ReportSubject);};
       add("ENG",isEnglish);add("KIS",isKiswahili);add("MATH",isMath);
       const integrated=source.filter(s=>isAgriculture(s)||isHomeScience(s)||isICT(s));
       if(integrated.length) out.push({id:"__int_sci__",code:"INT SCI",name:"Integrated Science",synthetic:true,componentIds:integrated.map(s=>s.id)}); else add("INT SCI",isIntScience);
@@ -172,8 +172,8 @@ export default function ReportCardsDirectory() {
     }
     const out:ReportSubject[]=[]; for(const code of ["ENG","KIS","MATH","INT SCI","SST","CAS","AGR NUT","RE","PRE TECH"]){
       const preds:Record<string,(s:Row)=>boolean>={ENG:isEnglish,KIS:isKiswahili,MATH:isMath,"INT SCI":isIntScience,SST:isSST,CAS:isCASComposite,"AGR NUT":(s)=>/AGRICULTURE.*NUTRITION|^AGR\b/.test(normalize(`${s.code} ${s.name}`)),RE:isReligious,"PRE TECH":isPreTech};
-      const s=source.find(preds[code]); if(s)out.push({...s,code});
-    } return out.length?out:sortSubjects(source.slice(0,9).map(s=>({...s,code:codeOf(s)})));
+      const s=source.find(preds[code]); if(s)out.push({...s,code} as ReportSubject);
+    } return out.length?out:sortSubjects(source.slice(0,9).map(s=>({...s,code:codeOf(s)} as ReportSubject)));
   },[subjects,band]);
 
   const percentageFor=(r:Row,s:ReportSubject)=>{ if(s.synthetic){const vals=(s.componentIds??[]).map(id=>latestPercentage(results,id));return avg(vals);} return latestPercentage(results,s.id); };
