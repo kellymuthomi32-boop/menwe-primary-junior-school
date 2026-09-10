@@ -37,7 +37,8 @@
 .level-pill{display:inline-grid;min-width:30px;padding:3px 5px;border-radius:999px;background:var(--rc-sage);color:var(--rc-dark);font-size:8px;font-weight:900;text-align:center}
 .report-table-wrap tfoot td{background:var(--rc-cream);border-top:2px solid var(--rc-gold);font-weight:900}
 .report-section.report-annual{margin-top:2px}
-.annual-cards,.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.annual-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
 .annual-cards>div,.summary-grid>div{border:1px solid var(--rc-line);border-radius:11px;padding:11px 12px;background:#fff}
 .annual-cards span,.summary-grid span{display:block;font-size:7px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;color:#718178}
 .annual-cards strong,.summary-grid strong{display:block;margin-top:4px;font-size:14px;font-weight:900;color:var(--rc-dark)}
