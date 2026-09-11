@@ -10,11 +10,10 @@ type Programme = "primary" | "junior";
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const programmeForLevel = (level: unknown): Programme => /grade\s*[789]|junior|jss/i.test(String(level ?? "")) ? "junior" : "primary";
 const teacherName = (row: Row | null) => row ? [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(" ") || row.employee_number || "Teacher" : "Teacher";
-const minutes = (value: unknown) => { const [h, m] = String(value ?? "00:00").slice(0, 5).split(":").map(Number); return h * 60 + m; };
 const formatTime = (value: unknown) => { const [h, m] = String(value ?? "00:00").slice(0, 5).split(":").map(Number); const suffix = h >= 12 ? "p.m." : "a.m."; const hour = h % 12 || 12; return `${hour}:${String(m).padStart(2, "0")} ${suffix}`; };
 
 export default function TeacherTimetablePage() {
-  const { user, profile } = useSchoolAuth();
+  const { user } = useSchoolAuth();
   const [teacher, setTeacher] = useState<Row | null>(null);
   const [entries, setEntries] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +38,6 @@ export default function TeacherTimetablePage() {
 
   const grouped = useMemo(() => days.map((day, index) => ({ day, entries: entries.filter(e => Number(e.day_of_week) === index + 1) })), [entries]);
   const divisions = useMemo(() => [...new Set(entries.map(e => programmeForLevel(e.classes?.level)))], [entries]);
-  const handleDownload = () => window.print();
 
   return <PortalLayout role="TEACHER">
     <main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
@@ -52,7 +50,7 @@ export default function TeacherTimetablePage() {
           </div>
           <div className="no-print flex flex-wrap gap-2">
             <button type="button" onClick={() => void load()} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-bold text-white hover:bg-white/15"><RefreshCw size={16}/> Refresh</button>
-            <button type="button" onClick={handleDownload} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-[var(--ink)] hover:opacity-95"><Download size={16}/> Download / Print PDF</button>
+            <button type="button" onClick={() => window.print()} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-[var(--ink)] hover:opacity-95"><Download size={16}/> Download / Print PDF</button>
           </div>
         </div>
       </header>
