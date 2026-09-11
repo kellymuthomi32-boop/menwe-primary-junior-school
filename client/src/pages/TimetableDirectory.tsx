@@ -50,6 +50,11 @@ function teacherFullName(row: Row | null | undefined) {
   return [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(" ") || text(row.employee_number);
 }
 
+function timeToMinutes(value: unknown) {
+  const [hours, minutes] = String(value ?? "00:00").slice(0, 5).split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 function TimetableTemplate({ programme }: { programme: Programme }) {
   const slots = programmeSlots[programme];
   const lessonMinutes = programme === "primary" ? 35 : 40;
@@ -71,6 +76,7 @@ function TimetableTemplate({ programme }: { programme: Programme }) {
         ))}
       </div>
       {programme === "junior" && <div className="mt-4 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-50 px-4 py-3 text-sm text-amber-950"><Info className="mt-0.5 shrink-0" size={17} /><p><strong>Capacity check:</strong> the 8:20–3:10 day, 12:40–2:00 lunch and 30-minute break provide 300 minutes for instruction. That is 7½ forty-minute periods, so 40 full weekly periods cannot fit across five days without changing the school-day structure.</p></div>}
+      {programme === "primary" && <div className="mt-4 flex gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-4 py-3 text-sm text-[var(--ink)]/70"><Info className="mt-0.5 shrink-0 text-[var(--accent)]" size={17} /><p><strong>Shared-teacher transition:</strong> when a teacher moves between Junior and Primary, the system reserves a minimum 5-minute transition gap.</p></div>}
     </section>
   );
 }
@@ -143,19 +149,36 @@ export default function TimetableDirectory() {
       const clash = await db.from("timetable_entries").select("id").eq("class_id", form.class_id).eq("day_of_week", Number(form.day_of_week)).lt("starts_at", form.ends_at).gt("ends_at", form.starts_at).limit(1);
       if (clash.error) throw clash.error;
       if ((clash.data ?? []).length) throw new Error("This class already has a timetable entry in that time window.");
+
       if (form.teacher_id) {
-        const teacherClash = await db.from("timetable_entries").select("id,class_id,day_of_week,starts_at,ends_at,classes(name,level),subjects(name)").eq("teacher_id", form.teacher_id).eq("day_of_week", Number(form.day_of_week)).lt("starts_at", form.ends_at).gt("ends_at", form.starts_at).limit(1);
-        if (teacherClash.error) throw teacherClash.error;
-        const existing = teacherClash.data?.[0] as Row | undefined;
-        if (existing) {
+        const teacherEntries = await db.from("timetable_entries").select("id,class_id,day_of_week,starts_at,ends_at,classes(name,level),subjects(name)").eq("teacher_id", form.teacher_id).eq("day_of_week", Number(form.day_of_week)).order("starts_at");
+        if (teacherEntries.error) throw teacherEntries.error;
+        const entries = (teacherEntries.data ?? []) as Row[];
+        const newStart = timeToMinutes(form.starts_at);
+        const newEnd = timeToMinutes(form.ends_at);
+
+        for (const existing of entries) {
+          const existingStart = timeToMinutes(existing.starts_at);
+          const existingEnd = timeToMinutes(existing.ends_at);
           const existingClass = existing.classes as Row | null;
           const existingProgramme = programmeForLevel(existingClass?.level);
-          throw new Error(`Teacher clash: this teacher is already teaching ${text(existingClass?.name)} (${existingProgramme === "primary" ? "Primary" : "Junior School"}) from ${text(existing.starts_at)}–${text(existing.ends_at)} on ${days[Number(existing.day_of_week)]}.`);
+
+          if (existingStart < newEnd && existingEnd > newStart) {
+            throw new Error(`Teacher clash: this teacher is already teaching ${text(existingClass?.name)} (${existingProgramme === "primary" ? "Primary" : "Junior School"}) from ${text(existing.starts_at)}–${text(existing.ends_at)} on ${days[Number(existing.day_of_week)]}.`);
+          }
+
+          const differentDivision = existingProgramme !== expectedProgramme;
+          const gapBefore = newStart - existingEnd;
+          const gapAfter = existingStart - newEnd;
+          if (differentDivision && ((gapBefore >= 0 && gapBefore < 5) || (gapAfter >= 0 && gapAfter < 5))) {
+            throw new Error(`5-minute transition required: this teacher is moving between ${existingProgramme === "primary" ? "Primary" : "Junior School"} and ${expectedProgramme === "primary" ? "Primary" : "Junior School"}. Leave at least 5 minutes between ${text(existing.starts_at)}–${text(existing.ends_at)} and this lesson.`);
+          }
         }
       }
+
       const r = await db.from("timetable_entries").insert({ class_id: form.class_id, stream_id: form.stream_id || null, subject_id: form.subject_id, teacher_id: form.teacher_id || null, day_of_week: Number(form.day_of_week), starts_at: form.starts_at, ends_at: form.ends_at, room: form.room.trim() || null });
       if (r.error) throw r.error;
-      setMessage("Timetable entry saved. Teacher availability was checked across both Primary and Junior School.");
+      setMessage("Timetable entry saved. Teacher availability and the 5-minute cross-division transition rule were checked.");
       await load();
     } catch (e) { setMessage(e instanceof Error ? e.message : "Timetable entry could not be saved."); }
     finally { setBusy(false); }
@@ -168,7 +191,7 @@ export default function TimetableDirectory() {
       <header className="menwe-portal-hero rounded-[2rem] p-6 text-white sm:p-8">
         <span className="menwe-portal-kicker"><CalendarDays size={14} /> Scheduling</span>
         <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Timetable System</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">One timetable engine for Primary and Junior School. Teachers are shared staff records, so one teacher cannot be scheduled in two divisions at the same time.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">One timetable engine for Primary and Junior School. Teachers are shared staff records, so one teacher cannot be scheduled in two divisions at the same time, and teachers moving between divisions receive a 5-minute transition window.</p>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2">
@@ -191,7 +214,7 @@ export default function TimetableDirectory() {
             <input placeholder="Room (optional)" value={form.room} onChange={e => setForm({ ...form, room: e.target.value })} className={input} />
             <button disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white disabled:opacity-60"><Plus size={16} />{busy ? "Saving…" : "Add entry"}</button>
           </div>
-          <div className="flex items-start gap-2 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-4 py-3 text-xs text-[var(--ink)]/65"><UsersRound size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" /><p><strong>Shared-teacher protection:</strong> selecting a teacher checks every timetable entry for that teacher, including entries belonging to the other division.</p></div>
+          <div className="flex items-start gap-2 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-4 py-3 text-xs text-[var(--ink)]/65"><UsersRound size={15} className="mt-0.5 shrink-0 text-[var(--accent)]" /><p><strong>Shared-teacher protection:</strong> selecting a teacher checks every timetable entry for that teacher across both divisions. If the teacher changes division, the system also requires a 5-minute transition gap.</p></div>
         </form>}
 
         <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-[var(--ink)]/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
