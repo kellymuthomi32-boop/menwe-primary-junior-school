@@ -1,4 +1,5 @@
 import { ArrowRight, BookOpen, GraduationCap, HeartHandshake, MapPin, MessageCircle, Phone } from "lucide-react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { prefetchPublicRoute } from "@/lib/publicNavigation";
 import "@/styles/menwe-footer.css";
@@ -24,6 +25,23 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 }
 
 export default function Footer() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (location !== "/") return;
+
+    const pageMain = document.querySelector("#main-content > main");
+    if (!pageMain) return;
+
+    const sections = pageMain.querySelectorAll(":scope > section");
+    const lastSection = sections[sections.length - 1];
+    if (!lastSection) return;
+
+    const sectionText = lastSection.textContent?.toLowerCase() ?? "";
+    const looksLikeDuplicateFooter = /school visit|plan a visit|contact the school|ready for the next step|visit menwe/.test(sectionText);
+    if (looksLikeDuplicateFooter) lastSection.remove();
+  }, [location]);
+
   return (
     <footer className="menwe-footer" aria-label="School footer">
       <div className="menwe-footer-shell">
