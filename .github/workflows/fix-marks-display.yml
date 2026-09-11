@@ -10,33 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch marksheet
+      - name: Patch marksheet score display
         shell: python
         run: |
           from pathlib import Path
           p = Path('client/src/pages/ClassMarksheetV2.tsx')
           s = p.read_text()
-          old = '''function getResultForSubject(row: Row, subjectId: string) {
-  const target = str(subjectId);
-  return (row.results ?? []).filter((r: Row) => str(r.subject_id) === target);
-}'''
-          new = '''function getResultForSubject(row: Row, subjectId: string) {
-  const target = str(subjectId);
-  const subject = (row.results ?? []).find((r: Row) => str(r.subject_id) === target)?.subjects;
-  const code = str(subject?.code).toUpperCase();
-  return (row.results ?? []).filter((r: Row) =>
-    str(r.subject_id) === target ||
-    (!!code && str(r.subjects?.code).toUpperCase() === code)
-  );
-}'''
+          old = 'return raw == null ? "—" : max && max > 0 ? `${fmt(raw)}/${fmt(max)}` : `${fmt(raw)}%`;'
+          new = 'return raw == null ? "—" : `${fmt(raw)}`;'
           if old not in s:
-            raise SystemExit('subject helper not found')
+            raise SystemExit('marks display line not found')
           s = s.replace(old, new, 1)
-          old2 = '''<td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\\bSC\\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\\bL\\b|LISTENING|ORAL|LANGUAGE/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td>'''
-          new2 = '''<td className="border p-2 text-center">{(() => { const results = getResultForSubject(r,str(s.id)); const sc = results.find((x:Row)=>/\\bSC\\b|SCHOOL|WRITTEN|STRUCTURED/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase())); return sc?.score ?? (results.length === 1 ? results[0].score : ""); })()}</td><td className="border p-2 text-center">{getResultForSubject(r,str(s.id)).find((x:Row)=>/\\bL\\b|LISTENING|ORAL|LANGUAGE/i.test(`${str(x.exams?.exam_type)} ${str(x.exams?.name)}`.toUpperCase()))?.score ?? ""}</td>'''
-          if old2 not in s:
-            raise SystemExit('junior score cells not found')
-          s = s.replace(old2, new2, 1)
           p.write_text(s)
       - name: Commit patch
         run: |
@@ -44,5 +28,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: display persisted junior marks"
+          git commit -m "fix: show marks without maximum score suffix"
           git push
