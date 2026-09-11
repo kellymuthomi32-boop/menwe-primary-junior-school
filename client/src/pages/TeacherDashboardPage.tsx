@@ -1,7 +1,8 @@
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, CreditCard, FileText, MessageSquare, NotebookTabs, PenLine, RefreshCw, Users } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, CreditCard, FileText, MessageSquare, NotebookTabs, PenLine, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useMemo, useState } from "react";
 import { PortalLayout } from "@/components/PortalLayout";
+import TeacherDashboardToday from "@/components/TeacherDashboardToday";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { getSupabase } from "@/lib/supabase";
 
@@ -96,6 +97,8 @@ export default function TeacherDashboardPage() {
         <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold"><span className="rounded-full bg-white/10 px-3 py-1.5">{classes.length} assigned class{classes.length === 1 ? "" : "es"}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{learners.length} active learners</span><span className="rounded-full bg-white/10 px-3 py-1.5">{isClassTeacher ? "Class Teacher" : "Subject Teacher"}</span></div>
       </div></div>
     </header>
+
+    <TeacherDashboardToday />
 
     {error && <div role="alert" className="flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"><span>{error}</span><button type="button" onClick={() => window.location.reload()} className="rounded-lg bg-white px-3 py-2 text-xs font-bold">Retry</button></div>}
 
