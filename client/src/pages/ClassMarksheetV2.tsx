@@ -216,7 +216,7 @@ export default function ClassMarksheetV2() {
     if (pct == null) return "—";
     if (subject.synthetic) return `${fmt(pct)}%`;
     const raw = latestRaw(row, subject.id), result = resultsFor(row, subject.id).slice(-1)[0], max = num(result?.maximum_score);
-    return raw == null ? "—" : max && max > 0 ? `${fmt(raw)}/${fmt(max)}` : `${fmt(raw)}%`;
+    return raw == null ? "—" : `${fmt(raw)}`;
   };
   const stats = (row: Row) => {
     const percentages = displaySubjects.map(s => percentageFor(row, s)).filter((v): v is number => v != null);
