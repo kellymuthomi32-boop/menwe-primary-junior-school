@@ -7,17 +7,16 @@
 .marksheet-v2 .marksheet-table tbody tr:nth-child(even){background:#f8fafc}
 .marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
 .marksheet-v2 .marksheet-table .name-cell{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Keep the ranking number compact and give the learner name the space that was lost to ADM NO. */
+/* The marksheet no longer displays admission/assessment numbers. Keep the learner name as column 2. */
+.marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),
+.marksheet-v2 .marksheet-table tbody td:nth-child(2){display:none!important;width:0!important;padding:0!important;border:0!important}
 .marksheet-v2 .marksheet-table .col-no{width:34px}
-.marksheet-v2 .marksheet-table .col-adm{display:none!important;width:0!important;padding:0!important;border:0!important}
 .marksheet-v2 .marksheet-table .col-learner{width:190px}
 .marksheet-v2 .marksheet-table .col-score{width:46px}
 .marksheet-v2 .marksheet-table .col-level{width:52px}
 .marksheet-v2 .marksheet-table .col-total{width:72px}
 .marksheet-v2 .marksheet-table .col-points{width:72px}
 .marksheet-v2 .marksheet-table .col-rank{width:52px}
-/* The ADM header has no column class, so hide only that header cell. */
-.marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2){display:none!important}
 .marksheet-v2 .subject-code{display:block;color:#D89B28;font-size:11px;font-weight:900;line-height:1}
 .marksheet-v2 .subject-name{display:block;margin-top:3px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
 .marksheet-v2 .mark-cell{font-weight:800;white-space:nowrap}
@@ -31,14 +30,14 @@
   .marksheet-v2 .marksheet-table{min-width:980px}
   .marksheet-v2 .marksheet-table th,.marksheet-v2 .marksheet-table td{padding:6px 3px}
   .marksheet-v2 .marksheet-table .col-no{width:30px}
-  .marksheet-v2 .marksheet-table .col-adm{display:none!important;width:0!important;padding:0!important;border:0!important}
   .marksheet-v2 .marksheet-table .col-learner{width:175px}
   .marksheet-v2 .marksheet-table .col-score{width:42px}
   .marksheet-v2 .marksheet-table .col-level{width:48px}
   .marksheet-v2 .marksheet-table .col-total{width:68px}
   .marksheet-v2 .marksheet-table .col-points{width:68px}
   .marksheet-v2 .marksheet-table .col-rank{width:48px}
-  .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2){display:none!important}
+  .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),
+  .marksheet-v2 .marksheet-table tbody td:nth-child(2){display:none!important;width:0!important;padding:0!important;border:0!important}
 }
 
 @media print{
@@ -62,14 +61,14 @@
   html body .marksheet-v2 .marksheet-table thead th{background:#061229!important;color:#fff!important;font-size:5.7pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   html body .marksheet-v2 .marksheet-table thead th.subject-group,.marksheet-v2 .marksheet-table thead .subject-group{background:#122343!important;color:#D89B28!important}
   html body .marksheet-v2 .marksheet-table .col-no{width:6mm!important}
-  html body .marksheet-v2 .marksheet-table .col-adm{display:none!important;width:0!important;padding:0!important;border:0!important}
   html body .marksheet-v2 .marksheet-table .col-learner{width:45mm!important}
   html body .marksheet-v2 .marksheet-table .col-score{width:8mm!important}
   html body .marksheet-v2 .marksheet-table .col-level{width:9mm!important}
   html body .marksheet-v2 .marksheet-table .col-total{width:14mm!important}
   html body .marksheet-v2 .marksheet-table .col-points{width:14mm!important}
   html body .marksheet-v2 .marksheet-table .col-rank{width:10mm!important}
-  html body .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2){display:none!important}
+  html body .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),
+  html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){display:none!important;width:0!important;padding:0!important;border:0!important}
   html body .marksheet-v2 .subject-code{font-size:6.2pt!important;color:#D89B28!important}
   html body .marksheet-v2 .subject-name{font-size:5pt!important;color:#fff!important}
   html body .marksheet-v2 .name-cell{font-size:5.2pt!important;text-align:left!important}
