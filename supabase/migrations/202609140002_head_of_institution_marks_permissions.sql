@@ -19,16 +19,11 @@ stable
 security definer
 set search_path = public, auth
 as $$
-  select exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'ACTIVE'
-      and p.role in (
-        'SUPER_ADMIN'::public.app_role,
-        'ADMIN'::public.app_role,
-        'HEAD_OF_INSTITUTION'::public.app_role
-      )
+  select private.has_role(
+    'SUPER_ADMIN'::public.app_role,
+    'ADMIN'::public.app_role,
+    'HEAD_OF_INSTITUTION'::public.app_role,
+    'DEPUTY_HOI'::public.app_role
   );
 $$;
 
