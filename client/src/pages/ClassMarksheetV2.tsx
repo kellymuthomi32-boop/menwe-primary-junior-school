@@ -83,12 +83,6 @@ function latestRaw(row: Row, subjectId: string) {
 const CAS = (s: Subject) => matches(s, [/CREATIVE ARTS/, /MUSIC/, /PHYSICAL EDUCATION/, /^ART\b/, /^MUS\b/, /^PE\b/]) && !matches(s, [/CREATIVE ARTS.*SPORT/]);
 const INT_SCI = (s: Subject) => matches(s, [/AGRICULTURE/, /HOME SCIENCE/, /^HSC\b/, /INFORMATION.*COMMUNICATION TECHNOLOGY/, /^ICT\b/]);
 
-function componentPercentage(row: Row, subjects: Subject[], predicate: (s: Subject) => boolean) {
-  const components = subjects.filter(predicate);
-  const values = components.map(s => latestPercentage(row, s.id)).filter((v): v is number => v != null);
-  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
-}
-
 function fixedJuniorSubject(code: string, subjects: Subject[]): ReportSubject | null {
   const patterns: Record<string, RegExp[]> = {
     ENG: [/ENGLISH/, /^ENG\b/], KIS: [/KISWAHILI/, /^KIS\b/, /^KSW\b/], MATH: [/MATHEMATICS/, /^MATH?\b/, /^MAT\b/],
@@ -179,7 +173,15 @@ export default function ClassMarksheetV2() {
   };
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
-    if (band === "LOWER_PRIMARY") return sortReportSubjects(subjects.map(s => ({ ...s, code: subjectCode(s) })));
+    if (band === "LOWER_PRIMARY") {
+      // Lower primary shows only subjects that actually have entered marks for this class/term.
+      // Integrated Science is not a lower-primary column.
+      const enteredSubjectIds = new Set(
+        rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)
+      );
+      const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) }));
+      return sortReportSubjects(entered);
+    }
     if (band === "UPPER_PRIMARY") {
       const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) }));
       const out: ReportSubject[] = [...normal];
@@ -203,7 +205,7 @@ export default function ClassMarksheetV2() {
       }
     }
     return out.length ? out : sortReportSubjects(subjects.slice(0, 9).map(s => ({ ...s, code: subjectCode(s) })));
-  }, [subjects, band]);
+  }, [subjects, band, rows]);
 
   const percentageFor = (row: Row, subject: ReportSubject) => {
     if (!subject.synthetic) return latestPercentage(row, subject.id);
@@ -263,7 +265,7 @@ export default function ClassMarksheetV2() {
 
       {classId&&<section className="marksheet-v2 overflow-hidden rounded-none bg-white shadow-sm">
         <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name)||"CLASS"} · {str(selectedTerm?.name)||"TERM"} · {str(years.find(y=>str(y.id)===yearId)?.name)||"YEAR"}</h3><div className="mt-1 text-[10px] font-semibold text-white/70">{band === "JUNIOR_SCHOOL" ? "RANKING: TOTAL POINTS" : "RANKING: TOTAL MARKS"} · GRADE {grade ?? "—"}</div></header>
-        {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No reportable subjects are configured for this class.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4">
+        {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No reportable subjects with entered marks exist for this class and term.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4">
           <table className="marksheet-table w-full min-w-[1180px] border-collapse text-[10px]" aria-label="Class marksheet">
             <thead>
               <tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr>
