@@ -21,6 +21,8 @@
 .marksheet-v2 .marksheet-table .name-column,.marksheet-v2 .marksheet-table .name-cell{text-align:left}
 .marksheet-v2 .marksheet-table .name-cell{font-weight:800;white-space:nowrap;text-overflow:ellipsis}
 .marksheet-v2 .marksheet-table .name-column{font-size:11px}
+/* The admission-number column is intentionally hidden; give the learner column enough room for full names. */
+.marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(3),.marksheet-v2 .marksheet-table tbody td:nth-child(3){width:240px!important;min-width:240px!important}
 .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),.marksheet-v2 .marksheet-table tbody td:nth-child(2){display:none!important;width:0!important;padding:0!important;border:0!important}
 .marksheet-v2 .marksheet-table .subject-code{display:block;color:#f3d78e;font-size:11px;font-weight:900;line-height:1}
 .marksheet-v2 .marksheet-table .subject-name{display:block;margin-top:4px;color:#fff;font-size:8px;font-weight:800;line-height:1.05;text-transform:uppercase}
@@ -33,7 +35,7 @@
 .marksheet-v2 .marksheet-mean-row td{background:#fffaf0;border-top:1px solid #ead7aa}
 .marksheet-v2 .level-legend{margin:0!important;padding:15px 24px!important;border-top:1px solid #dbe5ef!important;background:#fff;color:#42546b;font-size:10px;line-height:1.65}
 .marksheet-v2 .level-legend strong{color:#0b315f;text-transform:uppercase;letter-spacing:.05em}
-@media screen and (max-width:900px){.marksheet-v2{border-radius:18px}.marksheet-v2 .marksheet-header{padding:22px 20px 20px!important}.marksheet-v2 .marksheet-header h2{font-size:22px}.marksheet-v2 .marksheet-header h3{font-size:11px}.marksheet-v2 .marksheet-table-wrap{padding:10px!important}.marksheet-v2 .marksheet-table{min-width:1080px}}
+@media screen and (max-width:900px){.marksheet-v2{border-radius:18px}.marksheet-v2 .marksheet-header{padding:22px 20px 20px!important}.marksheet-v2 .marksheet-header h2{font-size:22px}.marksheet-v2 .marksheet-header h3{font-size:11px}.marksheet-v2 .marksheet-table-wrap{padding:10px!important}.marksheet-v2 .marksheet-table{min-width:1080px}.marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(3),.marksheet-v2 .marksheet-table tbody td:nth-child(3){width:220px!important;min-width:220px!important}}
 @media print{
  @page{size:A4 landscape;margin:6mm}
  html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
@@ -62,6 +64,7 @@
  html body .marksheet-v2 .marksheet-table .col-total{width:15mm!important}
  html body .marksheet-v2 .marksheet-table .col-points{width:15mm!important}
  html body .marksheet-v2 .marksheet-table .col-rank{width:11mm!important}
+ html body .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(3),html body .marksheet-v2 .marksheet-table tbody td:nth-child(3){width:50mm!important;min-width:50mm!important}
  html body .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){display:none!important;width:0!important;padding:0!important;border:0!important}
  html body .marksheet-v2 .subject-code{font-size:6.2pt!important;color:#f3d78e!important}
  html body .marksheet-v2 .subject-name{font-size:5pt!important;color:#fff!important}
