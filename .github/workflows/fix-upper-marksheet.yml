@@ -1,0 +1,82 @@
+name: Fix upper primary marksheet subject grouping
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fix upper primary marksheet
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('client/src/pages/ClassMarksheetV2.tsx')
+          text = path.read_text()
+          pattern = r'''    if \(band === "UPPER_PRIMARY"\) \{.*?      return sortReportSubjects\(out\);\n    \}'''
+          replacement = '''    if (band === "UPPER_PRIMARY") {
+      // Upper Primary marksheets are driven by marks actually entered for this
+      // class/term, not merely by class mappings or teacher assignments.
+      // Agriculture/Home Science roll into Integrated Science, while Music,
+      // Creative Arts and PE roll into Creative Arts & Sports. Their component
+      // subjects must never appear as separate marksheet columns.
+      const enteredSubjectIds = new Set(
+        rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)
+      );
+      const hasEntered = (s: Subject) => enteredSubjectIds.has(str(s.id));
+
+      const normal = subjects
+        .filter(s => hasEntered(s) && !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/]))
+        .map(s => ({ ...s, code: subjectCode(s) }));
+      const out: ReportSubject[] = [...normal];
+
+      const directScience = subjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));
+      const scienceComponents = subjects.filter(s => hasEntered(s) && INT_SCI(s));
+      if (directScience) {
+        out.push({ ...directScience, code: "INT SCI" });
+      } else if (scienceComponents.length) {
+        out.push({
+          id: "__int_sci__",
+          code: "INT SCI",
+          name: "Integrated Science",
+          synthetic: true,
+          componentIds: scienceComponents.map(s => s.id)
+        });
+      }
+
+      const directCas = subjects.find(s => hasEntered(s) && matches(s, [/CREATIVE ARTS.*SPORT/]));
+      const casComponents = subjects.filter(s => hasEntered(s) && CAS(s));
+      if (directCas) {
+        out.push({ ...directCas, code: "CAS" });
+      } else if (casComponents.length) {
+        out.push({
+          id: "__cas__",
+          code: "CAS",
+          name: "Creative Arts & Sports",
+          synthetic: true,
+          componentIds: casComponents.map(s => s.id)
+        });
+      }
+
+      return sortReportSubjects(out);
+    }'''
+          updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Could not locate the Upper Primary display-subject block')
+          path.write_text(updated)
+          PY
+
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/ClassMarksheetV2.tsx
+          git diff --cached --quiet || git commit -m "Fix upper primary marksheet subject grouping"
+          git push origin main
