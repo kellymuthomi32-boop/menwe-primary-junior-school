@@ -68,7 +68,7 @@ export default function ExamPublishingWorkspace() {
         db.from("terms").select("id,academic_year_id,name,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
         db.from("classes").select("id,academic_year_id,name,status").eq("status", "ACTIVE").order("name"),
         db.from("subjects").select("id,code,name,status").eq("status", "ACTIVE").order("name"),
-        db.from("class_subjects").select("id,class_id,subject_id"),
+        db.from("class_subjects").select("class_id,subject_id"),
         db.from("exams").select("id,term_id,class_id,name,exam_type,maximum_score,starts_on,ends_on,status,created_at").order("created_at", { ascending: false })
       ]);
       for (const r of [y, t, c, s, cs, e]) if (r.error) throw r.error;
