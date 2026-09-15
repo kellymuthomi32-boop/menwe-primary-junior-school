@@ -13,25 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Apply marksheet layout fixes
         shell: python
         run: |
           from pathlib import Path
           import re
+          import subprocess
 
           path = Path('client/src/pages/ClassMarksheetV2.tsx')
+          clean_ref = 'c66560545fdc307f57b8643a250d5fb1f2e8f97e'
+          subprocess.run(['git', 'checkout', clean_ref, '--', str(path)], check=True)
           text = path.read_text()
 
-          # Repair the accidental literal escape from the previous attempt, then
-          # keep only subjects for which marks have actually been entered.
-          bad = r'\\n      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));\\n      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'
-          if bad in text:
-              text = text.replace(bad, '')
+          # Upper Primary: only subjects with persisted marks participate in the
+          # marksheet. Component subjects are still available to the existing
+          # grouping logic, but they never become standalone columns.
           anchor_results = '      const results = rr.data ?? [];'
           entered_block = '''      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));
       setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'''
-          if anchor_results in text and 'const enteredSubjectIds = new Set(results.map' not in text:
-              text = text.replace(anchor_results, anchor_results + '\n' + entered_block, 1)
+          if anchor_results not in text:
+              raise SystemExit('Results anchor not found; refusing unsafe edit')
+          text = text.replace(anchor_results, anchor_results + '\n' + entered_block, 1)
 
           anchor = 'const priority = (code: string) => ({ ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, CAS: 60, "AGR NUT": 70, RE: 80, "PRE TECH": 90, HSC: 100, ICT: 110, ART: 120, MUS: 130, PE: 140 }[code] ?? 999);'
           helper = '''const lowerPrimaryPatterns: Array<[RegExp,string]> = [
