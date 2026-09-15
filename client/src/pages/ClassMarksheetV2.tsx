@@ -165,7 +165,7 @@ export default function ClassMarksheetV2() {
         subjectIds.length ? db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,subjects(id,code,name),exams!inner(id,term_id,class_id,name,exam_type)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", studentIds).in("subject_id", subjectIds) : Promise.resolve({ data: [], error: null } as any)
       ]);
       if (st.error) throw st.error; if (rr.error) throw rr.error;
-      const results = rr.data ?? [];
+      const results = rr.data ?? [];\n      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));\n      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));
       setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) })));
       if (!results.length) setMessage("Learners loaded. No persisted assessment results exist for this class and term yet.");
     } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); }
