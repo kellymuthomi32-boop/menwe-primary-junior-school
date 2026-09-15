@@ -41,10 +41,14 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const requestRef = useRef<{ userId: string; promise: Promise<SchoolProfile | null> } | null>(null);
   const initializedRef = useRef(false);
   const activeUserIdRef = useRef<string | null>(null);
+  const profileRef = useRef<SchoolProfile | null>(null);
+
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
   const loadProfile = useCallback(async (userId: string | null): Promise<SchoolProfile | null> => {
     if (!userId || !supabase) {
       setProfile(null);
+      profileRef.current = null;
       setProfileLoading(false);
       return null;
     }
@@ -60,34 +64,37 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         if (activeUserIdRef.current !== userId) return null;
         if (profileError) {
           console.error("Profile lookup failed:", profileError);
-          // Keep an already-valid profile during a transient network/RLS failure.
           setError("We could not refresh your school profile. Your session is still active.");
-          return profile;
+          return profileRef.current;
         }
         if (!data) {
           setProfile(null);
+          profileRef.current = null;
           setError("Your account is authenticated, but no school profile is available yet. Please contact school administration.");
           return null;
         }
         const normalized = toSchoolProfile(data);
         if (!normalized) {
           setProfile(null);
+          profileRef.current = null;
           setError("Your school profile has an unsupported role. Please contact school administration.");
           return null;
         }
         if (normalized.status !== "ACTIVE") {
           setProfile(null);
+          profileRef.current = null;
           setError("Your school portal access is currently inactive. Please contact school administration.");
           return null;
         }
         setProfile(normalized);
+        profileRef.current = normalized;
         setError(null);
         return normalized;
       } catch (err) {
         console.error("Unexpected profile lookup error:", err);
         if (activeUserIdRef.current !== userId) return null;
         setError(err instanceof Error && err.message === "PROFILE_LOOKUP_TIMEOUT" ? "The profile refresh timed out. Your session is still active; please continue working." : "We could not refresh your school profile. Your session is still active.");
-        return profile;
+        return profileRef.current;
       } finally {
         if (activeUserIdRef.current === userId) setProfileLoading(false);
       }
@@ -98,7 +105,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     } finally {
       if (requestRef.current?.promise === request) requestRef.current = null;
     }
-  }, [profile]);
+  }, []);
 
   useEffect(() => {
     const client = supabase;
@@ -112,8 +119,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     let active = true;
     const initialise = async () => {
       try {
-        // Do not impose a short timeout on session restoration. A slow browser/storage
-        // response must never be mistaken for a signed-out user and redirect a teacher.
+        // Never turn a slow browser/storage response into a false logout.
         const { data, error: sessionError } = await client.auth.getSession();
         if (!active) return;
         if (sessionError) console.error("Session restoration error:", sessionError);
@@ -124,14 +130,15 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
           await loadProfile(nextSession.user.id);
         } else {
           setProfile(null);
+          profileRef.current = null;
           setProfileLoading(false);
           setError(null);
         }
       } catch (err) {
         console.error("Auth initialization error:", err);
         if (!active) return;
-        // A failed/slow restore is not proof that the user signed out. Keep the
-        // loading gate up instead of forcing a protected-route redirect.
+        // Keep the secure loading gate rather than redirecting a user because of a
+        // temporary browser/storage/network failure during initial session restore.
         setError("Unable to restore your school session yet. Please wait a moment.");
       } finally {
         if (active) {
@@ -149,22 +156,20 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         activeUserIdRef.current = null;
         setSession(null);
         setProfile(null);
+        profileRef.current = null;
         setProfileLoading(false);
         setError(null);
         setLoading(false);
         return;
       }
 
-      // INITIAL_SESSION can legitimately arrive while getSession() is still running.
-      // Let the initializer own the first render so the guard cannot race it.
       if (event === "INITIAL_SESSION" && !initializedRef.current) return;
-
       if (!["INITIAL_SESSION", "SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event) || !nextSession?.user?.id) return;
 
       activeUserIdRef.current = nextSession.user.id;
       setSession(nextSession);
-      // TOKEN_REFRESHED is a healthy session event. Do not set loading=true and do
-      // not clear the existing profile while the background profile refresh runs.
+      // Token refresh is not a logout. Keep the current profile and route mounted
+      // while refreshing it in the background.
       void loadProfile(nextSession.user.id);
     });
 
@@ -206,6 +211,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       activeUserIdRef.current = null;
       await getSupabase().auth.signOut();
       setProfile(null);
+      profileRef.current = null;
       setProfileLoading(false);
       setSession(null);
       setError(null);
