@@ -1,0 +1,39 @@
+name: Restore marks saved confirmation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-save-success-message.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore success confirmation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('client/src/pages/ExamPublishingWorkspace.tsx')
+          text = p.read_text()
+          old = 'setMessage("Marks saved. Complete the assessment before publishing.");'
+          new = 'setMessage("Marks saved successfully! Complete all required marks before publishing.");'
+          if old not in text:
+              raise SystemExit('Expected save confirmation text was not found; refusing to modify the file.')
+          p.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add client/src/pages/ExamPublishingWorkspace.tsx
+          git commit -m 'Restore clear marks saved confirmation'
+          git push
