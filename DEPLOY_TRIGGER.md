@@ -1,3 +1,5 @@
-Production deployment trigger for the latest main branch changes.
+# Production deployment trigger
 
-Deployment status is managed by GitHub Actions + Vercel. The Vercel connection is already authorized; do not require a reconnection prompt.
+This file records the production deployment reconciliation after the examination workspace schema fix.
+
+The examination workspace source on `main` uses `class_id,subject_id` for `class_subjects` and must be rebuilt before production is considered verified.
