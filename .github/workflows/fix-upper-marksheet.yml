@@ -1,6 +1,10 @@
 name: Fix upper primary marksheet subject grouping
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-upper-marksheet.yml'
   workflow_dispatch:
 
 jobs:
@@ -37,7 +41,7 @@ jobs:
         .map(s => ({ ...s, code: subjectCode(s) }));
       const out: ReportSubject[] = [...normal];
 
-      const directScience = subjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));
+      const directScience = subjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/]));
       const scienceComponents = subjects.filter(s => hasEntered(s) && INT_SCI(s));
       if (directScience) {
         out.push({ ...directScience, code: "INT SCI" });
