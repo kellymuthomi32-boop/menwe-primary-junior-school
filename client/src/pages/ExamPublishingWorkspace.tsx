@@ -162,7 +162,7 @@ export default function ExamPublishingWorkspace() {
       const fresh = await db.from("exam_results").select("exam_id,student_id,subject_id,score,maximum_score,grade").eq("exam_id", selectedExam.id);
       if (fresh.error) throw fresh.error;
       setRows(fresh.data ?? []);
-      setMessage("Marks saved. Complete the assessment before publishing.");
+      setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Marks could not be saved.");
     } finally {
