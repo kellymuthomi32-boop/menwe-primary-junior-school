@@ -38,6 +38,10 @@ jobs:
           s = s.replace('No published result', 'No recorded result')
           s = s.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
           s = s.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
+          # Force a fresh source diff so Vercel cannot continue serving an older report-card bundle.
+          marker_comment = '// Report-card entered-results deployment marker: staff can view DRAFT + PUBLISHED results; families remain publication-limited.\n'
+          if marker_comment not in s:
+            s = marker_comment + s
           p.write_text(s)
       - name: Commit patch
         run: |
@@ -45,5 +49,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx client/src/pages/ReportCardsDirectory.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: show entered marks in staff reports and published marks to families"
+          git commit -m "fix: force report-card entered-marks deployment"
           git push
