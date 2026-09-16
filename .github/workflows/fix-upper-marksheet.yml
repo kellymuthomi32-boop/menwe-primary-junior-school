@@ -20,14 +20,48 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Correct marksheet filter
+      - name: Repair upper primary marksheet subject loading
+        shell: python
         run: |
-          python -c 'from pathlib import Path; p=Path("client/src/pages/ClassMarksheetV2.tsx"); t=p.read_text(); old=r"\\n      const enteredSubjectIds"; new="\\n      const enteredSubjectIds"; assert old in t, "literal newline escape not found"; p.write_text(t.replace(old,new,1))'
+          from pathlib import Path
+          import re
+
+          p = Path("client/src/pages/ClassMarksheetV2.tsx")
+          t = p.read_text()
+
+          # Repair the previous accidental literal escape if it is still present.
+          t = t.replace(r"\\n      const enteredSubjectIds", "\n      const enteredSubjectIds")
+
+          # Do not restrict the report columns to class_subjects alone. The live
+          # database contains persisted marks for Creative Arts and Sports and
+          # Integrated Science, so any subject with persisted results for the
+          # selected class/term must remain available to the grouping logic.
+          old = '      const subjectIds = selectedSubjects.map(s => str(s.id)).filter(Boolean);'
+          new = '''      const reportSubjects = allSubjects.filter(s => selectedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name)));
+      const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean);'''
+          if old in t:
+              t = t.replace(old, new, 1)
+
+          old_set = '      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'
+          new_set = '''      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'''
+          if old_set in t:
+              t = t.replace(old_set, new_set, 1)
+
+          # If the upper-primary display block exists, make its direct CBC
+          # subjects depend on persisted results rather than only class mapping.
+          t = t.replace('const directScience = subjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));', 'const directScience = allSubjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));')
+          t = t.replace('const directCas = subjects.find(s => hasEntered(s) && matches(s, [/CREATIVE ARTS.*SPORT/]));', 'const directCas = allSubjects.find(s => hasEntered(s) && matches(s, [/CREATIVE ARTS.*SPORT/]));')
+
+          p.write_text(t)
 
       - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx
-          git diff --cached --quiet || git commit -m "Correct upper marksheet filter syntax"
+          if git diff --cached --quiet; then
+            echo "No marksheet changes required"
+            exit 0
+          fi
+          git commit -m "fix: restore upper primary Creative Arts and Integrated Science marks"
           git push origin main
