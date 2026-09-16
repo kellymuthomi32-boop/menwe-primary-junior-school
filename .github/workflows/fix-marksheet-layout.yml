@@ -1,4 +1,4 @@
-name: Fix marksheet layout
+name: Fix marksheet and report-card data visibility
 
 on:
   push:
@@ -15,75 +15,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply marksheet layout fixes
+      - name: Patch report-card result visibility
         shell: python
         run: |
           from pathlib import Path
-          import re
-          import subprocess
-
-          path = Path('client/src/pages/ClassMarksheetV2.tsx')
-          clean_ref = 'c66560545fdc307f57b8643a250d5fb1f2e8f97e'
-          subprocess.run(['git', 'checkout', clean_ref, '--', str(path)], check=True)
+          path = Path('client/src/pages/ReportCardsDirectory.tsx')
           text = path.read_text()
 
-          # Upper Primary: only subjects with persisted marks participate in the
-          # marksheet. Component subjects are still available to the existing
-          # grouping logic, but they never become standalone columns.
-          anchor_results = '      const results = rr.data ?? [];'
-          entered_block = '''      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));
-      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'''
-          if anchor_results not in text:
-              raise SystemExit('Results anchor not found; refusing unsafe edit')
-          text = text.replace(anchor_results, anchor_results + '\n' + entered_block, 1)
+          marker = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??"");'
+          replacement = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";'
+          if marker in text and 'canUseEnteredResults=' not in text:
+              text = text.replace(marker, replacement, 1)
 
-          anchor = 'const priority = (code: string) => ({ ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, CAS: 60, "AGR NUT": 70, RE: 80, "PRE TECH": 90, HSC: 100, ICT: 110, ART: 120, MUS: 130, PE: 140 }[code] ?? 999);'
-          helper = '''const lowerPrimaryPatterns: Array<[RegExp,string]> = [
-            [/ENGLISH|^ENG\\b/, "ENG"],
-            [/KISWAHILI|^KIS\\b|^KSW\\b/, "KIS"],
-            [/MATHEMATICS|^MATH?\\b|^MAT\\b/, "MATH"],
-            [/ENVIRONMENTAL ACTIVITIES|ENVIRONMENTAL ACTIVITY|^ENV\\b/, "ENV ACT"],
-            [/CREATIVE ACTIVITIES|CREATIVE ACTIVITY|^CRE ACT\\b/, "CRE ACT"],
-            [/RELIGIOUS EDUCATION|ISLAMIC RELIGIOUS|CHRISTIAN RELIGIOUS|^RE\\b|^IRE\\b|^CRE\\b/, "RE"],
-          ];
-          const lowerPrimarySubjects = (available: Subject[]) => {
-            const chosen: Subject[] = [];
-            for (const [pattern, code] of lowerPrimaryPatterns) {
-              const found = available.find(s => pattern.test(normalized(s)));
-              if (found && !chosen.some(x => str(x.id) === str(found.id))) chosen.push({ ...found, code });
-            }
-            return chosen;
-          };
-
-          '''
-          if 'const lowerPrimaryPatterns:' not in text:
-              text = text.replace(anchor, anchor + '\n' + helper)
-
-          old = 'const selectedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;'
-          new = '''const mappedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
-      const selectedSubjects = band === "LOWER_PRIMARY"
-        ? lowerPrimarySubjects(allSubjects)
-        : mappedSubjects;'''
-          if old in text:
-              text = text.replace(old, new)
-
-          old_upper = '''const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) }));'''
-          new_upper = '''const normal = subjects.filter(s =>
-        !CAS(s) && !INT_SCI(s) &&
-        !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])
-      ).map(s => ({ ...s, code: subjectCode(s) }));'''
-          if old_upper in text:
-              text = text.replace(old_upper, new_upper)
-
-          pattern = re.compile(r'''const markFor = \(row: Row, subject: ReportSubject\) => \{.*?\n  \};''', re.S)
-          replacement = '''const markFor = (row: Row, subject: ReportSubject) => {
-    const pct = percentageFor(row, subject);
-    return pct == null ? "—" : fmt(pct);
-  };'''
-          text, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-              raise SystemExit('markFor block was not found; refusing unsafe edit')
-
+          text = text.replace('.eq("exams.status","PUBLISHED")', '')
+          status_filter = '.in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"])'
+          marker = '.eq("exams.class_id",classId).in("subject_id"'
+          text = text.replace(marker, '.eq("exams.class_id",classId)' + status_filter + '.in("subject_id"')
+          text = text.replace('No published result', 'No recorded result')
+          text = text.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
+          text = text.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
           path.write_text(text)
 
       - name: Commit changes
@@ -91,12 +41,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add client/src/pages/ClassMarksheetV2.tsx
+          git add client/src/pages/ReportCardsDirectory.tsx
           if git diff --cached --quiet; then
-            echo "No marksheet changes required"
+            echo "No report-card changes required"
             exit 0
           fi
-          git commit -m "fix: show only entered upper primary subjects"
+          git commit -m "fix: show entered staff marks while protecting family reports"
           git push
-
-# Triggered by workflow-file updates only.
