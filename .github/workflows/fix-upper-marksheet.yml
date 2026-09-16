@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - .github/workflows/fix-upper-marksheet.yml
+  issues:
+    types: [opened]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +15,7 @@ permissions:
 
 jobs:
   fix:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +34,6 @@ jobs:
           # Repair the previous accidental literal escape if it is still present.
           t = t.replace(r"\\n      const enteredSubjectIds", "\n      const enteredSubjectIds")
 
-          # Query the two persisted CBC subjects even if a stale class_subjects
-          # mapping is missing them, then keep every subject that actually has
-          # results available to the display/grouping logic.
           old = '      const subjectIds = selectedSubjects.map(s => str(s.id)).filter(Boolean);'
           new = '''      const reportSubjects = allSubjects.filter(s => selectedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name)));
       const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean);'''
@@ -44,9 +44,6 @@ jobs:
           if old_set in t:
               t = t.replace(old_set, '      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));', 1)
 
-          # Upper Primary uses synthetic CBC columns. Direct persisted subjects
-          # must supply their own IDs; otherwise percentageFor() sees an empty
-          # component list and displays blanks even though marks exist.
           old_science = '      if (subjects.some(INT_SCI) || subjects.some(s => matches(s, [/INTEGRATED SCIENCE/]))) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: subjects.filter(INT_SCI).map(s => s.id) });'
           new_science = '''      const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));
       const scienceComponents = subjects.filter(INT_SCI);
