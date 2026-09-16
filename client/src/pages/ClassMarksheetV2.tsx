@@ -63,23 +63,18 @@ const subjectCode = (s: Subject) => {
   if (matches(s, [/CREATIVE ARTS/, /^ART\b/])) return "ART";
   return str(s.code).trim().toUpperCase().slice(0, 8) || "SUBJ";
 };
-
 const priority = (code: string) => ({ ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, CAS: 60, "AGR NUT": 70, RE: 80, "PRE TECH": 90, HSC: 100, ICT: 110, ART: 120, MUS: 130, PE: 140 }[code] ?? 999);
 const sortReportSubjects = (items: ReportSubject[]) => [...items].sort((a, b) => priority(subjectCode(a)) - priority(subjectCode(b)) || subjectCode(a).localeCompare(subjectCode(b)));
 
 const resultsFor = (row: Row, subjectId: string) => (row.results ?? []).filter((r: Row) => str(r.subject_id) === str(subjectId));
 function latestPercentage(row: Row, subjectId: string) {
-  const values = resultsFor(row, subjectId).map((r: Row) => {
-    const score = num(r.score), max = num(r.maximum_score);
-    return score != null && max != null && max > 0 ? (score / max) * 100 : null;
-  }).filter((v: number | null): v is number => v != null);
+  const values = resultsFor(row, subjectId).map((r: Row) => { const score = num(r.score), max = num(r.maximum_score); return score != null && max != null && max > 0 ? (score / max) * 100 : null; }).filter((v: number | null): v is number => v != null);
   return values.length ? values[values.length - 1] : null;
 }
 function latestRaw(row: Row, subjectId: string) {
   const values = resultsFor(row, subjectId).map((r: Row) => num(r.score)).filter((v: number | null): v is number => v != null);
   return values.length ? values[values.length - 1] : null;
 }
-
 const CAS = (s: Subject) => matches(s, [/CREATIVE ARTS/, /MUSIC/, /PHYSICAL EDUCATION/, /^ART\b/, /^MUS\b/, /^PE\b/]) && !matches(s, [/CREATIVE ARTS.*SPORT/]);
 const INT_SCI = (s: Subject) => matches(s, [/AGRICULTURE/, /HOME SCIENCE/, /^HSC\b/, /INFORMATION.*COMMUNICATION TECHNOLOGY/, /^ICT\b/]);
 
@@ -144,11 +139,20 @@ export default function ClassMarksheetV2() {
         if (ta.error) throw ta.error;
         if (!(ta.data ?? []).length) throw new Error("You are not assigned to this class.");
       }
+
       const mapping = await db.from("class_subjects").select("subject_id").eq("class_id", classId);
       if (mapping.error) throw mapping.error;
       const ids = [...new Set((mapping.data ?? []).map(x => str(x.subject_id)))];
-      const selectedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
-      setSubjects(selectedSubjects);
+      const mappedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
+
+      // Always include the real persisted Upper Primary subjects. This prevents a stale
+      // class_subjects mapping from hiding marks that are already in exam_results.
+      const reportSubjects = allSubjects.filter(s =>
+        mappedSubjects.some(x => str(x.id) === str(s.id)) ||
+        /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name))
+      );
+      setSubjects(reportSubjects);
+
       const en = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("academic_year_id", yearId).eq("status", "ACTIVE");
       if (en.error) throw en.error;
       let enrollmentRows = en.data ?? [];
@@ -159,13 +163,18 @@ export default function ClassMarksheetV2() {
       }
       const studentIds = [...new Set(enrollmentRows.map(x => str(x.student_id)))];
       if (!studentIds.length) { setRows([]); setMessage("No active learners are enrolled in this class."); return; }
-      const subjectIds = selectedSubjects.map(s => str(s.id)).filter(Boolean);
+
+      const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean);
       const [st, rr] = await Promise.all([
         db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id", studentIds).order("first_name").order("last_name"),
         subjectIds.length ? db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,subjects(id,code,name),exams!inner(id,term_id,class_id,name,exam_type)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", studentIds).in("subject_id", subjectIds) : Promise.resolve({ data: [], error: null } as any)
       ]);
-      if (st.error) throw st.error; if (rr.error) throw rr.error;
-      const results = rr.data ?? [];\n      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));\n      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));
+      if (st.error) throw st.error;
+      if (rr.error) throw rr.error;
+      const results = rr.data ?? [];
+      const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id)));
+      // Keep every subject that actually returned results, including direct CAS/Integrated Science.
+      setSubjects(allSubjects.filter(s => enteredSubjectIds.has(str(s.id))));
       setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) })));
       if (!results.length) setMessage("Learners loaded. No persisted assessment results exist for this class and term yet.");
     } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); }
@@ -174,19 +183,26 @@ export default function ClassMarksheetV2() {
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
     if (band === "LOWER_PRIMARY") {
-      // Lower primary shows only subjects that actually have entered marks for this class/term.
-      // Integrated Science is not a lower-primary column.
-      const enteredSubjectIds = new Set(
-        rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)
-      );
+      const enteredSubjectIds = new Set(rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean));
       const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) }));
       return sortReportSubjects(entered);
     }
     if (band === "UPPER_PRIMARY") {
       const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) }));
       const out: ReportSubject[] = [...normal];
-      if (subjects.some(INT_SCI) || subjects.some(s => matches(s, [/INTEGRATED SCIENCE/]))) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: subjects.filter(INT_SCI).map(s => s.id) });
-      if (subjects.some(CAS) || subjects.some(s => matches(s, [/CREATIVE ARTS.*SPORT/]))) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: subjects.filter(CAS).map(s => s.id) });
+
+      // Prefer direct persisted subjects. Only synthesize when the school stores
+      // the components (Agriculture/Home Science/ICT or Art/Music/PE) separately.
+      const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/]));
+      const scienceComponents = subjects.filter(INT_SCI);
+      if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
+      else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) });
+
+      const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/]));
+      const casComponents = subjects.filter(CAS);
+      if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
+      else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) });
+
       return sortReportSubjects(out);
     }
     const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"];
@@ -217,7 +233,7 @@ export default function ClassMarksheetV2() {
     const pct = percentageFor(row, subject);
     if (pct == null) return "—";
     if (subject.synthetic) return `${fmt(pct)}%`;
-    const raw = latestRaw(row, subject.id), result = resultsFor(row, subject.id).slice(-1)[0], max = num(result?.maximum_score);
+    const raw = latestRaw(row, subject.id);
     return raw == null ? "—" : `${fmt(raw)}`;
   };
   const stats = (row: Row) => {
@@ -235,11 +251,7 @@ export default function ClassMarksheetV2() {
     });
     let previous: number | null = null, previousRank = 0;
     const ranks = new Map<string, number>();
-    ordered.forEach((x, i) => {
-      const value = band === "JUNIOR_SCHOOL" ? x.totalPoints : x.totalMarks;
-      const rank = value === previous ? previousRank : i + 1;
-      ranks.set(str(x.row.id), rank); previous = value; previousRank = rank;
-    });
+    ordered.forEach((x, i) => { const value = band === "JUNIOR_SCHOOL" ? x.totalPoints : x.totalMarks; const rank = value === previous ? previousRank : i + 1; ranks.set(str(x.row.id), rank); previous = value; previousRank = rank; });
     return mapped.map(x => ({ ...x, rank: ranks.get(str(x.row.id)) ?? null })).sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
   }, [rows, displaySubjects, band]);
 
@@ -267,15 +279,9 @@ export default function ClassMarksheetV2() {
         <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name)||"CLASS"} · {str(selectedTerm?.name)||"TERM"} · {str(years.find(y=>str(y.id)===yearId)?.name)||"YEAR"}</h3><div className="mt-1 text-[10px] font-semibold text-white/70">{band === "JUNIOR_SCHOOL" ? "RANKING: TOTAL POINTS" : "RANKING: TOTAL MARKS"} · GRADE {grade ?? "—"}</div></header>
         {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No reportable subjects with entered marks exist for this class and term.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4">
           <table className="marksheet-table w-full min-w-[1180px] border-collapse text-[10px]" aria-label="Class marksheet">
-            <thead>
-              <tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr>
-              <tr>{displaySubjects.flatMap(s=>[<th key={`${s.id}-score`}>SCORE</th>,<th key={`${s.id}-level`}>LEVEL</th>])}</tr>
-            </thead>
+            <thead><tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr><tr>{displaySubjects.flatMap(s=>[<th key={`${s.id}-score`}>SCORE</th>,<th key={`${s.id}-level`}>LEVEL</th>])}</tr></thead>
             <tbody>{rankedRows.map((item, i)=><tr key={str(item.row.id)}><td>{i+1}</td><td>{str(item.row.admission_number)||"—"}</td><td className="name-cell">{learnerName(item.row)}</td>{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s));return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td></tr>)}</tbody>
-            <tfoot>
-              <tr className="marksheet-summary-row"><td colSpan={3}>TOTAL MARKS</td>{displaySubjects.flatMap(s=>[<td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>])}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr>
-              <tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={3}>MEAN</td>{displaySubjects.flatMap(s=>[<td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>])}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td></tr>
-            </tfoot>
+            <tfoot><tr className="marksheet-summary-row"><td colSpan={3}>TOTAL MARKS</td>{displaySubjects.flatMap(s=>[<td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>])}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr><tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={3}>MEAN</td>{displaySubjects.flatMap(s=>[<td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>])}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td></tr></tfoot>
           </table>
         </div>}
         <div className="level-legend border-t border-[var(--ink)]/10 px-4 py-3 sm:px-6"><strong>Achievement scale:</strong> EE1 90–100% (8) · EE2 75–89% (7) · ME1 58–74% (6) · ME2 41–57% (5) · AE1 31–40% (4) · AE2 21–30% (3) · BE1 11–20% (2) · BE2 0–10% (1).</div>
