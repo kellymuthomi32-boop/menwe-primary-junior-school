@@ -1,0 +1,120 @@
+name: Add individual marksheet saving
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/add-individual-marksheet-save.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch marksheet with per-learner saving
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('client/src/pages/ClassMarksheetV2.tsx')
+          t = p.read_text()
+
+          old_state = '  const [yearId, setYearId] = useState(\"\"), [termId, setTermId] = useState(\"\"), [classId, setClassId] = useState(\"\"), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(\"\");'
+          new_state = old_state + '\n  const [draftMarks, setDraftMarks] = useState<Record<string, string>>({});\n  const [savingLearner, setSavingLearner] = useState<string | null>(null);'
+          if old_state not in t:
+              raise SystemExit('state anchor not found')
+          t = t.replace(old_state, new_state, 1)
+
+          old_generate = '      setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) })));'
+          new_generate = '''      setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) })));
+      const nextDrafts: Record<string, string> = {};
+      for (const student of (st.data ?? [])) {
+        for (const subject of reportSubjects) {
+          if (subject.synthetic) continue;
+          const existing = results.find((r: Row) => str(r.student_id) === str(student.id) && str(r.subject_id) === str(subject.id));
+          nextDrafts[`${student.id}:${subject.id}`] = existing?.score == null ? "" : String(existing.score);
+        }
+      }
+      setDraftMarks(nextDrafts);'''
+          if old_generate not in t:
+              raise SystemExit('generate anchor not found')
+          t = t.replace(old_generate, new_generate, 1)
+
+          anchor = '  const percentageFor = (row: Row, subject: ReportSubject) => {'
+          save_fn = '''  const draftKey = (studentId: string, subjectId: string) => `${studentId}:${subjectId}`;
+  const setDraftMark = (studentId: string, subjectId: string, value: string) => {
+    setDraftMarks(prev => ({ ...prev, [draftKey(studentId, subjectId)]: value }));
+  };
+
+  const saveLearnerMarks = async (row: Row) => {
+    if (!termId || !classId || !row?.id) return;
+    setSavingLearner(str(row.id));
+    setMessage("");
+    try {
+      const db = getSupabase();
+      let enteredBy = user?.id ?? null;
+      const payload: Row[] = [];
+      for (const subject of displaySubjects) {
+        if (subject.synthetic) continue;
+        const raw = draftMarks[draftKey(str(row.id), str(subject.id))] ?? "";
+        if (raw.trim() === "") continue;
+        const score = Number(raw);
+        if (!Number.isFinite(score) || score < 0 || score > 100) throw new Error(`Enter a score from 0 to 100 for ${subject.name}.`);
+        const existing = resultsFor(row, str(subject.id))[0];
+        if (existing?.id) {
+          const q = await db.from("exam_results").update({ score, maximum_score: 100, entered_by: enteredBy }).eq("id", existing.id);
+          if (q.error) throw q.error;
+        } else {
+          const exam = await db.from("exams").select("id").eq("class_id", classId).eq("term_id", termId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+          if (exam.error) throw exam.error;
+          if (!exam.data?.id) throw new Error("No exam is available for this class and term.");
+          payload.push({ exam_id: exam.data.id, student_id: row.id, subject_id: subject.id, score, maximum_score: 100, entered_by: enteredBy });
+        }
+      }
+      if (payload.length) {
+        const q = await db.from("exam_results").insert(payload);
+        if (q.error) throw q.error;
+      }
+      setMessage(`${learnerName(row)}'s marks saved successfully.`);
+      await generate();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Marks could not be saved.");
+    } finally {
+      setSavingLearner(null);
+    }
+  };
+
+'''
+          if anchor not in t:
+              raise SystemExit('percentage anchor not found')
+          t = t.replace(anchor, save_fn + anchor, 1)
+
+          old_head = '<thead><tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr>'
+          new_head = '<thead><tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th><th rowSpan={2}>SAVE</th></tr>'
+          if old_head not in t:
+              raise SystemExit('table header anchor not found')
+          t = t.replace(old_head, new_head, 1)
+
+          old_cells = '{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s));return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td></tr>)}</tbody>'
+          new_cells = '''{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s)); const editable=!s.synthetic; const key=draftKey(str(item.row.id),str(s.id)); return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{editable?<input aria-label={`${learnerName(item.row)} ${s.name} score`} inputMode="decimal" min="0" max="100" value={draftMarks[key] ?? ""} onChange={e=>setDraftMark(str(item.row.id),str(s.id),e.target.value)} className="w-16 rounded border border-[var(--ink)]/20 px-1 py-1 text-center text-[10px] font-bold"/>:markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td><td><button type="button" onClick={()=>void saveLearnerMarks(item.row)} disabled={savingLearner===str(item.row.id)} className="rounded-lg bg-[var(--ink)] px-2 py-1 text-[10px] font-bold text-white disabled:opacity-50">{savingLearner===str(item.row.id)?"Saving…":"Save"}</button></td></tr>)}</tbody>'''
+          if old_cells not in t:
+              raise SystemExit('table row anchor not found')
+          t = t.replace(old_cells, new_cells, 1)
+
+          p.write_text(t)
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/ClassMarksheetV2.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: save marks per learner from marksheet"
+          git push origin main
