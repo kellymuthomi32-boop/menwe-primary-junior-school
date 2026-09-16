@@ -24,7 +24,6 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import re
 
           p = Path("client/src/pages/ClassMarksheetV2.tsx")
           t = p.read_text()
@@ -32,10 +31,9 @@ jobs:
           # Repair the previous accidental literal escape if it is still present.
           t = t.replace(r"\\n      const enteredSubjectIds", "\n      const enteredSubjectIds")
 
-          # Do not restrict the report columns to class_subjects alone. The live
-          # database contains persisted marks for Creative Arts and Sports and
-          # Integrated Science, so any subject with persisted results for the
-          # selected class/term must remain available to the grouping logic.
+          # Query the two persisted CBC subjects even if a stale class_subjects
+          # mapping is missing them, then keep every subject that actually has
+          # results available to the display/grouping logic.
           old = '      const subjectIds = selectedSubjects.map(s => str(s.id)).filter(Boolean);'
           new = '''      const reportSubjects = allSubjects.filter(s => selectedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name)));
       const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean);'''
@@ -43,14 +41,27 @@ jobs:
               t = t.replace(old, new, 1)
 
           old_set = '      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'
-          new_set = '''      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'''
           if old_set in t:
-              t = t.replace(old_set, new_set, 1)
+              t = t.replace(old_set, '      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));', 1)
 
-          # If the upper-primary display block exists, make its direct CBC
-          # subjects depend on persisted results rather than only class mapping.
-          t = t.replace('const directScience = subjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));', 'const directScience = allSubjects.find(s => hasEntered(s) && matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));')
-          t = t.replace('const directCas = subjects.find(s => hasEntered(s) && matches(s, [/CREATIVE ARTS.*SPORT/]));', 'const directCas = allSubjects.find(s => hasEntered(s) && matches(s, [/CREATIVE ARTS.*SPORT/]));')
+          # Upper Primary uses synthetic CBC columns. Direct persisted subjects
+          # must supply their own IDs; otherwise percentageFor() sees an empty
+          # component list and displays blanks even though marks exist.
+          old_science = '      if (subjects.some(INT_SCI) || subjects.some(s => matches(s, [/INTEGRATED SCIENCE/]))) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: subjects.filter(INT_SCI).map(s => s.id) });'
+          new_science = '''      const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));
+      const scienceComponents = subjects.filter(INT_SCI);
+      if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
+      else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) });'''
+          if old_science in t:
+              t = t.replace(old_science, new_science, 1)
+
+          old_cas = '      if (subjects.some(CAS) || subjects.some(s => matches(s, [/CREATIVE ARTS.*SPORT/]))) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: subjects.filter(CAS).map(s => s.id) });'
+          new_cas = '''      const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/]));
+      const casComponents = subjects.filter(CAS);
+      if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
+      else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) });'''
+          if old_cas in t:
+              t = t.replace(old_cas, new_cas, 1)
 
           p.write_text(t)
 
@@ -63,5 +74,5 @@ jobs:
             echo "No marksheet changes required"
             exit 0
           fi
-          git commit -m "fix: restore upper primary Creative Arts and Integrated Science marks"
+          git commit -m "fix: display upper primary Creative Arts and Integrated Science marks"
           git push origin main
