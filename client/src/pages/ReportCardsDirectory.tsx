@@ -1,3 +1,4 @@
+// Report-card canonical-subject deployment marker: lower/upper Creative Arts, CRE and Integrated Science use canonical subject IDs; staff see DRAFT + PUBLISHED.
 // Report-card entered-results deployment marker: staff can view DRAFT + PUBLISHED results; families remain publication-limited.
 import { FileDown, Loader2, Printer, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -55,8 +56,8 @@ const isSST = (s: Row) => is(s, /\b(SOCIAL STUDIES|SST)\b/);
 const isAgriculture = (s: Row) => is(s, /\b(AGRICULTURE|AGR)\b/);
 const isHomeScience = (s: Row) => is(s, /\b(HOME SCIENCE|HSC)\b/);
 const isICT = (s: Row) => is(s, /\b(ICT|INFORMATION COMMUNICATION TECHNOLOGY|COMPUTER)\b/);
-const isCAS = (s: Row) => is(s, /\b(CREATIVE ARTS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\b/);
-const isReligious = (s: Row) => is(s, /\b(RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\b/);
+const isCAS = (s: Row) => is(s, /\b(CREATIVE ARTS|CREATIVE ARTS AND SPORTS|CREATIVE ACTIVITIES|CREATIVE ACT|CRE ACT|CAS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\b/);
+const isReligious = (s: Row) => is(s, /\b(CHRISTIAN RELIGIOUS EDUCATION|RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\b/);
 const isPreTech = (s: Row) => is(s, /\b(PRE TECHNICAL|PRE TECH|PRE CAREER|PRE)\b/);
 
 const priority: Record<string, number> = { ENG: 10, KIS: 20, MATH: 30, "INT SCI": 40, SST: 50, RE: 60, CAS: 70, "AGR NUT": 80, "PRE TECH": 90 };
@@ -70,7 +71,7 @@ function canonicalSubjects(all: Row[], band: Band): ReportSubject[] {
   const lower: ReportSubject[] = [
     direct(isEnglish,"ENG","English"), direct(isKiswahili,"KIS","Kiswahili"), direct(isMath,"MATH","Mathematics"),
     direct(s=>is(s,/\b(ENVIRONMENTAL|ENVIRONMENT)\b/),"ENV ACT","Environmental Activities"),
-    direct(s=>is(s,/\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS)\b/),"CRE ACT","Creative Activities"),
+    direct(s=>is(s,/\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS|CRE ACT|ART|CAS)\b/),"CRE ACT","Creative Arts"),
     direct(isReligious,"RE","Religious Education")
   ].filter(Boolean) as ReportSubject[];
   if (band === "LOWER_PRIMARY") return lower;
@@ -79,9 +80,9 @@ function canonicalSubjects(all: Row[], band: Band): ReportSubject[] {
     const casParts = all.filter(isCAS);
     return sortSubjects([
       direct(isEnglish,"ENG","English"), direct(isKiswahili,"KIS","Kiswahili"), direct(isMath,"MATH","Mathematics"),
-      scienceParts.length ? { id:"synthetic-upper-int-science", code:"INT SCI", name:"Integrated Science", synthetic:true, componentIds:scienceParts.map(s=>String(s.id)) } : direct(isScience,"INT SCI","Integrated Science"),
+      (() => { const directScience = direct(isScience,"INT SCI","Integrated Science"); return directScience ?? (scienceParts.length ? { id:"synthetic-upper-int-science", code:"INT SCI", name:"Integrated Science", synthetic:true, componentIds:scienceParts.map(s=>String(s.id)) } : null); })(),
       direct(isSST,"SST","Social Studies"), direct(isReligious,"RE","Religious Education"),
-      casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null,
+      (() => { const directCAS = direct(s=>is(s,/\b(CAS|CREATIVE ARTS AND SPORTS|CREATIVE ARTS|CREATIVE ACT|CRE ACT|ART)\b/),"CAS","Creative Arts & Sports"); return directCAS ?? (casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null); })(),
     ].filter(Boolean) as ReportSubject[]);
   }
   const junior: ReportSubject[] = [
