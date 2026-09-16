@@ -1,0 +1,89 @@
+name: Fix report card arrangement
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-report-card-arrangement.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canonicalize report cards and arrange learners by class
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('client/src/pages/ReportCardsDirectory.tsx')
+          s = p.read_text()
+
+          duplicate = 'const canUseEnteredResults=admin||profile?.role==="TEACHER"; const canUseEnteredResults=admin||profile?.role==="TEACHER";'
+          single = 'const canUseEnteredResults=admin||profile?.role==="TEACHER";'
+          s = s.replace(duplicate, single)
+
+          canonical = '''function canonicalSubjects(all: Row[], _band: Band): ReportSubject[] {
+            return all.map((s, index) => ({
+              id: String(s.id),
+              code: String(s.code ?? `SUBJ${index + 1}`),
+              name: String(s.name),
+              synthetic: false,
+            }));
+          }
+
+          function latestFor'''
+          s, n = re.subn(
+              r'function canonicalSubjects\(all: Row\[\], band: Band\): ReportSubject\[\] \{.*?\n\}\n\nfunction latestFor',
+              canonical,
+              s,
+              count=1,
+              flags=re.S,
+          )
+          if n != 1:
+              raise SystemExit('Could not locate canonicalSubjects block')
+
+          s = s.replace(
+              'Percentages are shown with the automatic CBC achievement level. Upper Primary combines Agriculture + Home Science + ICT into Integrated Science and Creative Arts + Music + PE into Creative Arts & Sports.',
+              'Learning areas shown here are the same class subjects used by the marksheet for this learner.'
+          )
+
+          old = 'for(const q of[s,y,t])if(q.error)throw q.error;setStudents(s.data??[]);setYears(y.data??[]);setTerms(t.data??[]);setYearId(String(y.data?.find((x:any)=>x.is_current)?.id??y.data?.[0]?.id??""));'
+          new = '''for(const q of[s,y,t])if(q.error)throw q.error;
+          const currentYearId=String(y.data?.find((x:any)=>x.is_current)?.id??y.data?.[0]?.id??"");
+          const [enr,cls]=await Promise.all([
+            db.from("enrollments").select("student_id,class_id").eq("academic_year_id",currentYearId).eq("status","ACTIVE"),
+            db.from("classes").select("id,name,code,level").eq("academic_year_id",currentYearId).eq("status","ACTIVE")
+          ]);
+          const classById=new Map<string,Row>((cls.data??[]).map((c:any)=>[String(c.id),c]));
+          const classByStudent=new Map<string,Row>((enr.data??[]).map((e:any)=>[String(e.student_id),classById.get(String(e.class_id))]).filter((x:any)=>x[1]));
+          const orderedStudents=[...(s.data??[])].map((st:any)=>({...st,_className:classByStudent.get(String(st.id))?.name??classByStudent.get(String(st.id))?.code??"",_classGrade:gradeFromClass(classByStudent.get(String(st.id)))})).sort((a:any,b:any)=>(a._classGrade??999)-(b._classGrade??999)||String(a._className??"").localeCompare(String(b._className??""),undefined,{numeric:true,sensitivity:"base"})||learnerName(a).localeCompare(learnerName(b),undefined,{sensitivity:"base"})||String(a.admission_number??"").localeCompare(String(b.admission_number??""),undefined,{numeric:true,sensitivity:"base"}));
+          setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId(currentYearId);'''
+          if old not in s:
+              raise SystemExit('Could not locate student loading block')
+          s = s.replace(old, new, 1)
+
+          old_options = '{students.map(s=><option key={s.id} value={s.id}>{learnerName(s)} • {s.admission_number??"—"}</option>)}'
+          new_options = '{students.map(s=><option key={s.id} value={s.id}>{s._className?`${s._className} • `:""}{learnerName(s)} • {s.admission_number??"—"}</option>)}'
+          if old_options not in s:
+              raise SystemExit('Could not locate learner selector options')
+          s = s.replace(old_options, new_options, 1)
+
+          marker='// Report-card arrangement: learner selector is ordered Grade 1 → Grade 9; report subjects mirror class marksheet subjects.\n'
+          if marker not in s:
+              s=marker+s
+          p.write_text(s)
+      - name: Verify source integrity
+        shell: bash
+        run: |
+          test "$(grep -o 'const canUseEnteredResults=' client/src/pages/ReportCardsDirectory.tsx | wc -l)" -eq 1
+          grep -q 'function canonicalSubjects(all: Row\[\], _band: Band)' client/src/pages/ReportCardsDirectory.tsx
+          grep -q '_className' client/src/pages/ReportCardsDirectory.tsx
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/ReportCardsDirectory.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: arrange report cards by class and mirror marksheet subjects"
+          git push
