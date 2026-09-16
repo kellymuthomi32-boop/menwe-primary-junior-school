@@ -1,0 +1,38 @@
+name: One-time report cards typecheck repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repair-reportcards-typecheck.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Repair Map tuple typing
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("client/src/pages/ReportCardsDirectory.tsx")
+          t = p.read_text()
+          old = 'const classByStudent=new Map<string,Row>((enr.data??[]).map((e:any)=>[String(e.student_id),classById.get(String(e.class_id))]).filter((x:any)=>x[1]));'
+          new = 'const classByStudent=new Map<string,Row>((enr.data??[]).reduce<Array<[string,Row]>>((acc,e:any)=>{const cls=classById.get(String(e.class_id));if(cls)acc.push([String(e.student_id),cls]);return acc;},[]));'
+          if old not in t:
+              raise SystemExit("Expected classByStudent expression was not found")
+          p.write_text(t.replace(old,new,1))
+      - name: Commit repair and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/pages/ReportCardsDirectory.tsx
+          git rm .github/workflows/repair-reportcards-typecheck.yml
+          git commit -m "fix: resolve report cards directory type error"
+          git push origin main
