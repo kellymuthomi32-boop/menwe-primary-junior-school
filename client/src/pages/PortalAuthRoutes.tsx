@@ -5,7 +5,7 @@ import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 const PortalLoginPage = lazy(() => import("./PortalLoginPage"));
 const PortalCallbackPage = lazy(() => import("./PortalCallbackPage"));
 const MagicLinkPage = lazy(() => import("./MagicLinkPage"));
-const PasswordPage = lazy(() => import("./PublicPages").then(module => ({ default: module.LoginPage })));
+const PasswordPage = lazy(() => import("./PasswordSetupPage"));
 
 function Loading() {
   return <div className="grid min-h-screen place-items-center bg-[var(--paper)] text-sm text-[var(--ink)]/55">Loading Menwe portal…</div>;
