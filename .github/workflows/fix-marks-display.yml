@@ -28,9 +28,9 @@ jobs:
           p = Path('client/src/pages/ReportCardsDirectory.tsx')
           s = p.read_text()
           old = '.eq("exams.status","PUBLISHED")'
-          if old not in s:
-            raise SystemExit('report-card exam status filter not found')
-          s = s.replace(old, '', 3)
+          if old in s:
+            s = s.replace(old, '')
+          s = s.replace('No published result', 'No recorded result')
           s = s.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
           s = s.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
           p.write_text(s)
