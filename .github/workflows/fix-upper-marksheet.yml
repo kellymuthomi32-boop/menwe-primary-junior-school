@@ -6,13 +6,17 @@ on:
       - main
     paths:
       - .github/workflows/fix-upper-marksheet.yml
+  issues:
+    types: [opened]
   workflow_dispatch:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   fix:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'issues' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,28 +28,43 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-
           p = Path("client/src/pages/ClassMarksheetV2.tsx")
           t = p.read_text()
+
+          # Remove the accidental literal escape sequence before enteredSubjectIds.
           t = t.replace(r"\\n      const enteredSubjectIds", "\n      const enteredSubjectIds")
+
           old = '      const subjectIds = selectedSubjects.map(s => str(s.id)).filter(Boolean);'
           new = '''      const reportSubjects = allSubjects.filter(s => selectedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name)));
       const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean);'''
-          if old in t: t = t.replace(old, new, 1)
+          if old not in t:
+              raise SystemExit("Expected subjectIds line was not found")
+          t = t.replace(old, new, 1)
+
           old_set = '      setSubjects(selectedSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'
-          if old_set in t: t = t.replace(old_set, '      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));', 1)
+          new_set = '      setSubjects(allSubjects.filter((s) => enteredSubjectIds.has(str(s.id))));'
+          if old_set not in t:
+              raise SystemExit("Expected entered-subject filtering line was not found")
+          t = t.replace(old_set, new_set, 1)
+
           old_science = '      if (subjects.some(INT_SCI) || subjects.some(s => matches(s, [/INTEGRATED SCIENCE/]))) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: subjects.filter(INT_SCI).map(s => s.id) });'
           new_science = '''      const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]));
       const scienceComponents = subjects.filter(INT_SCI);
       if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
       else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) });'''
-          if old_science in t: t = t.replace(old_science, new_science, 1)
+          if old_science not in t:
+              raise SystemExit("Expected Integrated Science grouping line was not found")
+          t = t.replace(old_science, new_science, 1)
+
           old_cas = '      if (subjects.some(CAS) || subjects.some(s => matches(s, [/CREATIVE ARTS.*SPORT/]))) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: subjects.filter(CAS).map(s => s.id) });'
           new_cas = '''      const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/]));
       const casComponents = subjects.filter(CAS);
       if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
       else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) });'''
-          if old_cas in t: t = t.replace(old_cas, new_cas, 1)
+          if old_cas not in t:
+              raise SystemExit("Expected Creative Arts & Sports grouping line was not found")
+          t = t.replace(old_cas, new_cas, 1)
+
           p.write_text(t)
 
       - name: Commit fix
@@ -56,3 +75,16 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "fix: display upper primary Creative Arts and Integrated Science marks"
           git push origin main
+
+      - name: Close trigger issue
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'completed'
+            });
