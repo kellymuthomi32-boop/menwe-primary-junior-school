@@ -1,3 +1,4 @@
+// Report-card entered-results deployment marker: staff can view DRAFT + PUBLISHED results; families remain publication-limited.
 import { FileDown, Loader2, Printer, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -119,7 +120,7 @@ function attendancePercent(rows: Row[]) {
 }
 
 export default function ReportCardsDirectory(){
-  const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";
+  const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER"; const canUseEnteredResults=admin||profile?.role==="TEACHER";
   const [students,setStudents]=useState<Row[]>([]),[years,setYears]=useState<Row[]>([]),[terms,setTerms]=useState<Row[]>([]);
   const [studentId,setStudentId]=useState(""),[yearId,setYearId]=useState(""),[termId,setTermId]=useState(""),[mode,setMode]=useState<"term"|"annual">("term");
   const [classRow,setClassRow]=useState<Row|null>(null),[rank,setRank]=useState<number|null>(null),[allSubjects,setAllSubjects]=useState<Row[]>([]),[results,setResults]=useState<Row[]>([]),[attendance,setAttendance]=useState<Row[]>([]),[report,setReport]=useState<Row|null>(null),[teacherRemark,setTeacherRemark]=useState(""),[headRemark,setHeadRemark]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
