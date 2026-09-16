@@ -38,22 +38,16 @@ jobs:
           marker = '.eq("exams.class_id",classId).in("subject_id"'
           s = s.replace(marker, '.eq("exams.class_id",classId)'+status_filter+'.in("subject_id"')
 
-          # Match the actual school subject codes/names used by the canonical marksheet setup.
-          s = s.replace(
-            'const isScience = (s: Row) => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY|SCI)\\b/);',
-            'const isScience = (s: Row) => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY|SCI)\\b/);'
-          )
-          s = s.replace(
-            'const isCAS = (s: Row) => is(s, /\\b(CREATIVE ARTS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\\b/);',
-            'const isCAS = (s: Row) => is(s, /\\b(CREATIVE ARTS|CREATIVE ARTS AND SPORTS|CREATIVE ACTIVITIES|CREATIVE ACT|CRE ACT|CAS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\\b/);'
-          )
-          s = s.replace(
-            'const isReligious = (s: Row) => is(s, /\\b(RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\\b/);',
-            'const isReligious = (s: Row) => is(s, /\\b(CHRISTIAN RELIGIOUS EDUCATION|RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\\b/);'
-          )
+          old_cas = r'const isCAS = (s: Row) => is(s, /\b(CREATIVE ARTS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\b/);'
+          new_cas = r'const isCAS = (s: Row) => is(s, /\b(CREATIVE ARTS|CREATIVE ARTS AND SPORTS|CREATIVE ACTIVITIES|CREATIVE ACT|CRE ACT|CAS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\b/);'
+          s = s.replace(old_cas, new_cas)
 
-          old_lower = 'direct(s=>is(s,/\\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS)\\b/),"CRE ACT","Creative Activities")'
-          new_lower = 'direct(s=>is(s,/\\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS|CRE ACT|ART|CAS)\\b/),"CRE ACT","Creative Arts")'
+          old_re = r'const isReligious = (s: Row) => is(s, /\b(RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\b/);'
+          new_re = r'const isReligious = (s: Row) => is(s, /\b(CHRISTIAN RELIGIOUS EDUCATION|RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\b/);'
+          s = s.replace(old_re, new_re)
+
+          old_lower = r'direct(s=>is(s,/\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS)\b/),"CRE ACT","Creative Activities")'
+          new_lower = r'direct(s=>is(s,/\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS|CRE ACT|ART|CAS)\b/),"CRE ACT","Creative Arts")'
           s = s.replace(old_lower, new_lower)
 
           old_upper_science = 'scienceParts.length ? { id:"synthetic-upper-int-science", code:"INT SCI", name:"Integrated Science", synthetic:true, componentIds:scienceParts.map(s=>String(s.id)) } : direct(isScience,"INT SCI","Integrated Science"),'
@@ -61,7 +55,7 @@ jobs:
           s = s.replace(old_upper_science, new_upper_science)
 
           old_upper_cas = 'casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null,'
-          new_upper_cas = '(() => { const directCAS = direct(s=>is(s,/\\b(CAS|CREATIVE ARTS AND SPORTS|CREATIVE ARTS|CREATIVE ACT|CRE ACT|ART)\\b/),"CAS","Creative Arts & Sports"); return directCAS ?? (casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null); })(),'
+          new_upper_cas = r'(() => { const directCAS = direct(s=>is(s,/\b(CAS|CREATIVE ARTS AND SPORTS|CREATIVE ARTS|CREATIVE ACT|CRE ACT|ART)\b/),"CAS","Creative Arts & Sports"); return directCAS ?? (casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null); })(),'
           s = s.replace(old_upper_cas, new_upper_cas)
 
           s = s.replace('No published result', 'No recorded result')
@@ -78,5 +72,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx client/src/pages/ReportCardsDirectory.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: canonicalize report card creative arts and science"
+          git commit -m "fix: correct report card subject mapping"
           git push
