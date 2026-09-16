@@ -113,7 +113,7 @@ const [enr,cls]=await Promise.all([
   db.from("classes").select("id,name,code,level").eq("academic_year_id",currentYearId).eq("status","ACTIVE")
 ]);
 const classById=new Map<string,Row>((cls.data??[]).map((c:any)=>[String(c.id),c]));
-const classByStudent=new Map<string,Row>((enr.data??[]).map((e:any)=>[String(e.student_id),classById.get(String(e.class_id))]).filter((x:any)=>x[1]));
+const classByStudent=new Map<string,Row>((enr.data??[]).reduce<Array<[string,Row]>>((acc,e:any)=>{const cls=classById.get(String(e.class_id));if(cls)acc.push([String(e.student_id),cls]);return acc;},[]));
 const orderedStudents=[...(s.data??[])].map((st:any)=>({...st,_className:classByStudent.get(String(st.id))?.name??classByStudent.get(String(st.id))?.code??"",_classGrade:gradeFromClass(classByStudent.get(String(st.id)))})).sort((a:any,b:any)=>(a._classGrade??999)-(b._classGrade??999)||String(a._className??"").localeCompare(String(b._className??""),undefined,{numeric:true,sensitivity:"base"})||learnerName(a).localeCompare(learnerName(b),undefined,{sensitivity:"base"})||String(a.admission_number??"").localeCompare(String(b.admission_number??""),undefined,{numeric:true,sensitivity:"base"}));
 setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId(currentYearId);}catch(e){setMessage(e instanceof Error?e.message:"Report-card workspace could not be loaded.");}finally{setLoading(false);}})();},[user]);
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
