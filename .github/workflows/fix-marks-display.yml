@@ -27,9 +27,14 @@ jobs:
           from pathlib import Path
           p = Path('client/src/pages/ReportCardsDirectory.tsx')
           s = p.read_text()
-          old = '.eq("exams.status","PUBLISHED")'
-          if old in s:
-            s = s.replace(old, '')
+          old_admin = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??"");'
+          new_admin = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";'
+          if old_admin in s:
+            s = s.replace(old_admin, new_admin, 1)
+          s = s.replace('.eq("exams.status","PUBLISHED")', '')
+          status_filter = '.in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"])'
+          marker = '.eq("exams.class_id",classId).in("subject_id"'
+          s = s.replace(marker, '.eq("exams.class_id",classId)'+status_filter+'.in("subject_id"')
           s = s.replace('No published result', 'No recorded result')
           s = s.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
           s = s.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
@@ -40,5 +45,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx client/src/pages/ReportCardsDirectory.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: include entered marks in report cards"
+          git commit -m "fix: show entered marks in staff reports and published marks to families"
           git push
