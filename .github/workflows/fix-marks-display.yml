@@ -18,15 +18,27 @@ jobs:
           s = p.read_text()
           old = 'return raw == null ? "—" : max && max > 0 ? `${fmt(raw)}/${fmt(max)}` : `${fmt(raw)}%`;'
           new = 'return raw == null ? "—" : `${fmt(raw)}`;'
+          if old in s:
+            s = s.replace(old, new, 1)
+            p.write_text(s)
+      - name: Patch report-card result visibility
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('client/src/pages/ReportCardsDirectory.tsx')
+          s = p.read_text()
+          old = '.eq("exams.status","PUBLISHED")'
           if old not in s:
-            raise SystemExit('marks display line not found')
-          s = s.replace(old, new, 1)
+            raise SystemExit('report-card exam status filter not found')
+          s = s.replace(old, '', 3)
+          s = s.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
+          s = s.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
           p.write_text(s)
       - name: Commit patch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add client/src/pages/ClassMarksheetV2.tsx
+          git add client/src/pages/ClassMarksheetV2.tsx client/src/pages/ReportCardsDirectory.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: show marks without maximum score suffix"
+          git commit -m "fix: include entered marks in report cards"
           git push
