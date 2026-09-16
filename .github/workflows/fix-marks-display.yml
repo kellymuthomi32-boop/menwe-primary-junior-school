@@ -21,25 +21,54 @@ jobs:
           if old in s:
             s = s.replace(old, new, 1)
             p.write_text(s)
-      - name: Patch report-card result visibility
+      - name: Patch report-card result visibility and subject mapping
         shell: python
         run: |
           from pathlib import Path
           p = Path('client/src/pages/ReportCardsDirectory.tsx')
           s = p.read_text()
+
           old_admin = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??"");'
           new_admin = 'const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";'
-          if old_admin in s:
+          if old_admin in s and 'canUseEnteredResults' not in s:
             s = s.replace(old_admin, new_admin, 1)
+
           s = s.replace('.eq("exams.status","PUBLISHED")', '')
           status_filter = '.in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"])'
           marker = '.eq("exams.class_id",classId).in("subject_id"'
           s = s.replace(marker, '.eq("exams.class_id",classId)'+status_filter+'.in("subject_id"')
+
+          # Match the actual school subject codes/names used by the canonical marksheet setup.
+          s = s.replace(
+            'const isScience = (s: Row) => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY|SCI)\\b/);',
+            'const isScience = (s: Row) => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY|SCI)\\b/);'
+          )
+          s = s.replace(
+            'const isCAS = (s: Row) => is(s, /\\b(CREATIVE ARTS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\\b/);',
+            'const isCAS = (s: Row) => is(s, /\\b(CREATIVE ARTS|CREATIVE ARTS AND SPORTS|CREATIVE ACTIVITIES|CREATIVE ACT|CRE ACT|CAS|ART|MUSIC|MUS|PHYSICAL EDUCATION|PE)\\b/);'
+          )
+          s = s.replace(
+            'const isReligious = (s: Row) => is(s, /\\b(RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\\b/);',
+            'const isReligious = (s: Row) => is(s, /\\b(CHRISTIAN RELIGIOUS EDUCATION|RELIGIOUS EDUCATION|RELIGION|CRE|IRE|HRE|RE)\\b/);'
+          )
+
+          old_lower = 'direct(s=>is(s,/\\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS)\\b/),"CRE ACT","Creative Activities")'
+          new_lower = 'direct(s=>is(s,/\\b(CREATIVE ACTIVITIES|CREATIVE ACT|CREATIVE ARTS|CRE ACT|ART|CAS)\\b/),"CRE ACT","Creative Arts")'
+          s = s.replace(old_lower, new_lower)
+
+          old_upper_science = 'scienceParts.length ? { id:"synthetic-upper-int-science", code:"INT SCI", name:"Integrated Science", synthetic:true, componentIds:scienceParts.map(s=>String(s.id)) } : direct(isScience,"INT SCI","Integrated Science"),'
+          new_upper_science = '(() => { const directScience = direct(isScience,"INT SCI","Integrated Science"); return directScience ?? (scienceParts.length ? { id:"synthetic-upper-int-science", code:"INT SCI", name:"Integrated Science", synthetic:true, componentIds:scienceParts.map(s=>String(s.id)) } : null); })(),'
+          s = s.replace(old_upper_science, new_upper_science)
+
+          old_upper_cas = 'casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null,'
+          new_upper_cas = '(() => { const directCAS = direct(s=>is(s,/\\b(CAS|CREATIVE ARTS AND SPORTS|CREATIVE ARTS|CREATIVE ACT|CRE ACT|ART)\\b/),"CAS","Creative Arts & Sports"); return directCAS ?? (casParts.length ? { id:"synthetic-upper-cas", code:"CAS", name:"Creative Arts & Sports", synthetic:true, componentIds:casParts.map(s=>String(s.id)) } : null); })(),'
+          s = s.replace(old_upper_cas, new_upper_cas)
+
           s = s.replace('No published result', 'No recorded result')
           s = s.replace('No published results were found for this learner in the selected period.', 'No recorded results were found for this learner in the selected period.')
           s = s.replace('This report reflects published assessment results for the selected academic period.', 'This report reflects recorded assessment results for the selected academic period.')
-          # Force a fresh source diff so Vercel cannot continue serving an older report-card bundle.
-          marker_comment = '// Report-card entered-results deployment marker: staff can view DRAFT + PUBLISHED results; families remain publication-limited.\n'
+
+          marker_comment = '// Report-card canonical-subject deployment marker: lower/upper Creative Arts, CRE and Integrated Science use canonical subject IDs; staff see DRAFT + PUBLISHED.\n'
           if marker_comment not in s:
             s = marker_comment + s
           p.write_text(s)
@@ -49,5 +78,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add client/src/pages/ClassMarksheetV2.tsx client/src/pages/ReportCardsDirectory.tsx
           git diff --cached --quiet && exit 0
-          git commit -m "fix: force report-card entered-marks deployment"
+          git commit -m "fix: canonicalize report card creative arts and science"
           git push
