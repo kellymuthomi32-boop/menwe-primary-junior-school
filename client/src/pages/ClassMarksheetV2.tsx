@@ -276,12 +276,23 @@ export default function ClassMarksheetV2() {
       </section>
 
       {classId&&<section className="marksheet-v2 overflow-hidden rounded-none bg-white shadow-sm">
-        <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name)||"CLASS"} · {str(selectedTerm?.name)||"TERM"} · {str(years.find(y=>str(y.id)===yearId)?.name)||"YEAR"}</h3><div className="mt-1 text-[10px] font-semibold text-white/70">{band === "JUNIOR_SCHOOL" ? "RANKING: TOTAL POINTS" : "RANKING: TOTAL MARKS"} · GRADE {grade ?? "—"}</div></header>
+        <header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2><p className="text-xs font-semibold text-white/75">P.O. BOX 19, KIONYO, MERU | menwejuniorss23@gmail.com</p><h3 className="mt-2 text-base font-black uppercase">{bandTitle} — {str(selectedClass?.name)}</h3><div className="mt-2 text-xs font-bold text-[var(--gold)]">{str(selectedTerm?.name)} • {str(years.find(y=>str(y.id)===yearId)?.name)}</div></header>
         {!displaySubjects.length?<div className="p-8 text-center text-sm font-semibold">No reportable subjects with entered marks exist for this class and term.</div>:<div className="marksheet-table-wrap overflow-x-auto p-2 sm:p-4">
           <table className="marksheet-table w-full min-w-[1180px] border-collapse text-[10px]" aria-label="Class marksheet">
             <thead><tr><th rowSpan={2}>NO.</th><th rowSpan={2}>ADM NO.</th><th rowSpan={2} className="name-column">LEARNER</th>{displaySubjects.map(s=><th key={s.id} colSpan={2} className="subject-group"><span className="subject-code">{subjectCode(s)}</span></th>)}<th rowSpan={2}>TOTAL<br/>MARKS</th><th rowSpan={2}>TOTAL<br/>POINTS</th><th rowSpan={2}>RANK</th></tr><tr>{displaySubjects.flatMap(s=>[<th key={`${s.id}-score`}>SCORE</th>,<th key={`${s.id}-level`}>LEVEL</th>])}</tr></thead>
             <tbody>{rankedRows.map((item, i)=><tr key={str(item.row.id)}><td>{i+1}</td><td>{str(item.row.admission_number)||"—"}</td><td className="name-cell">{learnerName(item.row)}</td>{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s));return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td></tr>)}</tbody>
-            <tfoot><tr className="marksheet-summary-row"><td colSpan={3}>TOTAL MARKS</td>{displaySubjects.flatMap(s=>[<td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>])}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr><tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={3}>MEAN</td>{displaySubjects.flatMap(s=>[<td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>])}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td></tr></tfoot>
+            <tfoot>
+              <tr className="marksheet-summary-row">
+                <td colSpan={2}>TOTAL MARKS</td>
+                {displaySubjects.flatMap(s=><td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>)}
+                <td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td>
+              </tr>
+              <tr className="marksheet-summary-row marksheet-mean-row">
+                <td colSpan={2}>MEAN</td>
+                {displaySubjects.flatMap(s=><td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>)}
+                <td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td>
+              </tr>
+            </tfoot>
           </table>
         </div>}
         <div className="level-legend border-t border-[var(--ink)]/10 px-4 py-3 sm:px-6"><strong>Achievement scale:</strong> EE1 90–100% (8) · EE2 75–89% (7) · ME1 58–74% (6) · ME2 41–57% (5) · AE1 31–40% (4) · AE2 21–30% (3) · BE1 11–20% (2) · BE2 0–10% (1).</div>
