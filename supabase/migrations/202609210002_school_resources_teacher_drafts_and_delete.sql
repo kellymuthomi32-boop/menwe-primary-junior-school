@@ -1,0 +1,4 @@
+drop policy if exists "school resources teacher own read" on public.school_resources;
+drop policy if exists "school resources teacher own delete" on public.school_resources;
+create policy "school resources teacher own read" on public.school_resources for select to authenticated using (private.is_active_teacher() and uploaded_by_teacher_id=(select id from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
+create policy "school resources teacher own delete" on public.school_resources for delete to authenticated using (private.is_active_teacher() and uploaded_by_teacher_id=(select id from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
