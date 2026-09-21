@@ -52,7 +52,7 @@
  html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:5.8pt!important}
  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
- html body .marksheet-v2 .marksheet-table tfoot{display:table-footer-group!important}
+ html body .marksheet-v2 .marksheet-table tfoot{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.8mm .35mm!important;height:4.7mm!important;line-height:1.05!important;color:#071b3a!important;border:1px solid #9aaabd!important}
  html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:5.8pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
