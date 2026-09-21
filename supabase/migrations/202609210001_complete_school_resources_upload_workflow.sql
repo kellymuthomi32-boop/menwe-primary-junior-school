@@ -1,0 +1,44 @@
+alter table public.school_resources
+  add column if not exists term_id uuid references public.terms(id) on delete set null,
+  add column if not exists academic_year_id uuid references public.academic_years(id) on delete set null,
+  add column if not exists external_url text;
+alter table public.school_resources alter column file_path drop not null;
+alter table public.school_resources alter column original_file_name drop not null;
+alter table public.school_resources drop constraint if exists school_resources_source_check;
+alter table public.school_resources add constraint school_resources_source_check check ((file_path is not null and external_url is null) or (file_path is null and external_url is not null and external_url ~* '^https://'));
+alter table public.school_resources drop constraint if exists school_resources_file_size_check;
+alter table public.school_resources add constraint school_resources_file_size_check check (file_size is null or (file_size >= 0 and file_size <= 15728640));
+create index if not exists school_resources_term_idx on public.school_resources(term_id);
+create index if not exists school_resources_academic_year_idx on public.school_resources(academic_year_id);
+
+drop policy if exists "school resources staff read" on public.school_resources;
+drop policy if exists "school resources learner read" on public.school_resources;
+drop policy if exists "school resources parent read" on public.school_resources;
+drop policy if exists "school resources admin read" on public.school_resources;
+drop policy if exists "school resources teachers create" on public.school_resources;
+drop policy if exists "school resources owners update" on public.school_resources;
+drop policy if exists "school resources admins manage" on public.school_resources;
+
+create policy "school resources staff read" on public.school_resources for select to authenticated using (status='PUBLISHED' and audience in ('TEACHERS','BOTH') and private.has_role('TEACHER'::app_role));
+create policy "school resources learner read" on public.school_resources for select to authenticated using (status='PUBLISHED' and audience in ('LEARNERS','BOTH') and private.has_role('STUDENT'::app_role) and (class_id is null or exists (select 1 from public.students s join public.enrollments e on e.student_id=s.id where s.profile_id=(select auth.uid()) and e.class_id=school_resources.class_id and e.status='ACTIVE')));
+create policy "school resources parent read" on public.school_resources for select to authenticated using (status='PUBLISHED' and audience in ('LEARNERS','BOTH') and private.has_role('PARENT'::app_role) and (class_id is null or exists (select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id join public.enrollments e on e.student_id=sp.student_id where p.profile_id=(select auth.uid()) and e.class_id=school_resources.class_id and e.status='ACTIVE')));
+create policy "school resources admin read" on public.school_resources for select to authenticated using (private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role));
+create policy "school resources teachers create" on public.school_resources for insert to authenticated with check (private.is_active_teacher() and uploaded_by_teacher_id=(select id from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
+create policy "school resources owners update" on public.school_resources for update to authenticated using (private.is_active_teacher() and uploaded_by_teacher_id=(select id from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE')) with check (private.is_active_teacher() and uploaded_by_teacher_id=(select id from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
+create policy "school resources admins manage" on public.school_resources for all to authenticated using (private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role)) with check (private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role));
+
+drop policy if exists "school resources storage upload teachers" on storage.objects;
+drop policy if exists "school resources storage read" on storage.objects;
+drop policy if exists "school resources storage update teachers" on storage.objects;
+drop policy if exists "school resources storage delete teachers" on storage.objects;
+drop policy if exists "school resources storage upload admins" on storage.objects;
+drop policy if exists "school resources storage update admins" on storage.objects;
+drop policy if exists "school resources storage delete admins" on storage.objects;
+
+create policy "school resources storage upload teachers" on storage.objects for insert to authenticated with check (bucket_id='school-resources' and private.is_active_teacher() and (storage.foldername(name))[1]=(select id::text from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE') and coalesce((metadata->>'size')::bigint,0)<=15728640 and lower(coalesce(metadata->>'mimetype','')) in ('application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','text/plain','image/jpeg','image/png'));
+create policy "school resources storage upload admins" on storage.objects for insert to authenticated with check (bucket_id='school-resources' and private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role) and (storage.foldername(name))[1]='admin' and coalesce((metadata->>'size')::bigint,0)<=15728640 and lower(coalesce(metadata->>'mimetype','')) in ('application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','text/plain','image/jpeg','image/png'));
+create policy "school resources storage read" on storage.objects for select to authenticated using (bucket_id='school-resources' and exists (select 1 from public.school_resources r where r.file_path=name and r.status='PUBLISHED' and ((r.audience in ('TEACHERS','BOTH') and private.has_role('TEACHER'::app_role)) or (r.audience in ('LEARNERS','BOTH') and private.has_role('STUDENT'::app_role) and (r.class_id is null or exists (select 1 from public.students s join public.enrollments e on e.student_id=s.id where s.profile_id=(select auth.uid()) and e.class_id=r.class_id and e.status='ACTIVE'))) or (r.audience in ('LEARNERS','BOTH') and private.has_role('PARENT'::app_role) and (r.class_id is null or exists (select 1 from public.student_parents sp join public.parents p on p.id=sp.parent_id join public.enrollments e on e.student_id=sp.student_id where p.profile_id=(select auth.uid()) and e.class_id=r.class_id and e.status='ACTIVE'))) or private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role))));
+create policy "school resources storage update teachers" on storage.objects for update to authenticated using (bucket_id='school-resources' and private.is_active_teacher() and (storage.foldername(name))[1]=(select id::text from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE')) with check (bucket_id='school-resources' and private.is_active_teacher() and (storage.foldername(name))[1]=(select id::text from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
+create policy "school resources storage update admins" on storage.objects for update to authenticated using (bucket_id='school-resources' and private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role) and (storage.foldername(name))[1]='admin') with check (bucket_id='school-resources' and private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role) and (storage.foldername(name))[1]='admin');
+create policy "school resources storage delete teachers" on storage.objects for delete to authenticated using (bucket_id='school-resources' and private.is_active_teacher() and (storage.foldername(name))[1]=(select id::text from public.teachers where profile_id=(select auth.uid()) and status='ACTIVE'));
+create policy "school resources storage delete admins" on storage.objects for delete to authenticated using (bucket_id='school-resources' and private.has_role('SUPER_ADMIN'::app_role,'ADMIN'::app_role,'HEAD_OF_INSTITUTION'::app_role,'DEPUTY_HOI'::app_role) and (storage.foldername(name))[1]='admin');
