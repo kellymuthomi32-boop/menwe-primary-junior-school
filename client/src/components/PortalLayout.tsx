@@ -38,6 +38,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
    {label:"Duty roster",key:"duty-roster",icon:ClipboardList,href:"/portal/duty-roster"},
   );
   resources.push(
+   {label:"Resources",key:"resources",icon:FileText,href:"/portal/resources"},
    {label:"Learning materials",key:"learning",icon:BookOpen,href:"/portal/learning"},
    {label:"Homework",key:"homework",icon:BookOpenCheck,href:"/portal/homework"},
    {label:"Library",key:"library",icon:LibraryBig,href:"/portal/library"},
@@ -49,6 +50,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
  } else if(role==="PARENT"||role==="STUDENT"){
   school.push(
    {label:"Timetable",key:"timetable",icon:CalendarDays,href:"/portal/timetable"},
+   {label:"Resources",key:"resources-parent",icon:FileText,href:"/portal/resources"},
    {label:"Learning materials",key:"learning",icon:BookOpen,href:"/portal/learning"},
    {label:"Homework",key:"homework",icon:BookOpenCheck,href:"/portal/homework"},
    {label:"Library",key:"library",icon:LibraryBig,href:"/portal/library"},
@@ -82,6 +84,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
    {label:"Operations & reports",key:"operations",icon:BarChart3,href:"/portal/operations"},
   );
   resources.push(
+   {label:"Resources",key:"resources-admin",icon:FileText,href:"/portal/resources"},
    {label:"Learning materials",key:"learning-admin",icon:BookOpen,href:"/portal/learning"},
    {label:"Homework",key:"admin-homework",icon:BookOpenCheck,href:"/portal/homework"},
    {label:"Library",key:"admin-library",icon:LibraryBig,href:"/portal/library"},
