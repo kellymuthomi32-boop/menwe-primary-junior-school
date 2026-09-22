@@ -58,7 +58,17 @@ export default function AdminTeacherInvitationsPage() {
       if (!name) throw new Error("Enter the teacher's full name.");
       if (!/^\S+@\S+\.\S+$/.test(targetEmail)) throw new Error("Enter a valid email address.");
       const { data, error: invokeError } = await db.functions.invoke("school-invite", { body: { action: "invite", email: targetEmail, fullName: name, role: "TEACHER", recordType: "teacher", ...(selected ? { recordId: selected.id } : {}) } });
-      if (invokeError) throw invokeError;
+      if (invokeError) {
+        const context = (invokeError as { context?: Response }).context;
+        let serverMessage = invokeError.message;
+        if (context) {
+          try {
+            const body = await context.clone().json() as { error?: string; message?: string };
+            serverMessage = body.error || body.message || serverMessage;
+          } catch { /* keep the SDK message when the response is not JSON */ }
+        }
+        throw new Error(serverMessage);
+      }
       if (data?.error) throw new Error(data.error);
       setMessage(data?.message || `Invitation sent to ${targetEmail}. Ask the teacher to check inbox and spam.`);
       resetNew(); await load();
