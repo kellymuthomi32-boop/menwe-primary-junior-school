@@ -16,7 +16,7 @@ export default function AdminTeacherInvitationsPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [sending, setSending] = useState(false);\n  const [resendingEmail, setResendingEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
