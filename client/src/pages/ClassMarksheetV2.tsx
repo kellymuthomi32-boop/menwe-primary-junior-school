@@ -16,6 +16,18 @@ const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n
 const fmt = (v: number | null) => v == null ? "" : Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, "");
 const learnerName = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 
+const marksheetFilenamePart = (value: unknown) =>
+  str(value)
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+
+const generateMarksheetFilename = (className: unknown, termName: unknown) => {
+  const classPart = marksheetFilenamePart(className) || "Class";
+  const termPart = marksheetFilenamePart(termName) || "Term";
+  return `${classPart}_${termPart}_Marksheet.pdf`;
+};
+
 function achievementForPercentage(value: number | null): Achievement | null {
   if (value == null || !Number.isFinite(value)) return null;
   const p = Math.max(0, Math.min(100, value));
@@ -255,6 +267,15 @@ export default function ClassMarksheetV2() {
     return mapped.map(x => ({ ...x, rank: ranks.get(str(x.row.id)) ?? null })).sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
   }, [rows, displaySubjects, band]);
 
+  const printMarksheet = () => {
+    if (!rows.length) return;
+    const filename = generateMarksheetFilename(selectedClass?.name, selectedTerm?.name);
+    const previousTitle = document.title;
+    document.title = filename.replace(/\.pdf$/i, "");
+    window.print();
+    window.setTimeout(() => { document.title = previousTitle; }, 1000);
+  };
+
   const subjectTotal = (s: ReportSubject) => rows.reduce((sum, row) => sum + (percentageFor(row, s) ?? 0), 0);
   const subjectMean = (s: ReportSubject) => { const vals = rows.map(row => percentageFor(row, s)).filter((v): v is number => v != null); return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null; };
   const classTotalMarks = rankedRows.reduce((sum, x) => sum + (x.totalMarks ?? 0), 0);
@@ -271,7 +292,7 @@ export default function ClassMarksheetV2() {
           <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Term<select value={termId} onChange={e=>{setTermId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select term</option>{visibleTerms.map(t=><option key={str(t.id)} value={str(t.id)}>{str(t.name)}</option>)}</select></label>
           <label className="grid gap-1.5 text-xs font-bold uppercase tracking-wide text-[var(--ink)]/60">Class<select value={classId} onChange={e=>{setClassId(e.target.value);setRows([])}} className="min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 text-sm font-semibold normal-case"><option value="">Select class</option>{visibleClasses.map(c=><option key={str(c.id)} value={str(c.id)}>{str(c.name)}</option>)}</select></label>
         </div>
-        <div className="flex flex-wrap gap-3 px-5 pb-5 sm:px-7"><button type="button" onClick={()=>void generate()} disabled={busy||!classId||!termId} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{busy?<Loader2 size={16} className="animate-spin"/>:<FileText size={16}/>} {busy?"Generating…":"Generate marksheet"}</button><button type="button" onClick={()=>window.print()} disabled={!rows.length} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-5 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div>
+        <div className="flex flex-wrap gap-3 px-5 pb-5 sm:px-7"><button type="button" onClick={()=>void generate()} disabled={busy||!classId||!termId} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--ink)] px-5 text-sm font-bold text-white disabled:opacity-50">{busy?<Loader2 size={16} className="animate-spin"/>:<FileText size={16}/>} {busy?"Generating…":"Generate marksheet"}</button><button type="button" onClick={printMarksheet} disabled={!rows.length} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--ink)]/15 bg-white px-5 text-sm font-bold disabled:opacity-40"><Printer size={16}/> Print / Save PDF</button></div>
         {message&&<p role="status" className="mx-5 mb-5 rounded-xl bg-[var(--gold)]/10 px-4 py-3 text-sm font-semibold sm:mx-7">{message}</p>}
       </section>
 
