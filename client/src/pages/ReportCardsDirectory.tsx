@@ -5,6 +5,7 @@ import { FileDown, Loader2, Printer, RefreshCw, Save, Sparkles } from "lucide-re
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { getSupabase } from "@/lib/supabase";
+import { persistReportCardWithItems } from "@/lib/reportCardPersistence";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { PortalLayout } from "@/components/PortalLayout";
 import "../report-card.css";
@@ -144,7 +145,26 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
     }catch(e){setMessage(e instanceof Error?e.message:"Report card could not be generated.");}finally{setBusy(false);}
   };
 
-  const save=async()=>{if(!admin||mode!=="term"||!studentId||!termId||!classRow)return;setSaving(true);setMessage("");try{const db=getSupabase();const payload={student_id:studentId,term_id:termId,class_id:classRow.id,attendance_percentage:attendancePercent(attendance),average_score:average,teacher_remark:teacherRemark.trim()||null,headteacher_remark:headRemark.trim()||null,generated_at:new Date().toISOString()};const q=await db.from("report_cards").upsert(payload,{onConflict:"student_id,term_id"}).select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").single();if(q.error)throw q.error;setReport(q.data);setMessage("Report card saved successfully.");}catch(e){setMessage(e instanceof Error?e.message:"Report card could not be saved.");}finally{setSaving(false);}};
+  const save=async()=>{
+    if(!admin||mode!=="term"||!studentId||!termId||!classRow)return;
+    setSaving(true);setMessage("");
+    try{
+      const db=getSupabase();
+      const itemRows=lines.filter(l=>l.score!=null||l.max!=null).map(l=>({
+        subject_id:String(l.id),score:l.score,maximum_score:l.max,grade:l.levelCode==="—"?null:l.levelCode
+      }));
+      const result=await persistReportCardWithItems(db,{
+        studentId,termId,classId:String(classRow.id),
+        attendancePercentage:attendancePercent(attendance),averageScore:average,
+        teacherRemark:teacherRemark.trim()||null,headteacherRemark:headRemark.trim()||null,
+        generatedBy:user?.id??null,items:itemRows
+      });
+      if(result.itemCount!==itemRows.length) throw new Error(`Report-card item verification failed: expected ${itemRows.length}, saved ${result.itemCount}.`);
+      const q=await db.from("report_cards").select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").eq("id",result.reportCardId).single();
+      if(q.error)throw q.error;
+      setReport(q.data);setMessage(`Report card saved successfully with ${result.itemCount} learning-area items.`);
+    }catch(e){setMessage(e instanceof Error?e.message:"Report card could not be saved.");}finally{setSaving(false);}
+  };
 
   const safePart=(v:unknown)=>String(v??"").trim().replace(/\\s+/g,"_").replace(/[^a-zA-Z0-9_-]/g,"")||"Unknown";
   const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;
@@ -163,7 +183,77 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
   };
   const print=()=>window.print();
   const downloadPdf=()=>{if(!selected||!classRow)return;const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));};
-  const batchPdf=async()=>{if(!selected||!classRow||!yearId){setMessage("Generate one learner first so the system knows the class and academic period.");return;}setBusy(true);setMessage("");try{const db=getSupabase();const classId=String(classRow.id);const enr=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");if(enr.error)throw enr.error;const ids=Array.from(new Set((enr.data??[]).map((r:any)=>String(r.student_id))));if(!ids.length)throw new Error("No active learners were found in this class.");const [sr,ar,rc,attAll]=await Promise.all([db.from("students").select("id,admission_number,first_name,middle_name,last_name").in("id",ids),db.from("exam_results").select("student_id,subject_id,score,maximum_score,exam_id,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",ids).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",allSubjects.map(s=>String(s.id))).then(q=>mode==="term"?q.eq("exams.term_id",termId):q),db.from("report_cards").select("student_id,teacher_remark,headteacher_remark").in("student_id",ids).eq("term_id",termId),db.from("attendance_records").select("student_id,status,attendance_sessions!inner(class_id,session_date)").in("student_id",ids)]);for(const q of[sr,ar,rc,attAll])if(q.error)throw q.error;const groups=new Map<string,Row[]>();for(const r of ar.data??[]){const k=String(r.student_id);groups.set(k,[...(groups.get(k)??[]),r]);}const subjects=allSubjects;const attendanceGroups=new Map<string,Row[]>();for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}const standings=ids.map(id=>{const ls=canonicalSubjects(subjects,bandFromClass(classRow));const rows=ls.map(x=>lineFor(x,groups.get(id)??[]));return{id,marks:rows.reduce((n,l)=>n+(l.score??0),0),points:rows.reduce((n,l)=>n+(l.level??0),0)}}).sort((a,b)=>bandFromClass(classRow)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});(sr.data??[]).sort((a:any,b:any)=>learnerName(a).localeCompare(learnerName(b))).forEach((st:any,i:number)=>{if(i)doc.addPage();const standingsPos=standings.findIndex(x=>x.id===String(st.id));const attRows=attendanceGroups.get(String(st.id))??[];const rr=(rc.data??[]).find((x:any)=>String(x.student_id)===String(st.id));drawPdfPage(doc,st,classRow,subjects,groups.get(String(st.id))??[],attRows,standingsPos>=0?standingsPos+1:null,rr?.teacher_remark??"",rr?.headteacher_remark??"");});doc.save(`${safePart(classRow.name??classRow.code)}_${safePart(mode==="term"?selectedTerm?.name:"Annual")}_Report_Cards.pdf`);setMessage(`Batch PDF created for ${sr.data?.length??0} learners in ${classRow.name??classRow.code}.`);}catch(e){setMessage(e instanceof Error?e.message:"Batch report generation failed.");}finally{setBusy(false);}};
+  const batchPdf=async()=>{
+    if(!selected||!classRow||!yearId||mode!=="term"||!termId){
+      setMessage("Generate one learner first and select a term before creating the class batch.");
+      return;
+    }
+    setBusy(true);setMessage("");
+    try{
+      const db=getSupabase();const classId=String(classRow.id);
+      const enr=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
+      if(enr.error)throw enr.error;
+      const ids=Array.from(new Set((enr.data??[]).map((r:any)=>String(r.student_id))));
+      if(!ids.length)throw new Error("No active learners were found in this class.");
+
+      const [sr,ar,rc,attAll]=await Promise.all([
+        db.from("students").select("id,admission_number,first_name,middle_name,last_name").in("id",ids),
+        db.from("exam_results").select("student_id,subject_id,score,maximum_score,exam_id,grade,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",ids).eq("exams.class_id",classId).eq("exams.term_id",termId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",allSubjects.map(s=>String(s.id))),
+        db.from("report_cards").select("student_id,teacher_remark,headteacher_remark").in("student_id",ids).eq("term_id",termId),
+        db.from("attendance_records").select("student_id,status,attendance_sessions!inner(class_id,session_date)").in("student_id",ids)
+      ]);
+      for(const q of[sr,ar,rc,attAll])if(q.error)throw q.error;
+
+      const groups=new Map<string,Row[]>();
+      for(const r of ar.data??[]){const k=String(r.student_id);groups.set(k,[...(groups.get(k)??[]),r]);}
+      const attendanceGroups=new Map<string,Row[]>();
+      for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}
+
+      const subjects=allSubjects;
+      const reportAreas=canonicalSubjects(subjects,bandFromClass(classRow));
+      const standings=ids.map(id=>{
+        const ls=reportAreas.map(x=>lineFor(x,groups.get(id)??[]));
+        return{id,marks:ls.reduce((n,l)=>n+(l.score??0),0),points:ls.reduce((n,l)=>n+(l.level??0),0)};
+      }).sort((a,b)=>bandFromClass(classRow)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);
+
+      const existingRemarks=new Map<string,Row>((rc.data??[]).map((r:any)=>[String(r.student_id),r]));
+      const prepared=(sr.data??[]).map((st:any)=>{
+        const id=String(st.id),studentResults=groups.get(id)??[],linesForStudent=reportAreas.map(x=>lineFor(x,studentResults));
+        const totalMarks=linesForStudent.reduce((n,l)=>n+(l.score??0),0);
+        const totalMax=linesForStudent.reduce((n,l)=>n+(l.max??0),0);
+        const average=totalMax>0?totalMarks/totalMax*100:null;
+        const attRows=attendanceGroups.get(id)??[],remarks=existingRemarks.get(id);
+        const itemRows=linesForStudent.filter(l=>l.score!=null||l.max!=null).map(l=>({
+          subject_id:String(l.id),score:l.score,maximum_score:l.max,grade:l.levelCode==="—"?null:l.levelCode
+        }));
+        return{st,id,linesForStudent,average,attRows,remarks,itemRows};
+      });
+
+      const persisted=[];
+      for(const p of prepared){
+        const result=await persistReportCardWithItems(db,{
+          studentId:p.id,termId,classId,
+          attendancePercentage:attendancePercent(p.attRows),averageScore:p.average,
+          teacherRemark:p.remarks?.teacher_remark??null,headteacherRemark:p.remarks?.headteacher_remark??null,
+          generatedBy:user?.id??null,items:p.itemRows
+        });
+        if(result.itemCount!==p.itemRows.length){
+          throw new Error(`Report-card item verification failed for ${learnerName(p.st)}: expected ${p.itemRows.length}, saved ${result.itemCount}.`);
+        }
+        persisted.push({...p,reportCardId:result.reportCardId});
+      }
+
+      const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+      persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).forEach((p:any,i:number)=>{
+        if(i)doc.addPage();
+        const pos=standings.findIndex(x=>x.id===p.id);
+        drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
+      });
+      doc.save(`${safePart(classRow.name??classRow.code)}_${safePart(selectedTerm?.name)}_Report_Cards.pdf`);
+      setMessage(`Batch PDF created for ${persisted.length} learners. Supabase persistence verified before PDF generation.`);
+    }catch(e){setMessage(e instanceof Error?e.message:"Batch report generation failed. No PDF was generated.");}
+    finally{setBusy(false);}
+  };
 
   const title=band==="LOWER_PRIMARY"?"Lower Primary Report Card":band==="UPPER_PRIMARY"?"Upper Primary Report Card":"Junior School Report Card";
   return <PortalLayout><div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6 lg:px-8">
