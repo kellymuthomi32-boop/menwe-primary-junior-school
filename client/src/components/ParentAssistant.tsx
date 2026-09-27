@@ -1,11 +1,185 @@
-import { FormEvent, useState } from "react";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Bot, ChevronDown, Loader2, MessageCircle, Minus, Send, Sparkles, X } from "lucide-react";
 import { getSupabase } from "@/lib/supabase";
 
-type Message={role:"user"|"assistant";content:string};
-export default function ParentAssistant(){
- const [messages,setMessages]=useState<Message[]>([{role:"assistant",content:"Hello. I can help with your linked learner's fees, CBC progress, school announcements and general CBC guidance."}]);
- const [input,setInput]=useState(""); const [busy,setBusy]=useState(false);
- const submit=async(e:FormEvent)=>{e.preventDefault();const text=input.trim();if(!text||busy)return;const next=[...messages,{role:"user" as const,content:text}];setMessages(next);setInput("");setBusy(true);try{const {data:{session}}=await getSupabase().auth.getSession();if(!session)throw new Error("Please sign in again.");const base=(import.meta.env.VITE_SUPABASE_URL as string|undefined)?.trim();if(!base)throw new Error("Supabase is not configured.");const res=await fetch(`${base}/functions/v1/parent-assistant`,{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({messages:next})});const payload=await res.json().catch(()=>({}));if(!res.ok)throw new Error(payload.error||"Assistant unavailable.");setMessages(v=>[...v,{role:"assistant",content:String(payload.message||"I could not find enough information to answer that.")}]);}catch(err){setMessages(v=>[...v,{role:"assistant",content:err instanceof Error?err.message:"The assistant is temporarily unavailable."}]);}finally{setBusy(false)}};
- return <section className="w-full min-w-0 max-w-full box-border rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"><div className="flex items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-[#D89B28]"><Sparkles size={20}/></span><div><p className="text-xs font-bold uppercase tracking-wider text-[#D89B28]">Secure family assistant</p><h2 className="text-2xl font-bold text-[#061229]">Ask about your school portal</h2></div></div><div className="mt-5 grid max-h-80 gap-3 overflow-y-auto pr-1">{messages.map((m,i)=><div key={i} className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 ${m.role==="user"?"ml-auto bg-[#061229] text-white":"bg-slate-50 text-slate-700"}`}>{m.content}</div>)}</div><form onSubmit={submit} className="mt-5 flex flex-col gap-3 sm:flex-row"><input aria-label="Ask parent assistant" value={input} onChange={e=>setInput(e.target.value)} className="box-border min-h-12 w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-4" placeholder="e.g. What is my child's latest CBC progress?"/><button disabled={busy||!input.trim()} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 font-bold text-[#061229] active:scale-[.98] disabled:opacity-60">{busy?<Loader2 className="animate-spin" size={18}/>:<Send size={18}/>}Ask</button></form><p className="mt-3 text-xs text-slate-400">Only information authorized for your parent account is made available to the assistant.</p></section>;
+type Message = { role: "user" | "assistant"; content: string };
+const INITIAL_MESSAGE = "Hello. I’m Menwe Apex. I can help with your linked learner’s CBC learning, progress, fees, and school information.";
+
+function escapeHtml(value: string) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function renderInline(value: string) {
+  return escapeHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/\$([^$]+)\$/g, '<span class="apex-math">$1</span>');
+}
+
+function MarkdownMessage({ content }: { content: string }) {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const blocks: JSX.Element[] = [];
+  let list: string[] = [];
+  let code: string[] = [];
+  let inCode = false;
+  const fence = String.fromCharCode(96).repeat(3);
+
+  const flushList = () => {
+    if (!list.length) return;
+    blocks.push(<ol key={"list-" + blocks.length} className="my-2 list-decimal space-y-1 pl-5">{list.map((item, i) => <li key={i} dangerouslySetInnerHTML={{ __html: renderInline(item) }} />)}</ol>);
+    list = [];
+  };
+
+  const flushCode = () => {
+    if (!code.length) return;
+    blocks.push(<pre key={"code-" + blocks.length} className="my-3 overflow-x-auto rounded-xl bg-[#061229] p-3 text-xs leading-5 text-slate-100"><code>{code.join("\n")}</code></pre>);
+    code = [];
+  };
+
+  lines.forEach((line, index) => {
+    if (line.trim().startsWith(fence)) {
+      if (inCode) flushCode();
+      else { flushList(); inCode = true; }
+      return;
+    }
+    if (inCode) { code.push(line); return; }
+
+    const trimmed = line.trim();
+    if (!trimmed) { flushList(); return; }
+
+    const numbered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+
+    if (numbered) { list.push(numbered[1]); return; }
+
+    if (bullet) {
+      flushList();
+      blocks.push(<div key={"bullet-" + index} className="my-1 flex gap-2"><span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#D89B28]" /><span dangerouslySetInnerHTML={{ __html: renderInline(bullet[1]) }} /></div>);
+      return;
+    }
+
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      flushList();
+      blocks.push(<h3 key={"heading-" + index} className="mt-3 font-bold text-[#061229] first:mt-0" dangerouslySetInnerHTML={{ __html: renderInline(trimmed.replace(/^#{1,3}\s+/, "")) }} />);
+      return;
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      flushList();
+      blocks.push(<blockquote key={"quote-" + index} className="my-2 border-l-2 border-[#D89B28] pl-3 italic text-slate-600" dangerouslySetInnerHTML={{ __html: renderInline(trimmed.replace(/^>\s?/, "")) }} />);
+      return;
+    }
+
+    flushList();
+    blocks.push(<p key={"paragraph-" + index} className="my-1.5 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: renderInline(trimmed) }} />);
+  });
+
+  if (inCode) flushCode();
+  flushList();
+  return <div className="apex-markdown">{blocks}</div>;
+}
+
+export default function ParentAssistant() {
+  const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: INITIAL_MESSAGE }]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [messages, busy]);
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = input.trim();
+    if (!text || busy) return;
+
+    const nextMessages: Message[] = [...messages, { role: "user", content: text }];
+    setMessages(nextMessages);
+    setInput("");
+    setError(null);
+    setBusy(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 45_000);
+
+    try {
+      const { data: { session } } = await getSupabase().auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+
+      const base = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+      if (!base) throw new Error("Supabase is not configured.");
+
+      const response = await fetch(base.replace(/\/$/, "") + "/functions/v1/parent-assistant", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + session.access_token, "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages.slice(-10) }),
+        signal: controller.signal,
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 401) throw new Error("Your session is no longer valid. Please sign in again.");
+      if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "Apex is temporarily unavailable.");
+
+      const answer = typeof payload.message === "string" ? payload.message : "I could not find enough verified information to answer that.";
+      setMessages((current) => [...current, { role: "assistant", content: answer }]);
+    } catch (err) {
+      const message = err instanceof DOMException && err.name === "AbortError"
+        ? "The request took too long. Please try again."
+        : err instanceof Error ? err.message : "The assistant is temporarily unavailable.";
+      setError(message);
+      setMessages((current) => [...current, { role: "assistant", content: message }]);
+    } finally {
+      window.clearTimeout(timeout);
+      abortRef.current = null;
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      {!open && <button type="button" onClick={() => setOpen(true)} aria-label="Open Menwe Apex assistant" className="fixed bottom-4 right-4 z-50 flex min-h-14 items-center gap-2 rounded-full bg-[#061229] px-4 text-sm font-bold text-white shadow-xl ring-1 ring-white/10 transition hover:-translate-y-0.5 sm:bottom-6 sm:right-6">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#D89B28] text-[#061229]"><Sparkles size={18} /></span>
+        <span className="hidden sm:inline">Ask Menwe Apex</span>
+      </button>}
+
+      {open && <div className="pointer-events-none fixed inset-0 z-50 sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[min(430px,calc(100vw-2rem))]">
+        <section aria-label="Menwe Apex chat" className={"pointer-events-auto absolute bottom-0 right-0 flex w-full flex-col overflow-hidden bg-white shadow-2xl ring-1 ring-slate-200 sm:rounded-3xl " + (minimized ? "h-[76px]" : "h-[min(720px,calc(100dvh-1rem))] rounded-t-3xl sm:h-[min(720px,calc(100dvh-2.5rem))]")}>
+          <header className="flex shrink-0 items-center gap-3 bg-[#061229] px-4 py-3 text-white">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#D89B28] text-[#061229]"><Bot size={20} /></span>
+            <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#D89B28]">Menwe Apex</p><h2 className="truncate text-sm font-bold">Academic & Family Assistant</h2></div>
+            <button type="button" onClick={() => setMinimized((v) => !v)} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label={minimized ? "Expand assistant" : "Minimize assistant"}>{minimized ? <ChevronDown size={18} /> : <Minus size={18} />}</button>
+            <button type="button" onClick={() => { setOpen(false); setMinimized(false); }} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" aria-label="Close assistant"><X size={18} /></button>
+          </header>
+
+          {!minimized && <div className="flex min-h-0 flex-1 flex-col bg-slate-50">
+            <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+              <div className="space-y-3">
+                {messages.map((message, index) => <div key={message.role + "-" + index} className={"flex " + (message.role === "user" ? "justify-end" : "justify-start")}>
+                  <div className={"max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 shadow-sm sm:max-w-[88%] " + (message.role === "user" ? "rounded-br-md bg-[#061229] text-white" : "rounded-bl-md bg-white text-slate-700 ring-1 ring-slate-200")}>
+                    {message.role === "assistant" ? <MarkdownMessage content={message.content} /> : <p className="whitespace-pre-wrap">{message.content}</p>}
+                  </div>
+                </div>)}
+                {busy && <div className="flex justify-start"><div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200"><Loader2 size={16} className="animate-spin text-[#D89B28]" /> Apex is thinking…</div></div>}
+                <div ref={endRef} />
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4">
+              {error && <p role="alert" className="mb-2 text-xs text-red-600">{error}</p>}
+              <form onSubmit={submit} className="flex items-end gap-2">
+                <textarea aria-label="Ask Menwe Apex" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void submit(event); } }} disabled={busy} maxLength={4000} rows={1} className="max-h-32 min-h-12 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-[#D89B28] focus:ring-2 focus:ring-[#D89B28]/20 disabled:opacity-60" placeholder="Ask about learning, CBC, fees or school information…" />
+                <button type="submit" disabled={busy || !input.trim()} aria-label="Send message" className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#D89B28] text-[#061229] shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">{busy ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}</button>
+              </form>
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400"><MessageCircle size={11} /><span>Only data authorized for your parent account is available to Apex.</span></div>
+            </div>
+          </div>}
+        </section>
+      </div>}
+    </>
+  );
 }
