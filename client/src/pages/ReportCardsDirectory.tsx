@@ -96,20 +96,25 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
   }
 
   if (band === "UPPER_PRIMARY") {
-    const normal = canonical.filter(s =>
-      !upperCreativeComponent(s) &&
-      !upperScienceComponent(s) &&
-      !is(s, /\b(CREATIVE ARTS AND SPORTS|INTEGRATED SCIENCE)\b/)
-    );
-    const out: ReportSubject[] = [...normal];
+    // Menwe Upper Primary report cards use the established seven learning areas:
+    // English, Kiswahili, Mathematics, Integrated Science, Social Studies,
+    // Religious Education, and Creative Arts & Sports.
+    const direct = (finder: (s: Row) => boolean, code: string) => {
+      const found = canonical.find(finder);
+      return found ? { ...found, code, synthetic: false } : null;
+    };
 
-    const directScience = canonical.find(s => is(s, /\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\b/));
-    if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
+    const upper: ReportSubject[] = [
+      direct(isEnglish, "ENG"),
+      direct(isKiswahili, "KIS"),
+      direct(isMath, "MATH"),
+      direct(isScience, "INT SCI"),
+      direct(isSST, "SST"),
+      direct(isReligious, "RE"),
+      direct(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/), "CAS"),
+    ].filter(Boolean) as ReportSubject[];
 
-    const directCas = canonical.find(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/));
-    if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
-
-    return sortSubjects(out);
+    return sortSubjects(upper);
   }
 
   const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"];
