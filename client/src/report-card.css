@@ -32,7 +32,7 @@
 .report-table-wrap td strong{display:block;font-size:8px}.report-table-wrap td small{display:block;margin-top:1px;color:#748496;font-size:6px}
 .report-table-wrap td.score{text-align:right;font-variant-numeric:tabular-nums}
 .report-table-wrap td:nth-child(4){text-align:center}
-.level-pill{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:3px 5px;border-radius:999px;background:#E6F4EA;color:#16713B;font-size:7px;font-weight:900;border:1px solid #B9DFC4}
+.level-pill{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:3px 5px;border-radius:999px;font-size:7px;font-weight:900}.level-ee{background:#E6F4EA;color:#16713B;border:1px solid #B9DFC4}.level-me{background:#E8F1FF;color:#1557A6;border:1px solid #B8D0F2}.level-ae{background:#FFF4D8;color:#8A6100;border:1px solid #E9CF86}.level-be{background:#FDE8E8;color:#A33232;border:1px solid #E8B9B9}
 .report-table-wrap tfoot td{background:#EEF3F8!important;color:var(--rc-navy);font-weight:900;border-top:2px solid #9BAFC2}
 .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .summary-grid>div{padding:8px;border:1px solid var(--rc-line);border-top:3px solid var(--rc-gold);border-radius:7px;background:#F8FAFC}
