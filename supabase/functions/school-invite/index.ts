@@ -37,8 +37,8 @@ Deno.serve(async req => {
       .select("role,status")
       .eq("id", user.id)
       .maybeSingle();
-    if (callerError || callerProfile?.role !== "SUPER_ADMIN" || callerProfile.status !== "ACTIVE") {
-      return response({ error: "Only an active Super Administrator can issue school account invitations." }, 403);
+    if (callerError || !["SUPER_ADMIN", "ADMIN"].includes(callerProfile?.role ?? "") || callerProfile.status !== "ACTIVE") {
+      return response({ error: "Only an active Administrator or Super Administrator can issue school account invitations." }, 403);
     }
 
     const payload = await req.json() as {
@@ -60,10 +60,26 @@ Deno.serve(async req => {
     const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const;
 
     if (action === "resend") {
-      return response({
-        error: "Resending an existing invitation requires the configured Supabase Auth email workflow. The existing account was not changed.",
-        code: "RESEND_EMAIL_CONFIGURATION_REQUIRED",
-      }, 409);
+      const email = payload.email?.trim().toLowerCase();
+      const fullName = payload.fullName?.trim() || "Menwe School User";
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return response({ error: "Provide a valid email address to resend the invitation." }, 400);
+      const { data: existingProfile, error: profileLookupError } = await serviceClient.from("profiles").select("id,full_name,role,status").eq("email", email).maybeSingle();
+      if (profileLookupError) return response({ error: "The existing school account could not be located." }, 500);
+      if (!existingProfile) return response({ error: "No existing school account was found for this email. Send a new invitation instead." }, 404);
+      if (!["ADMIN", "SUPER_ADMIN", "TEACHER", "STUDENT", "PARENT"].includes(existingProfile.role)) return response({ error: "The existing account has an unsupported school role." }, 400);
+      const siteUrl = normaliseSiteUrl(Deno.env.get("SITE_URL") ?? req.headers.get("origin"));
+      const redirectTo = siteUrl ? siteUrl + "/portal/password" : undefined;
+      const linkOptions = redirectTo ? { redirectTo, data: { full_name: existingProfile.full_name || fullName } } : { data: { full_name: existingProfile.full_name || fullName } };
+      const { data: linkData, error: linkError } = await serviceClient.auth.admin.generateLink({ type: "invite", email, options: linkOptions });
+      if (linkError || !linkData.properties?.action_link) return response({ error: linkError?.message || "Supabase could not generate a new invitation link." }, 502);
+      const resendApiKey = Deno.env.get("RESEND_API_KEY")?.trim();
+      const resendFrom = (Deno.env.get("RESEND_FROM_EMAIL") ?? Deno.env.get("RESEND_FROM") ?? "").trim();
+      if (!resendApiKey || !resendFrom) return response({ error: "Invitation resend is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL in Supabase Edge Function Secrets, or configure Supabase Auth SMTP/Send Email Hook for the project.", code: "RESEND_EMAIL_CONFIGURATION_REQUIRED" }, 503);
+      const displayName = existingProfile.full_name || fullName;
+      const safeName = displayName.replace(/[<>&]/g, "");
+      const emailResponse = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + resendApiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from: resendFrom, to: [email], subject: "Your Menwe School portal invitation", html: "<p>Hello " + safeName + ",</p><p>You have been invited to access the Menwe Primary &amp; Junior School portal.</p><p><a href=\"" + linkData.properties.action_link + "\">Accept invitation and set your password</a></p><p>If you did not expect this message, you can ignore it.</p>" }) });
+      if (!emailResponse.ok) return response({ error: "The invitation link was generated, but the email provider rejected the message." }, 502);
+      return response({ id: existingProfile.id, message: "Invitation resent to " + email + ". Ask the recipient to check inbox and spam." });
     }
 
     const email = payload.email?.trim().toLowerCase();
