@@ -96,9 +96,10 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
   }
 
   if (band === "UPPER_PRIMARY") {
-    // Menwe Upper Primary report cards use the established seven learning areas:
-    // English, Kiswahili, Mathematics, Integrated Science, Social Studies,
-    // Religious Education, and Creative Arts & Sports.
+    // Upper Primary report cards mirror the six learning areas actually
+    // used by the live Upper Primary marksheet:
+    // English, Kiswahili, Mathematics, Integrated Science,
+    // Social Studies, and Creative Arts & Sports.
     const direct = (finder: (s: Row) => boolean, code: string) => {
       const found = canonical.find(finder);
       return found ? { ...found, code, synthetic: false } : null;
@@ -110,7 +111,6 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
       direct(isMath, "MATH"),
       direct(isScience, "INT SCI"),
       direct(isSST, "SST"),
-      direct(isReligious, "RE"),
       direct(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/), "CAS"),
     ].filter(Boolean) as ReportSubject[];
 
