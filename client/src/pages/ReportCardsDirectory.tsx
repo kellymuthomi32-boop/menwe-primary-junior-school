@@ -74,6 +74,69 @@ function canonicalSubjects(all: Row[], _band: Band): ReportSubject[] {
   }));
 }
 
+const upperCreativeComponent = (s: Row) =>
+  is(s, /\\b(CREATIVE ARTS|CREATIVE ACTIVITIES|CREATIVE ACT|ART|MUSIC|PHYSICAL EDUCATION|PE)\\b/) &&
+  !is(s, /\\bCREATIVE ARTS AND SPORTS\\b/);
+
+const upperScienceComponent = (s: Row) =>
+  is(s, /\\b(AGRICULTURE|HOME SCIENCE|HSC|INFORMATION COMMUNICATION TECHNOLOGY|ICT|COMPUTER)\\b/);
+
+function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
+  const canonical = canonicalSubjects(subjects, band);
+
+  if (band === "LOWER_PRIMARY") {
+    return sortSubjects(canonical);
+  }
+
+  if (band === "UPPER_PRIMARY") {
+    const normal = canonical.filter(s =>
+      !upperCreativeComponent(s) &&
+      !upperScienceComponent(s) &&
+      !is(s, /\\b(CREATIVE ARTS AND SPORTS|INTEGRATED SCIENCE)\\b/)
+    );
+    const out: ReportSubject[] = [...normal];
+
+    const directScience = canonical.find(s => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\\b/));
+    const scienceComponents = canonical.filter(upperScienceComponent);
+    if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
+    else if (scienceComponents.length) {
+      const direct = scienceComponents.find(s => is(s, /\\bAGRICULTURE\\b/)) ?? scienceComponents[0];
+      out.push({ ...direct, code: "INT SCI", name: "Integrated Science", synthetic: false });
+    }
+
+    const directCas = canonical.find(s => is(s, /\\bCREATIVE ARTS AND SPORTS\\b/));
+    const casComponents = canonical.filter(upperCreativeComponent);
+    if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
+    else if (casComponents.length) {
+      const direct = casComponents[0];
+      out.push({ ...direct, code: "CAS", name: "Creative Arts and Sports", synthetic: false });
+    }
+
+    return sortSubjects(out);
+  }
+
+  const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"];
+  const out: ReportSubject[] = [];
+  for (const code of codes) {
+    const found = code === "INT SCI"
+      ? canonical.find(s => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\\b/))
+      : code === "CAS"
+        ? canonical.find(s => is(s, /\\bCREATIVE ARTS AND SPORTS\\b/))
+        : canonical.find(s => {
+            if (code === "ENG") return isEnglish(s);
+            if (code === "KIS") return isKiswahili(s);
+            if (code === "MATH") return isMath(s);
+            if (code === "SST") return isSST(s);
+            if (code === "AGR NUT") return isAgriculture(s);
+            if (code === "RE") return isReligious(s);
+            if (code === "PRE TECH") return isPreTech(s);
+            return false;
+          });
+    if (found) out.push({ ...found, code });
+  }
+  return out.length ? out : sortSubjects(canonical);
+}
+
 function latestFor(rows: Row[], subjectIds: string[]) {
   const filtered = rows.filter(r=>subjectIds.includes(String(r.subject_id)));
   return [...filtered].sort((a,b)=>String(a.exams?.ends_on??a.exams?.starts_on??a.exam_id).localeCompare(String(b.exams?.ends_on??b.exams?.starts_on??b.exam_id))).at(-1) ?? null;
@@ -118,7 +181,7 @@ const classByStudent=new Map<string,Row>((enr.data??[]).reduce<Array<[string,Row
 const orderedStudents=[...(s.data??[])].map((st:any)=>({...st,_className:classByStudent.get(String(st.id))?.name??classByStudent.get(String(st.id))?.code??"",_classGrade:gradeFromClass(classByStudent.get(String(st.id)))})).sort((a:any,b:any)=>(a._classGrade??999)-(b._classGrade??999)||String(a._className??"").localeCompare(String(b._className??""),undefined,{numeric:true,sensitivity:"base"})||learnerName(a).localeCompare(learnerName(b),undefined,{sensitivity:"base"})||String(a.admission_number??"").localeCompare(String(b.admission_number??""),undefined,{numeric:true,sensitivity:"base"}));
 setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId(currentYearId);}catch(e){setMessage(e instanceof Error?e.message:"Report-card workspace could not be loaded.");}finally{setLoading(false);}})();},[user]);
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
-  const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const reportSubjects=useMemo(()=>canonicalSubjects(allSubjects,band),[allSubjects,band]);
+  const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band),[allSubjects,band]);
   const lines=useMemo(()=>reportSubjects.map(s=>lineFor(s,results)),[reportSubjects,results]);
   const totalMarks=useMemo(()=>lines.reduce((n,l)=>n+(l.score??0),0),[lines]); const totalMax=useMemo(()=>lines.reduce((n,l)=>n+(l.max??0),0),[lines]); const average=totalMax?totalMarks/totalMax*100:null; const totalPoints=lines.reduce((n,l)=>n+(l.level??0),0);
   const fullName=selected?learnerName(selected):""; const rankLabel=band==="JUNIOR_SCHOOL"?"Rank • Total Points":"Rank • Total Marks";
@@ -137,7 +200,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       const ids=(sub.data??[]).map((x:any)=>String(x.subject_id)); const termIds=terms.filter(t=>String(t.academic_year_id)===yearId).map(t=>String(t.id));
       const q=mode==="term"?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):termIds.length?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):{data:[],error:null} as any;
       if(q.error)throw q.error;setResults(q.data??[]);
-      const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=canonicalSubjects(classSubjects,bandFromClass(cls.data??undefined));
+      const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
       if(mode==="term"){const rc=await db.from("report_cards").select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").eq("student_id",studentId).eq("term_id",termId).maybeSingle();if(rc.error)throw rc.error;if(rc.data){setReport(rc.data);setTeacherRemark(rc.data.teacher_remark??"");setHeadRemark(rc.data.headteacher_remark??"");}}
@@ -169,7 +232,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
   const safePart=(v:unknown)=>String(v??"").trim().replace(/\\s+/g,"_").replace(/[^a-zA-Z0-9_-]/g,"")||"Unknown";
   const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;
   const drawPdfPage=(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
-    const b=bandFromClass(cls), areas=sortSubjects(canonicalSubjects(subjectRows,b)), ls=areas.map(x=>lineFor(x,studentResults));
+    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b), ls=areas.map(x=>lineFor(x,studentResults));
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), avg=mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     let y=11; const W=210, M=10;
     doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2,y+8,{align:"center"}); doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.text("Igoki, Abogeta  •  Term Academic Report",W/2,y+13,{align:"center"}); doc.setFillColor(216,155,40); doc.rect(M,y+20,W-M*2,5,"F"); doc.setTextColor(6,18,41); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`${mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD"} - ${b.replaceAll("_"," ")}`,W/2,y+23.5,{align:"center"}); y+=31;
@@ -210,7 +273,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}
 
       const subjects=allSubjects;
-      const reportAreas=canonicalSubjects(subjects,bandFromClass(classRow));
+      const reportAreas=reportAreasForBand(subjects,bandFromClass(classRow));
       const standings=ids.map(id=>{
         const ls=reportAreas.map(x=>lineFor(x,groups.get(id)??[]));
         return{id,marks:ls.reduce((n,l)=>n+(l.score??0),0),points:ls.reduce((n,l)=>n+(l.level??0),0)};
