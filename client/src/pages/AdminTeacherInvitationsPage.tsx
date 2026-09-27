@@ -16,7 +16,8 @@ export default function AdminTeacherInvitationsPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);\n  const [resendingEmail, setResendingEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -76,7 +77,25 @@ export default function AdminTeacherInvitationsPage() {
     finally { setSending(false); }
   };
 
-  const resendInvitation = async (teacher: Teacher) => {\n    const targetEmail = teacher.email?.trim().toLowerCase();\n    if (!targetEmail) { setError("This teacher has no email address on the staff record."); return; }\n    setResendingEmail(targetEmail); setMessage(""); setError("");\n    try {\n      const db = getSupabase();\n      const { data, error: invokeError } = await db.functions.invoke("school-invite", { body: { action: "resend", email: targetEmail, fullName: [teacher.first_name, teacher.middle_name, teacher.last_name].filter(Boolean).join(" ") } });\n      if (invokeError) {\n        const context = (invokeError as { context?: Response }).context;\n        let serverMessage = invokeError.message;\n        if (context) { try { const body = await context.clone().json() as { error?: string; message?: string }; serverMessage = body.error || body.message || serverMessage; } catch { /* keep SDK message */ } }\n        throw new Error(serverMessage);\n      }\n      if (data?.error) throw new Error(data.error);\n      setMessage(data?.message || "Invitation resent to " + targetEmail + ".");\n    } catch (e) { setError(e instanceof Error ? e.message : "The invitation could not be resent."); }\n    finally { setResendingEmail(""); }\n  };\n  if (authLoading || loading) return <PortalLayout role="ADMIN"><main className="grid min-h-[60vh] place-items-center"><div className="flex items-center gap-3 text-sm text-[var(--ink)]/60"><Loader2 className="animate-spin text-[var(--gold)]" size={19}/>Loading teacher records…</div></main></PortalLayout>;
+  const resendInvitation = async (teacher: Teacher) => {
+    const targetEmail = teacher.email?.trim().toLowerCase();
+    if (!targetEmail) { setError("This teacher has no email address on the staff record."); return; }
+    setResendingEmail(targetEmail); setMessage(""); setError("");
+    try {
+      const db = getSupabase();
+      const { data, error: invokeError } = await db.functions.invoke("school-invite", { body: { action: "resend", email: targetEmail, fullName: [teacher.first_name, teacher.middle_name, teacher.last_name].filter(Boolean).join(" ") } });
+      if (invokeError) {
+        const context = (invokeError as { context?: Response }).context;
+        let serverMessage = invokeError.message;
+        if (context) { try { const body = await context.clone().json() as { error?: string; message?: string }; serverMessage = body.error || body.message || serverMessage; } catch { /* keep SDK message */ } }
+        throw new Error(serverMessage);
+      }
+      if (data?.error) throw new Error(data.error);
+      setMessage(data?.message || "Invitation resent to " + targetEmail + ".");
+    } catch (e) { setError(e instanceof Error ? e.message : "The invitation could not be resent."); }
+    finally { setResendingEmail(""); }
+  };
+  if (authLoading || loading) return <PortalLayout role="ADMIN"><main className="grid min-h-[60vh] place-items-center"><div className="flex items-center gap-3 text-sm text-[var(--ink)]/60"><Loader2 className="animate-spin text-[var(--gold)]" size={19}/>Loading teacher records…</div></main></PortalLayout>;
 
   return <PortalLayout role="ADMIN"><main className="mx-auto w-full max-w-[1100px] space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
     <header className="menwe-admin-hero relative overflow-hidden rounded-[2.25rem] p-6 text-white shadow-2xl sm:p-9"><div className="relative z-10"><span className="menwe-admin-kicker"><Mail size={14}/> Staff access</span><h1 className="mt-5 text-4xl font-extrabold tracking-[-.04em] sm:text-5xl">Teacher invitations</h1><p className="mt-4 max-w-2xl text-[15px] leading-7 text-white/75">Invite a new teacher directly by name and email, or link an existing teacher record to a secure school account.</p></div></header>
