@@ -97,20 +97,10 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
     const out: ReportSubject[] = [...normal];
 
     const directScience = canonical.find(s => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\\b/));
-    const scienceComponents = canonical.filter(upperScienceComponent);
     if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
-    else if (scienceComponents.length) {
-      const direct = scienceComponents.find(s => is(s, /\\bAGRICULTURE\\b/)) ?? scienceComponents[0];
-      out.push({ ...direct, code: "INT SCI", name: "Integrated Science", synthetic: false });
-    }
 
     const directCas = canonical.find(s => is(s, /\\bCREATIVE ARTS AND SPORTS\\b/));
-    const casComponents = canonical.filter(upperCreativeComponent);
     if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
-    else if (casComponents.length) {
-      const direct = casComponents[0];
-      out.push({ ...direct, code: "CAS", name: "Creative Arts and Sports", synthetic: false });
-    }
 
     return sortSubjects(out);
   }
