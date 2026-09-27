@@ -75,31 +75,38 @@ function canonicalSubjects(all: Row[], _band: Band): ReportSubject[] {
 }
 
 const upperCreativeComponent = (s: Row) =>
-  is(s, /\\b(CREATIVE ARTS|CREATIVE ACTIVITIES|CREATIVE ACT|ART|MUSIC|PHYSICAL EDUCATION|PE)\\b/) &&
-  !is(s, /\\bCREATIVE ARTS AND SPORTS\\b/);
+  is(s, /\b(CREATIVE ARTS|CREATIVE ACTIVITIES|CREATIVE ACT|ART|MUSIC|PHYSICAL EDUCATION|PE)\b/) &&
+  !is(s, /\bCREATIVE ARTS AND SPORTS\b/);
 
 const upperScienceComponent = (s: Row) =>
-  is(s, /\\b(AGRICULTURE|HOME SCIENCE|HSC|INFORMATION COMMUNICATION TECHNOLOGY|ICT|COMPUTER)\\b/);
+  is(s, /\b(AGRICULTURE|HOME SCIENCE|HSC|INFORMATION COMMUNICATION TECHNOLOGY|ICT|COMPUTER)\b/);
 
 function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
   const canonical = canonicalSubjects(subjects, band);
 
   if (band === "LOWER_PRIMARY") {
-    return sortSubjects(canonical);
+    // Menwe Lower Primary report cards use exactly four learning areas:
+    // English, Kiswahili, Mathematics and Environmental Activities.
+    return sortSubjects(canonical.filter(s =>
+      isEnglish(s) ||
+      isKiswahili(s) ||
+      isMath(s) ||
+      is(s, /\b(ENVIRONMENTAL|ENVIRONMENT)\b/)
+    ));
   }
 
   if (band === "UPPER_PRIMARY") {
     const normal = canonical.filter(s =>
       !upperCreativeComponent(s) &&
       !upperScienceComponent(s) &&
-      !is(s, /\\b(CREATIVE ARTS AND SPORTS|INTEGRATED SCIENCE)\\b/)
+      !is(s, /\b(CREATIVE ARTS AND SPORTS|INTEGRATED SCIENCE)\b/)
     );
     const out: ReportSubject[] = [...normal];
 
-    const directScience = canonical.find(s => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\\b/));
+    const directScience = canonical.find(s => is(s, /\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\b/));
     if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false });
 
-    const directCas = canonical.find(s => is(s, /\\bCREATIVE ARTS AND SPORTS\\b/));
+    const directCas = canonical.find(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/));
     if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false });
 
     return sortSubjects(out);
@@ -109,9 +116,9 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
   const out: ReportSubject[] = [];
   for (const code of codes) {
     const found = code === "INT SCI"
-      ? canonical.find(s => is(s, /\\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\\b/))
+      ? canonical.find(s => is(s, /\b(INTEGRATED SCIENCE|SCIENCE TECHNOLOGY)\b/))
       : code === "CAS"
-        ? canonical.find(s => is(s, /\\bCREATIVE ARTS AND SPORTS\\b/))
+        ? canonical.find(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/))
         : canonical.find(s => {
             if (code === "ENG") return isEnglish(s);
             if (code === "KIS") return isKiswahili(s);
