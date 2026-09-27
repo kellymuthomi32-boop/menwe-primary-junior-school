@@ -1,15 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PRODUCTION_ORIGIN = "https://menwe-primary-junior-school.vercel.app";
-const corsHeaders = (origin: string | null) => {
-  const allowed = !origin || origin === PRODUCTION_ORIGIN || /^https:\/\/menwe-primary-junior-school-[a-z0-9-]+\.vercel\.app$/.test(origin);
-  return {
-    "Access-Control-Allow-Origin": allowed && origin ? origin : PRODUCTION_ORIGIN,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
-  };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 type Role = "parent" | "teacher" | "institution";
@@ -60,8 +55,24 @@ const SYSTEM_POLICY = [
   "Always distinguish verified Menwe database facts, seeded curriculum content, and general pedagogical explanation."
 ].join("\n");
 
-function json(body: unknown, status = 200, origin: string | null = null) {
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), "Content-Type": "application/json", "Cache-Control": "no-store" } });
+function audit(event: string, fields: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({
+    service: "apex-engine",
+    event,
+    timestamp: new Date().toISOString(),
+    ...fields,
+  }));
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 function normalizeRole(raw: string): Role | null {
@@ -249,36 +260,60 @@ async function runTool(db: ReturnType<typeof createClient>, profile: Profile, ro
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("Origin");
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(origin) });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+  const requestId = crypto.randomUUID();
+  let auditUserId: string | null = null;
+  let auditRole: Role | null = null;
+
+  const respond = (body: unknown, status = 200) => {
+    audit("invocation_result", {
+      request_id: requestId,
+      user_id: auditUserId,
+      role: auditRole,
+      status_code: status,
+      outcome: status >= 400 ? "error" : "success",
+    });
+    return json(body, status);
+  };
+
+  if (req.method === "OPTIONS") {
+    audit("cors_preflight", { request_id: requestId });
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  audit("invocation_started", { request_id: requestId, method: req.method });
+  if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
 
   try {
     const authorization = req.headers.get("Authorization");
-    if (!authorization || !/^Bearer\s+\S+$/i.test(authorization)) return json({ error: "Authentication required" }, 401, origin);
+    if (!authorization || !/^Bearer\s+\S+$/i.test(authorization)) return respond({ error: "Authentication required" }, 401);
 
     const bodyBytes = await req.arrayBuffer();
-    if (bodyBytes.byteLength > 24 * 1024) return json({ error: "Request is too large." }, 413, origin);
+    if (bodyBytes.byteLength > 24 * 1024) return respond({ error: "Request is too large." }, 413);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!supabaseUrl || !serviceRole || !openaiKey) return json({ error: "Apex is not configured." }, 503, origin);
+    if (!supabaseUrl || !serviceRole || !openaiKey) return respond({ error: "Apex is not configured." }, 503);
 
     const db = createClient(supabaseUrl, serviceRole);
     const token = authorization.replace(/^Bearer\s+/i, "");
     const { data: { user }, error: userError } = await db.auth.getUser(token);
-    if (userError || !user) return json({ error: "Invalid session" }, 401, origin);
+    if (userError || !user) return respond({ error: "Invalid session" }, 401);
+    auditUserId = user.id;
+    audit("jwt_verified", { request_id: requestId, user_id: user.id });
 
     const profileResult = await db.from("profiles").select("id,role,status").eq("id", user.id).maybeSingle();
-    if (profileResult.error || !profileResult.data) return json({ error: "Verified school profile not found." }, 403, origin);
+    if (profileResult.error || !profileResult.data) return respond({ error: "Verified school profile not found." }, 403);
     const profile = profileResult.data as Profile;
-    if (String(profile.status).toUpperCase() !== "ACTIVE") return json({ error: "Your school account is not active." }, 403, origin);
+    if (String(profile.status).toUpperCase() !== "ACTIVE") return respond({ error: "Your school account is not active." }, 403);
 
     const role = normalizeRole(profile.role);
-    if (!role) return json({ error: "Your account role is not authorized to use Menwe Apex." }, 403, origin);
+    if (!role) return respond({ error: "Your account role is not authorized to use Menwe Apex." }, 403);
+    auditRole = role;
+    audit("role_resolved", { request_id: requestId, user_id: user.id, role, profile_role: profile.role });
 
     let body: Record<string, unknown> = {};
-    try { body = JSON.parse(new TextDecoder().decode(bodyBytes)); } catch { return json({ error: "Invalid JSON request." }, 400, origin); }
+    try { body = JSON.parse(new TextDecoder().decode(bodyBytes)); } catch { return respond({ error: "Invalid JSON request." }, 400); }
 
     const rawMessages = Array.isArray(body.messages) ? body.messages : [];
     const messages = rawMessages
@@ -286,7 +321,7 @@ Deno.serve(async (req) => {
       .map((m) => ({ role: "user" as const, content: String((m as any).content).trim().slice(0, 4000) }))
       .filter((m) => m.content.length > 0)
       .slice(-10);
-    if (!messages.length) return json({ error: "At least one user message is required." }, 400, origin);
+    if (!messages.length) return respond({ error: "At least one user message is required." }, 400);
 
     const current: any[] = [{ role: "system", content: SYSTEM_POLICY + "\n\nCURRENT SERVER-VERIFIED ROLE: " + role.toUpperCase() + ". The server, not the user, determines this role and tool boundary." }, ...messages];
     const roleTools = tools.filter((t) => ROLE_TOOLS[role].includes(t.function.name));
@@ -310,22 +345,31 @@ Deno.serve(async (req) => {
           signal: controller.signal,
         });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return json({ error: "Apex timed out while contacting the AI service." }, 504, origin);
+        if (error instanceof DOMException && error.name === "AbortError") return respond({ error: "Apex timed out while contacting the AI service." }, 504);
         throw error;
       } finally {
         clearTimeout(timeout);
       }
 
-      if (!response.ok) return json({ error: "AI service temporarily unavailable." }, 502, origin);
+      if (!response.ok) return respond({ error: "AI service temporarily unavailable." }, 502);
       const completion = await response.json();
       const message = completion.choices?.[0]?.message;
-      if (!message) return json({ error: "No Apex response was produced." }, 502, origin);
-      if (!message.tool_calls?.length) return json({ message: message.content || "I could not find enough verified information to answer that.", role });
+      if (!message) return respond({ error: "No Apex response was produced." }, 502);
+      if (!message.tool_calls?.length) return respond({ message: message.content || "I could not find enough verified information to answer that.", role });
 
       current.push(message);
       for (const call of message.tool_calls as ToolCall[]) {
         const toolName = boundedString(call.function?.name, 80);
-        if (!allowed(role, toolName)) {
+        const toolAllowed = allowed(role, toolName);
+        audit("tool_authorization", {
+          request_id: requestId,
+          user_id: user.id,
+          role,
+          tool: toolName,
+          allowed: toolAllowed,
+          decision: toolAllowed ? "allowed" : "blocked",
+        });
+        if (!toolAllowed) {
           current.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ error: "Tool denied by server role policy." }) });
           continue;
         }
@@ -335,9 +379,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ error: "Apex reached its safe tool-call limit. Please narrow the request." }, 429, origin);
+    return respond({ error: "Apex reached its safe tool-call limit. Please narrow the request." }, 429);
   } catch (error) {
     console.error("apex-engine error", error);
-    return json({ error: "Apex could not complete that request." }, 500, origin);
+    return respond({ error: "Apex could not complete that request." }, 500);
   }
 });
