@@ -18,6 +18,12 @@ const initial: FormData = { learnerFullName:"", dateOfBirth:"", gender:"", entry
 const grades = ["PP1","PP2","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","JSS Grade 7","JSS Grade 8","JSS Grade 9"];
 const steps = ["Learner", "Guardian", "Documents", "Review"];
 
+function referenceCode() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 7).toUpperCase();
+  return `MENWE-${stamp}-${random}`;
+}
+
 function Field({ label, name, value, onChange, type="text", required=false, placeholder="" }: { label:string; name:string; value:string; onChange:(name:string,value:string)=>void; type?:string; required?:boolean; placeholder?:string }) {
   return <label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">{label}{required && <span className="text-[#D89B28]"> *</span>}</span><input name={name} value={value} onChange={e=>onChange(name,e.target.value)} type={type} required={required} placeholder={placeholder} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#061229] outline-none transition focus:border-[#D89B28] focus:ring-4 focus:ring-[#D89B28]/10" /></label>;
 }
