@@ -50,8 +50,8 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          rm -f .github/workflows/upgrade-apex-math-workspace.yml
-          git add client/src/components/ParentAssistant.tsx supabase/functions/apex-engine/index.ts .github/workflows/upgrade-apex-math-workspace.yml
+          rm -f .github/workflows/upgrade-apex-math-workspace.yml .apex-math-trigger
+          git add client/src/components/ParentAssistant.tsx supabase/functions/apex-engine/index.ts .github/workflows/upgrade-apex-math-workspace.yml .apex-math-trigger
           git diff --cached --quiet && exit 0
           git commit -m 'Upgrade Apex mathematics workspace [apex-math-upgrade]'
-          git push origin HEAD:fix/apex-mathematics-workspace
+          git push origin HEAD:main
