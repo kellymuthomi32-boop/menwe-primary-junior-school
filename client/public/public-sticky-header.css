@@ -1,9 +1,101 @@
 /* Public-site header: fixed so it remains visible throughout scroll on mobile and desktop. */
 header:has(nav[aria-label="Public navigation"]) { position: fixed !important; inset: 0 0 auto 0 !important; width: 100% !important; z-index: 1000 !important; }
 header:has(nav[aria-label="Public navigation"]) + main { padding-top: 108px; }
-button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { background-color: transparent !important; background-image: url('/menwe-crest.svg'); background-position: center; background-repeat: no-repeat; background-size: contain; box-shadow: none !important; }
+button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { background-color: #fff !important; background-image: url('/menwe-crest.svg'); background-position: center; background-repeat: no-repeat; background-size: 100% 100%; box-shadow: 0 8px 22px rgba(6,18,41,.14) !important; border: 2px solid rgba(216,155,40,.65); }
 button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > div, button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > span { display: none !important; }
+button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !important; }
+@media (min-width: 1024px) { button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { width: 58px !important; height: 58px !important; border-radius: 15px !important; } }
 @media (max-width: 1023px) { header:has(nav[aria-label="Public navigation"]) + main { padding-top: 68px; } }
 @media (max-width: 430px) { header:has(nav[aria-label="Public navigation"]) { padding-top: env(safe-area-inset-top); } header:has(nav[aria-label="Public navigation"]) + main { padding-top: calc(68px + env(safe-area-inset-top)); } }
 @media (prefers-reduced-motion: reduce) { header:has(nav[aria-label="Public navigation"]) * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
-/* Menwe official branding release: navy #061229 + warm gold #D89B28. */
+
+/* Official Menwe branding: navy #061229 + warm gold #D89B28. */
+
+/* Portal sidebar: replace the generic MENWE SCHOOL wordmark with the approved crest. */
+.menwe-portal aside > button[aria-label="Return to Menwe public website"] {
+  min-height: 66px !important;
+  gap: 10px !important;
+  border: 1px solid rgba(216,155,40,.22) !important;
+  background: linear-gradient(135deg, rgba(216,155,40,.10), rgba(255,255,255,.035)) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.14);
+  font-size: 0 !important;
+}
+.menwe-portal aside > button[aria-label="Return to Menwe public website"]::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 13px;
+  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat;
+  border: 1px solid rgba(216,155,40,.65);
+  box-shadow: 0 7px 20px rgba(0,0,0,.20);
+}
+.menwe-portal aside > button[aria-label="Return to Menwe public website"]::after {
+  content: "MENWE  •  PRIMARY & JUNIOR SCHOOL";
+  display: block;
+  max-width: 155px;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+/* Footer: replace the plain M mark with the official crest. */
+.menwe-footer-mark {
+  position: relative !important;
+  overflow: hidden !important;
+  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat !important;
+  border: 2px solid #D89B28 !important;
+  box-shadow: 0 10px 24px rgba(6,18,41,.16) !important;
+}
+.menwe-footer-mark > span { visibility: hidden !important; }
+
+/* Report-card screen header: replace the LOGO placeholder with the approved crest. */
+.report-logo-slot {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(216,155,40,.72) !important;
+  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  box-shadow: 0 7px 18px rgba(6,18,41,.12) !important;
+}
+.report-logo-slot * { visibility: hidden !important; }
+.report-logo-slot::after { content: ""; }
+
+/* Class marksheet: give the navy header a strong, unmistakable school crest. */
+.marksheet-header {
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 86px !important;
+  box-shadow: 0 10px 26px rgba(6,18,41,.16) !important;
+}
+.marksheet-header::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 62px;
+  height: 62px;
+  transform: translateY(-50%);
+  border-radius: 14px;
+  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat;
+  border: 2px solid #D89B28;
+  box-shadow: 0 8px 22px rgba(0,0,0,.18);
+  z-index: 1;
+}
+.marksheet-header > * { position: relative; z-index: 2; }
+.marksheet-header > h2,
+.marksheet-header > div { margin-left: 78px !important; }
+@media (max-width: 640px) {
+  .marksheet-header { min-height: 76px !important; }
+  .marksheet-header::before { left: 12px; width: 50px; height: 50px; border-radius: 11px; }
+  .marksheet-header > h2,
+  .marksheet-header > div { margin-left: 62px !important; }
+}
+
+/* Give the public header a visible gold identity instead of a muted generic mark. */
+header:has(nav[aria-label="Public navigation"]) { box-shadow: 0 10px 30px rgba(6,18,41,.10), inset 0 -2px 0 rgba(216,155,40,.55) !important; }
+header:has(nav[aria-label="Public navigation"]) nav button[aria-current="page"] { color: #061229 !important; }
