@@ -14,16 +14,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Fetch official logo from the connected Drive asset
         run: |
           set -euo pipefail
           mkdir -p client/public
           python3 -m pip install --quiet gdown
-          gdown --id '1w0tBMoLtnZF-UTTb-W1CuA1Ok2PcEPD8' -O /tmp/menwe-logo-source
+          gdown 'https://drive.google.com/uc?id=1w0tBMoLtnZF-UTTb-W1CuA1Ok2PcEPD8' -O /tmp/menwe-logo-source
           file /tmp/menwe-logo-source
           identify /tmp/menwe-logo-source
-
       - name: Prepare web and favicon assets
         run: |
           set -euo pipefail
@@ -31,44 +29,44 @@ jobs:
           convert /tmp/menwe-logo-source -crop '975x835+140+45' +repage -resize '800x800>' -strip -quality 92 client/public/menwe-crest.png
           convert client/public/menwe-crest.png -resize 256x256 -strip client/public/menwe-favicon.png
           rm -f client/public/menwe-crest.svg
-
       - name: Apply branding integration
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           root = Path('.')
-
           p = root / 'client/src/components/PublicLayout.tsx'
           s = p.read_text()
-          s = re.sub(r'export function SchoolMark\(.*?\n\}\nconst primaryNav', '''export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {\n  return <div className="flex items-center gap-3">\n    <img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="h-11 w-11 shrink-0 rounded-xl object-contain" />\n    {!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}\n  </div>;\n}\nconst primaryNav''', s, flags=re.S)
+          s = re.sub(r'export function SchoolMark\(.*?\n\}\nconst primaryNav', '''export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
+  return <div className="flex items-center gap-3">
+    <img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="h-11 w-11 shrink-0 rounded-xl object-contain" />
+    {!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}
+  </div>;
+}
+const primaryNav''', s, flags=re.S)
           p.write_text(s)
-
           p = root / 'client/src/components/Footer.tsx'
           s = p.read_text().replace('<div className="menwe-footer-mark"><span>M</span></div>', '<div className="menwe-footer-mark"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></div>')
           p.write_text(s)
-
           p = root / 'client/src/components/PortalLayout.tsx'
           s = p.read_text().replace('<button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center rounded-2xl px-2 text-left" aria-label="Return to Menwe public website"><span className="font-black tracking-tight">MENWE <span className="text-[var(--gold)]">SCHOOL</span></span></button>', '<button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center gap-3 rounded-2xl px-2 text-left" aria-label="Return to Menwe public website"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="h-10 w-10 shrink-0 rounded-xl object-contain" /><span className="min-w-0"><span className="block font-black tracking-tight">MENWE</span><span className="block text-[9px] font-extrabold uppercase tracking-[.16em] text-[var(--gold)]">Primary & Junior School</span></span></button>')
           p.write_text(s)
-
           p = root / 'client/src/pages/PortalLoginPage.tsx'
           s = p.read_text()
           needle = '<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md sm:p-8"><div className="grid grid-cols-2'
           replacement = '<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md sm:p-8"><div className="mb-5 flex justify-center"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="h-24 w-24 rounded-2xl object-contain" /></div><div className="grid grid-cols-2'
           if needle not in s: raise SystemExit('PortalLoginPage anchor not found')
           p.write_text(s.replace(needle, replacement, 1))
-
           p = root / 'client/src/pages/ReportCardsDirectory.tsx'
           s = p.read_text()
           s = s.replace('<div className="report-logo-slot" aria-label="School logo placeholder">LOGO</div>', '<div className="report-logo-slot" aria-label="Menwe Primary & Junior School crest"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></div>')
-          s = s.replace('const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;', 'const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;\n  const loadReportLogo=()=>new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Menwe crest could not be loaded for the PDF."));img.src="/menwe-crest.png";});')
+          s = s.replace('const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;', 'const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;
+  const loadReportLogo=()=>new Promise<HTMLImageElement>((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error("Menwe crest could not be loaded for the PDF."));img.src="/menwe-crest.png";});')
           s = s.replace('const drawPdfPage=(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{', 'const drawPdfPage=(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string,logo:HTMLImageElement)=>{')
           s = s.replace('let y=11; const W=210, M=10;\n    doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F");', 'let y=11; const W=210, M=10;\n    doc.addImage(logo,"PNG",M+2,y+2,20,20,"menwe-crest","FAST");\n    doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F");')
           s = s.replace('const downloadPdf=()=>{if(!selected||!classRow)return;const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));};', 'const downloadPdf=async()=>{if(!selected||!classRow)return;try{const logo=await loadReportLogo();const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark,logo);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));}catch(e){setMessage(e instanceof Error?e.message:"PDF could not be generated.");}};')
           s = s.replace('const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});\n      persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).forEach((p:any,i:number)=>{\n        if(i)doc.addPage();\n        const pos=standings.findIndex(x=>x.id===p.id);\n        drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");\n      });', 'const logo=await loadReportLogo();\n      const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});\n      persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).forEach((p:any,i:number)=>{\n        if(i)doc.addPage();\n        const pos=standings.findIndex(x=>x.id===p.id);\n        drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"",logo);\n      });')
           p.write_text(s)
-
           p = root / 'client/index.html'
           s = p.read_text()
           s = s.replace('<meta property="og:image" content="https://menwe-primary-junior-school.vercel.app/favicon.svg" />','<meta property="og:image" content="https://menwe-primary-junior-school.vercel.app/menwe-logo.jpg" />')
@@ -77,14 +75,11 @@ jobs:
           if '<link rel="manifest"' not in s:
               s = s.replace('<link rel="stylesheet" href="/public-sticky-header.css" />','<link rel="manifest" href="/manifest.webmanifest" />\n    <link rel="stylesheet" href="/public-sticky-header.css" />')
           p.write_text(s)
-
           (root / 'client/public/manifest.webmanifest').write_text('{\n  "name": "Menwe Primary & Junior School",\n  "short_name": "Menwe School",\n  "start_url": "/",\n  "display": "standalone",\n  "background_color": "#061229",\n  "theme_color": "#061229",\n  "icons": [{"src":"/menwe-favicon.png","sizes":"256x256","type":"image/png"}]\n}\n')
-
           p = root / 'client/src/report-card.css'
           s = p.read_text().replace('.report-logo-slot{width:58px;height:58px;flex:0 0 58px;border:2px dashed rgba(255,255,255,.7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;letter-spacing:.08em}', '.report-logo-slot{width:58px;height:58px;flex:0 0 58px;border:0;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}.report-logo-slot img{width:100%;height:100%;object-fit:contain}')
           p.write_text(s)
           PY
-
       - name: Commit branding rollout
         run: |
           git config user.name 'github-actions[bot]'
