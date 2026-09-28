@@ -1,22 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" role="img" aria-labelledby="title desc">
 <title>Menwe Primary &amp; Junior School crest</title>
-<desc>Navy and warm-gold Menwe school crest with a tree, rising sun and open book.</desc>
+<desc>Official Menwe navy and warm-gold school crest with tree, sun, open book and laurel.</desc>
 <rect width="800" height="900" fill="white" fill-opacity="0"/>
 <path d="M400 35 650 105v285c0 220-104 360-250 438C254 750 150 610 150 390V105Z" fill="#061229" stroke="#D89B28" stroke-width="20"/>
 <path d="M400 70 615 130v255c0 188-83 304-215 378C268 689 185 573 185 385V130Z" fill="none" stroke="white" stroke-width="7" opacity=".9"/>
 <path d="M400 170c-18 0-34 16-34 36v205c-44-68-102-101-156-104 54 22 91 60 123 105-40-21-83-28-125-17 61 8 111 35 151 75-45-5-87 4-122 29 55-9 110 1 163 34v48h40v-48c53-33 108-43 163-34-35-25-77-34-122-29 40-40 90-67 151-75-42-11-85-4-125 17 32-45 69-83 123-105-54 3-112 36-156 104V206c0-20-16-36-34-36Z" fill="white"/>
-<g fill="#D89B28">
-<ellipse cx="400" cy="126" rx="17" ry="31"/><ellipse cx="350" cy="145" rx="14" ry="27" transform="rotate(-28 350 145)"/><ellipse cx="450" cy="145" rx="14" ry="27" transform="rotate(28 450 145)"/>
-<ellipse cx="305" cy="181" rx="13" ry="25" transform="rotate(-48 305 181)"/><ellipse cx="495" cy="181" rx="13" ry="25" transform="rotate(48 495 181)"/>
-<ellipse cx="265" cy="228" rx="12" ry="23" transform="rotate(-62 265 228)"/><ellipse cx="535" cy="228" rx="12" ry="23" transform="rotate(62 535 228)"/>
-<ellipse cx="240" cy="278" rx="11" ry="22" transform="rotate(-72 240 278)"/><ellipse cx="560" cy="278" rx="11" ry="22" transform="rotate(72 560 278)"/>
-</g>
+<g fill="#D89B28"><ellipse cx="400" cy="126" rx="17" ry="31"/><ellipse cx="350" cy="145" rx="14" ry="27" transform="rotate(-28 350 145)"/><ellipse cx="450" cy="145" rx="14" ry="27" transform="rotate(28 450 145)"/><ellipse cx="305" cy="181" rx="13" ry="25" transform="rotate(-48 305 181)"/><ellipse cx="495" cy="181" rx="13" ry="25" transform="rotate(48 495 181)"/><ellipse cx="265" cy="228" rx="12" ry="23" transform="rotate(-62 265 228)"/><ellipse cx="535" cy="228" rx="12" ry="23" transform="rotate(62 535 228)"/><ellipse cx="240" cy="278" rx="11" ry="22" transform="rotate(-72 240 278)"/><ellipse cx="560" cy="278" rx="11" ry="22" transform="rotate(72 560 278)"/></g>
 <path d="M238 530c48-80 115-121 162-121s114 41 162 121c-65-31-113-40-162-40s-97 9-162 40Z" fill="#D89B28"/>
 <g stroke="#D89B28" stroke-width="10" stroke-linecap="round"><path d="M275 505 225 465"/><path d="M315 488 280 438"/><path d="M355 478 335 423"/><path d="M445 478 465 423"/><path d="M485 488 520 438"/><path d="M525 505 575 465"/></g>
-<path d="M400 520 310 500c-36-8-67 12-73 45l-7 50c48-15 102-12 170 16Z" fill="white" stroke="#D89B28" stroke-width="8"/>
-<path d="M400 520 490 500c36-8 67 12 73 45l7 50c-48-15-102-12-170 16Z" fill="white" stroke="#D89B28" stroke-width="8"/>
-<path d="M400 520v91" stroke="#061229" stroke-width="7"/>
-<path d="M400 611c-63-25-116-30-170-16 61 7 118 27 170 57 52-30 109-50 170-57-54-14-107-9-170 16Z" fill="white" stroke="#061229" stroke-width="7"/>
-<g fill="none" stroke="#D89B28" stroke-width="13" stroke-linecap="round"><path d="M110 690c54 68 112 94 178 105"/><path d="M690 690c-54 68-112 94-178 105"/></g>
-<g fill="#D89B28"><ellipse cx="132" cy="700" rx="18" ry="38" transform="rotate(-42 132 700)"/><ellipse cx="164" cy="742" rx="18" ry="38" transform="rotate(-52 164 742)"/><ellipse cx="205" cy="773" rx="18" ry="38" transform="rotate(-62 205 773)"/><ellipse cx="668" cy="700" rx="18" ry="38" transform="rotate(42 668 700)"/><ellipse cx="636" cy="742" rx="18" ry="38" transform="rotate(52 636 742)"/><ellipse cx="595" cy="773" rx="18" ry="38" transform="rotate(62 595 773)"/></g>
+<path d="M400 520 310 500c-36-8-67 12-73 45l-7 50c48-15 102-12 170 16Z" fill="white" stroke="#D89B28" stroke-width="8"/><path d="M400 520 490 500c36-8 67 12 73 45l7 50c-48-15-102-12-170 16Z" fill="white" stroke="#D89B28" stroke-width="8"/><path d="M400 520v91" stroke="#061229" stroke-width="7"/><path d="M400 611c-63-25-116-30-170-16 61 7 118 27 170 57 52-30 109-50 170-57-54-14-107-9-170 16Z" fill="white" stroke="#061229" stroke-width="7"/>
+<g fill="none" stroke="#D89B28" stroke-width="13" stroke-linecap="round"><path d="M110 690c54 68 112 94 178 105"/><path d="M690 690c-54 68-112 94-178 105"/></g><g fill="#D89B28"><ellipse cx="132" cy="700" rx="18" ry="38" transform="rotate(-42 132 700)"/><ellipse cx="164" cy="742" rx="18" ry="38" transform="rotate(-52 164 742)"/><ellipse cx="205" cy="773" rx="18" ry="38" transform="rotate(-62 205 773)"/><ellipse cx="668" cy="700" rx="18" ry="38" transform="rotate(42 668 700)"/><ellipse cx="636" cy="742" rx="18" ry="38" transform="rotate(52 636 742)"/><ellipse cx="595" cy="773" rx="18" ry="38" transform="rotate(62 595 773)"/></g>
 </svg>
