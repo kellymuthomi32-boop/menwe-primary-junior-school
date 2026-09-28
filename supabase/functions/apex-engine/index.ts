@@ -55,6 +55,28 @@ const SYSTEM_POLICY = [
   "Always distinguish verified Menwe database facts, seeded curriculum content, and general pedagogical explanation."
 ].join("\n");
 
+
+const MATHEMATICS_POLICY = [
+  "MATHEMATICS WORKSPACE:",
+  "- Treat this as a dedicated Mathematics working area, not a general chat response.",
+  "- Use Kenyan CBC Mathematics language and adapt the explanation to the requested grade/level.",
+  "- Prefer this structure when appropriate: Problem → Given/Find → Method/Formula → Step-by-step working → Answer → Check/Verification.",
+  "- Never jump from the question to the final answer when working is requested. Show every meaningful calculation and preserve equality signs correctly.",
+  "- Arithmetic: recompute important results independently; show carrying/borrowing, place value, regrouping, and estimation where useful.",
+  "- Fractions: identify common denominators, show equivalent fractions, simplify the final result, and distinguish proper/improper/mixed fractions.",
+  "- Decimals, percentages, ratio and proportion: show conversions and the relationship between quantities before calculating.",
+  "- Algebra: collect like terms carefully, show each transformation on both sides, and substitute the final value back to verify when possible.",
+  "- Geometry and mensuration: state the formula, substitute values, calculate, and include correct units. For diagrams, describe labels, angles, lengths, scale and construction clearly.",
+  "- Statistics and probability: show the data used, formula, substitution and interpretation. For graphs, state axes, scale, coordinates and plotted points explicitly.",
+  "- Word problems: extract known information, identify what is required, choose the operation/formula, solve, then interpret the answer in context.",
+  "- Grades 1-3: concrete and visual language. Grades 4-6: structured multi-step working. Grades 7-9: formal notation, algebraic reasoning and verification.",
+  "- If the learner gives an attempted solution, diagnose the first incorrect step before giving the corrected working.",
+  "- If a full solution is not requested, offer a hint first. If full working is requested, provide it fully.",
+  "- Use Kenyan examples such as KSh, metres, litres, kilograms and school situations when helpful, but never invent school records.",
+  "- When a specific CBC strand or sub-strand is requested, use the verified curriculum lookup tool rather than guessing.",
+  "- Do not claim calculator or graph output you did not actually compute; show transparent working that the learner can reproduce.",
+].join("\n");
+
 function audit(event: string, fields: Record<string, unknown> = {}) {
   console.log(JSON.stringify({
     service: "apex-engine",
@@ -315,6 +337,9 @@ Deno.serve(async (req) => {
     let body: Record<string, unknown> = {};
     try { body = JSON.parse(new TextDecoder().decode(bodyBytes)); } catch { return respond({ error: "Invalid JSON request." }, 400); }
 
+    const subjectMode = body.subject_mode === "mathematics" ? "mathematics" : "general";
+    const allowedMathLevels = new Set(["auto", "1-3", "4-6", "7-9"]);
+    const mathLevel = allowedMathLevels.has(String(body.math_level)) ? String(body.math_level) : "auto";
     const rawMessages = Array.isArray(body.messages) ? body.messages : [];
     const messages = rawMessages
       .filter((m) => m && typeof m === "object" && (m as any).role === "user" && typeof (m as any).content === "string")
@@ -323,7 +348,8 @@ Deno.serve(async (req) => {
       .slice(-10);
     if (!messages.length) return respond({ error: "At least one user message is required." }, 400);
 
-    const current: any[] = [{ role: "system", content: SYSTEM_POLICY + "\n\nCURRENT SERVER-VERIFIED ROLE: " + role.toUpperCase() + ". The server, not the user, determines this role and tool boundary." }, ...messages];
+    const subjectPolicy = subjectMode === "mathematics" ? MATHEMATICS_POLICY + "\n\nREQUESTED MATHEMATICS LEVEL: " + mathLevel : "";
+    const current: any[] = [{ role: "system", content: SYSTEM_POLICY + "\n\n" + subjectPolicy + "\n\nCURRENT SERVER-VERIFIED ROLE: " + role.toUpperCase() + ". The server, not the user, determines this role and tool boundary." }, ...messages];
     const roleTools = tools.filter((t) => ROLE_TOOLS[role].includes(t.function.name));
 
     for (let round = 0; round < 4; round++) {
@@ -340,7 +366,7 @@ Deno.serve(async (req) => {
             tools: roleTools,
             tool_choice: "auto",
             temperature: 0.2,
-            max_tokens: 900,
+            max_tokens: subjectMode === "mathematics" ? 1400 : 900,
           }),
           signal: controller.signal,
         });
