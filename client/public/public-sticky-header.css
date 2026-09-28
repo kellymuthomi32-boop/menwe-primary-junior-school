@@ -10,6 +10,21 @@ header:has(nav[aria-label="Public navigation"]) + main {
   padding-top: 108px;
 }
 
+/* Official Menwe crest replaces the legacy M monogram without changing the React layout. */
+button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child {
+  background-color: transparent !important;
+  background-image: url('/menwe-crest.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none !important;
+  ring: none;
+}
+button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > div,
+button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > span {
+  display: none !important;
+}
+
 @media (max-width: 1023px) {
   header:has(nav[aria-label="Public navigation"]) + main {
     padding-top: 68px;
