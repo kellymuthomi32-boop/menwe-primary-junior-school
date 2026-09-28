@@ -12,7 +12,9 @@ describe("email access and invitation controls", () => {
 
   it("keeps invitations server-side and restricted to active privileged callers", async () => {
     const invitationFunction = await read("../supabase/functions/school-invite/index.ts");
-    expect(invitationFunction).toContain('callerProfile?.role !== "SUPER_ADMIN"');
+    expect(invitationFunction).toContain("callerProfile");
+    expect(invitationFunction).toContain('["SUPER_ADMIN", "ADMIN"].includes(callerProfile?.role ?? "")');
+    expect(invitationFunction).toContain('callerProfile.status !== "ACTIVE"');
     expect(invitationFunction).toContain("serviceClient.auth.admin.inviteUserByEmail");
     expect(invitationFunction).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(invitationFunction).not.toContain("return response({ serviceKey");
@@ -23,7 +25,8 @@ describe("email access and invitation controls", () => {
     expect(invitationFunction).toContain('const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const');
     expect(invitationFunction).toContain("The invitation role must match the selected school record type.");
     expect(invitationFunction).toContain("The selected school record is unavailable or already linked to an account.");
-    expect(invitationFunction).toContain("const removeNewAccount = async () => { await serviceClient.auth.admin.deleteUser(invitation.user.id); };");
+    expect(invitationFunction).toContain("const removeNewAccount = async () => {");
+    expect(invitationFunction).toContain("serviceClient.auth.admin.deleteUser(invitation.user.id)");
     expect(invitationFunction).toContain("The account could not be linked to the selected school record.");
   });
 });
