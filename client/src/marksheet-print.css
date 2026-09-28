@@ -48,13 +48,15 @@
  html body .marksheet-v2 .marksheet-header h3{font-size:8.5pt!important;margin-top:2.5mm!important;padding:1.5mm 3mm!important}
  html body .marksheet-v2 .marksheet-header>div{font-size:5.8pt!important;margin-top:1.5mm!important}
  html body .marksheet-v2 .marksheet-table-wrap{padding:2.5mm 0 0!important;background:#fff!important;overflow:visible!important}
- html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:5.8pt!important}
+ html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:6.5pt!important}
  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tfoot{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
- html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:.8mm .35mm!important;height:4.7mm!important;line-height:1.05!important;color:#071b3a!important;border:1px solid #9aaabd!important}
- html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:5.8pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ /* The report has 39 learners. Keep exactly 20 on page 1 and 19 on page 2 so both pages use the paper well. */
+ html body .marksheet-v2 .marksheet-table tbody tr:nth-child(20){break-after:page!important;page-break-after:always!important}
+ html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:1.05mm .4mm!important;height:6.2mm!important;line-height:1.12!important;color:#071b3a!important;border:1px solid #9aaabd!important}
+ html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:6.2pt!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
  html body .marksheet-v2 .marksheet-table thead tr:nth-child(2) th{background:#164a82!important}
  html body .marksheet-v2 .marksheet-table .col-no{width:7mm!important}
  html body .marksheet-v2 .marksheet-table .col-learner{width:50mm!important}
@@ -64,13 +66,13 @@
  html body .marksheet-v2 .marksheet-table .col-points{width:15mm!important}
  html body .marksheet-v2 .marksheet-table .col-rank{width:11mm!important}
  html body .marksheet-v2 .marksheet-table thead tr:first-child th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:50mm!important;min-width:50mm!important}
- html body .marksheet-v2 .subject-code{font-size:6.2pt!important;color:#f3d78e!important}
- html body .marksheet-v2 .subject-name{font-size:5pt!important;color:#fff!important}
- html body .marksheet-v2 .name-cell{font-size:5.3pt!important;text-align:left!important}
- html body .marksheet-v2 .mark-cell,html body .marksheet-v2 .level-cell,html body .marksheet-v2 .total-marks-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .rank-cell{font-size:5.5pt!important;font-weight:900!important}
+ html body .marksheet-v2 .subject-code{font-size:6.8pt!important;color:#f3d78e!important}
+ html body .marksheet-v2 .subject-name{font-size:5.4pt!important;color:#fff!important}
+ html body .marksheet-v2 .name-cell{font-size:6.5pt!important;text-align:left!important}
+ html body .marksheet-v2 .mark-cell,html body .marksheet-v2 .level-cell,html body .marksheet-v2 .total-marks-cell,html body .marksheet-v2 .points-cell,html body .marksheet-v2 .rank-cell{font-size:6.3pt!important;font-weight:900!important}
  html body .marksheet-v2 .marksheet-summary-row td{background:#f7f0df!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2 .level-legend{font-size:5.7pt!important;line-height:1.3!important;padding:1.8mm 0!important;border:0!important}
+ html body .marksheet-v2 .level-legend{font-size:6.1pt!important;line-height:1.35!important;padding:2mm 0!important;border:0!important}
  html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
 
