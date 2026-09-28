@@ -1,0 +1,92 @@
+name: Menwe branding fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  branding:
+    if: ${{ !contains(github.event.head_commit.message, '[menwe-brand-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build official logo assets
+        run: |
+          set -euo pipefail
+          mkdir -p client/public
+          python3 -m pip install --quiet gdown
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+          gdown 'https://drive.google.com/uc?id=1w0tBMoLtnZF-UTTb-W1CuA1Ok2PcEPD8' -O /tmp/menwe-logo-source
+          convert /tmp/menwe-logo-source -resize '1254x1254>' -strip -interlace Plane -quality 90 client/public/menwe-logo.jpg
+          convert /tmp/menwe-logo-source -crop '975x835+140+45' +repage -resize '800x800>' -strip -quality 92 client/public/menwe-crest.png
+          convert client/public/menwe-crest.png -resize 256x256 -strip client/public/menwe-favicon.png
+
+      - name: Apply visible branding
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('.')
+          p = root / 'client/src/components/PublicLayout.tsx'
+          s = p.read_text()
+          s = re.sub(r'export function SchoolMark\(.*?\n\}\nconst primaryNav', '''export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
+            return <div className="flex items-center gap-3">
+              <span className="menwe-brand-crest-wrap"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="menwe-brand-crest" /></span>
+              {!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}
+            </div>;
+          }
+          const primaryNav''', s, flags=re.S)
+          p.write_text(s)
+          p = root / 'client/src/components/PortalLayout.tsx'
+          s = p.read_text()
+          s = s.replace('<button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center rounded-2xl px-2 text-left" aria-label="Return to Menwe public website"><span className="font-black tracking-tight">MENWE <span className="text-[var(--gold)]">SCHOOL</span></span></button>', '<button onClick={()=>move("/")} className="menwe-focus-ring mx-1 flex min-h-12 items-center gap-3 rounded-2xl px-2 text-left" aria-label="Return to Menwe public website"><span className="menwe-portal-brand-crest"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></span><span className="min-w-0"><span className="block font-black tracking-tight">MENWE</span><span className="block text-[9px] font-extrabold uppercase tracking-[.16em] text-[var(--gold)]">Primary & Junior School</span></span></button>')
+          p.write_text(s)
+          p = root / 'client/src/components/Footer.tsx'
+          s = p.read_text().replace('<div className="menwe-footer-mark"><span>M</span></div>', '<div className="menwe-footer-mark"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></div>')
+          p.write_text(s)
+          p = root / 'client/src/pages/PortalLoginPage.tsx'
+          s = p.read_text()
+          needle = '<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md sm:p-8"><div className="grid grid-cols-2'
+          replacement = '<div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md sm:p-8"><div className="mb-5 flex justify-center"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" className="h-24 w-24 rounded-2xl object-contain" /></div><div className="grid grid-cols-2'
+          if needle in s: s = s.replace(needle, replacement, 1)
+          p.write_text(s)
+          p = root / 'client/src/pages/ClassMarksheetV2.tsx'
+          s = p.read_text()
+          old = '<header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-5 text-white sm:px-7"><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2>'
+          new = '<header className="marksheet-header border-b border-[#D89B28]/40 bg-[var(--ink)] px-5 py-4 text-white sm:px-7"><div className="flex items-center gap-4"><span className="marksheet-logo"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></span><div><h2 className="text-2xl font-black uppercase">MENWE PRIMARY & JUNIOR SCHOOL</h2>'
+          if old in s:
+              s = s.replace(old, new, 1)
+              s = s.replace('<div className="mt-2 text-xs font-bold text-[var(--gold)]">{str(selectedTerm?.name)} • {str(years.find(y=>str(y.id)===yearId)?.name)}</div></header>', '<div className="mt-2 text-xs font-bold text-[var(--gold)]">{str(selectedTerm?.name)} • {str(years.find(y=>str(y.id)===yearId)?.name)}</div></div></div></header>', 1)
+          p.write_text(s)
+          p = root / 'client/src/pages/ReportCardsDirectory.tsx'
+          s = p.read_text().replace('<div className="report-logo-slot" aria-label="School logo placeholder">LOGO</div>', '<div className="report-logo-slot" aria-label="Menwe Primary & Junior School crest"><img src="/menwe-crest.png" alt="Menwe Primary & Junior School crest" /></div>')
+          p.write_text(s)
+          p = root / 'client/src/report-card.css'
+          s = p.read_text().replace('.report-logo-slot{width:58px;height:58px;flex:0 0 58px;border:2px dashed rgba(255,255,255,.7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;letter-spacing:.08em}', '.report-logo-slot{width:62px;height:62px;flex:0 0 62px;border:2px solid rgba(216,155,40,.65);border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}.report-logo-slot img{width:100%;height:100%;object-fit:contain}')
+          p.write_text(s)
+          p = root / 'client/index.html'
+          s = p.read_text().replace('https://menwe-primary-junior-school.vercel.app/menwe-crest.svg', 'https://menwe-primary-junior-school.vercel.app/menwe-logo.jpg')
+          s = re.sub(r'<link rel="icon"[^>]+>\n\s*<link rel="shortcut icon"[^>]+>\n\s*<link rel="apple-touch-icon"[^>]+>', '<link rel="icon" href="/menwe-favicon.png?v=4" type="image/png" />\n    <link rel="shortcut icon" href="/menwe-favicon.png?v=4" type="image/png" />\n    <link rel="apple-touch-icon" href="/menwe-favicon.png?v=4" />', s, count=1)
+          p.write_text(s)
+          p = root / 'client/src/index.css'
+          if p.exists():
+              s = p.read_text()
+              extra = '''\n/* Official Menwe branding */\n.menwe-brand-crest-wrap{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#fff;border:1px solid rgba(216,155,40,.35);box-shadow:0 8px 22px rgba(6,18,41,.12);overflow:hidden}\n.menwe-brand-crest{width:44px;height:44px;object-fit:contain}\n.menwe-portal-brand-crest{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.2)}\n.menwe-portal-brand-crest img{width:38px;height:38px;object-fit:contain}\n.marksheet-logo{display:grid;place-items:center;width:58px;height:58px;flex:0 0 58px;border-radius:14px;background:#fff;border:2px solid #D89B28;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.18)}\n.marksheet-logo img{width:54px;height:54px;object-fit:contain}\n'''
+              if 'menwe-brand-crest-wrap' not in s: p.write_text(s+extra)
+          trigger = root / '.branding-rollout-trigger'
+          if trigger.exists(): trigger.unlink()
+          PY
+      - name: Commit branding fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add client/public client/src client/index.html .branding-rollout-trigger
+          git diff --cached --quiet && exit 0
+          git commit -m 'Apply official Menwe branding across school UI [menwe-brand-fix]'
+          git push origin main
