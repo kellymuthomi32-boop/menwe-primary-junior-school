@@ -29,14 +29,11 @@ export default function Footer() {
 
   useEffect(() => {
     if (location !== "/") return;
-
     const pageMain = document.querySelector("#main-content > main");
     if (!pageMain) return;
-
     const sections = pageMain.querySelectorAll(":scope > section");
     const lastSection = sections[sections.length - 1];
     if (!lastSection) return;
-
     const sectionText = lastSection.textContent?.toLowerCase() ?? "";
     const looksLikeDuplicateFooter = /school visit|plan a visit|contact the school|ready for the next step|visit menwe/.test(sectionText);
     if (looksLikeDuplicateFooter) lastSection.remove();
@@ -59,8 +56,8 @@ export default function Footer() {
 
         <div className="menwe-footer-grid">
           <div className="menwe-footer-brand">
-            <div className="menwe-footer-mark"><span>M</span></div>
-            <div className="menwe-footer-brand-name">Menwe</div>
+            <div className="menwe-footer-mark"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School official logo" loading="lazy" decoding="async" /></div>
+            <div className="menwe-footer-brand-name">Menwe Primary &amp; Junior School</div>
             <div className="menwe-footer-brand-sub">PRIMARY &amp; JUNIOR SCHOOL</div>
             <p>Inspiring confident, disciplined and capable learners through excellent education, character and community.</p>
             <div className="menwe-footer-contact">
