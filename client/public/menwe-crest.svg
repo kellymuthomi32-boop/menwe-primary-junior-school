@@ -1,1 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 70 1095 1055"><title>Menwe Primary &amp; Junior School official crest</title><image href="https://drive.google.com/uc?export=view&amp;id=1w0tBMoLtnZF-UTTb-W1CuA1Ok2PcEPD8" x="0" y="0" width="1254" height="1254" preserveAspectRatio="none"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Menwe Primary &amp; Junior School crest</title>
+  <desc id="desc">A navy and warm gold school shield with a rising sun, open book and growing tree.</desc>
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1d3a"/><stop offset="1" stop-color="#061229"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2c15c"/><stop offset="1" stop-color="#D89B28"/></linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="246" fill="#fff"/>
+  <circle cx="256" cy="256" r="236" fill="url(#navy)" stroke="url(#gold)" stroke-width="12"/>
+  <path d="M112 145 Q256 92 400 145 L382 350 Q364 405 256 442 Q148 405 130 350Z" fill="#fff" stroke="url(#gold)" stroke-width="7"/>
+  <path d="M128 154 Q256 110 384 154 L367 342 Q350 389 256 421 Q162 389 145 342Z" fill="url(#navy)"/>
+  <circle cx="256" cy="198" r="44" fill="#D89B28" opacity=".98"/>
+  <g stroke="#f2c15c" stroke-width="8" stroke-linecap="round">
+    <path d="M256 136v-18"/><path d="M213 148l-10-16"/><path d="M299 148l10-16"/><path d="M182 177l-18-6"/><path d="M330 177l18-6"/>
+  </g>
+  <path d="M164 260 Q208 229 256 262 Q304 229 348 260 V319 Q304 287 256 320 Q208 287 164 319Z" fill="#fff" stroke="#D89B28" stroke-width="7"/>
+  <path d="M256 262v58" stroke="#D89B28" stroke-width="6"/>
+  <path d="M256 272 C249 248 255 224 274 211 C279 233 273 252 256 272Z" fill="#fff" stroke="#D89B28" stroke-width="5"/>
+  <path d="M256 272 C262 247 282 232 303 230 C296 251 280 266 256 272Z" fill="#D89B28"/>
+  <path d="M256 271 C249 246 231 232 209 232 C217 254 233 267 256 271Z" fill="#D89B28"/>
+  <path d="M256 319v31" stroke="#D89B28" stroke-width="7" stroke-linecap="round"/>
+  <path d="M190 350 Q256 378 322 350" fill="none" stroke="#D89B28" stroke-width="5" stroke-linecap="round"/>
+  <text x="256" y="108" text-anchor="middle" fill="#061229" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="800" letter-spacing="3">MENWE</text>
+  <text x="256" y="387" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="800" letter-spacing="2">PRIMARY • JUNIOR</text>
+  <circle cx="256" cy="256" r="225" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
+</svg>
