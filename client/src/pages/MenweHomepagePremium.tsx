@@ -69,7 +69,7 @@ export default function MenweHomepagePremium() {
   const principal = cacheBustedUrl(media.principal_photo?.image_url, media.principal_photo?.updated_at) || cacheBustedUrl(media.homepage_hero_2?.image_url, media.homepage_hero_2?.updated_at) || "/hero-community.svg";
 
   return <PublicLayout>
-    <main className="w-full overflow-x-hidden bg-[#F7F9F8] text-[#10261D]">
+    <div className="w-full overflow-x-hidden bg-[#F7F9F8] text-[#10261D]">
       <section className="relative overflow-hidden bg-[#061229]" aria-labelledby="hero-title">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(216,155,40,.18),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(9,112,72,.22),transparent_35%)]" />
         <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 sm:pb-12 sm:pt-12 lg:px-8 lg:pb-16 lg:pt-16">
@@ -108,6 +108,6 @@ export default function MenweHomepagePremium() {
       {events.length > 0 && <section className="bg-white px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="flex items-end justify-between gap-5"><SectionHeading eyebrow="UP NEXT" title="Upcoming school events"/><button onClick={() => navigate("/events")} className="hidden items-center gap-2 text-sm font-black text-[#064A30] sm:inline-flex">See calendar <ArrowRight size={16}/></button></div><div className="mt-8 grid gap-4 md:grid-cols-3">{events.map((item,index) => <div key={`event-${index}`} className="flex gap-4 rounded-2xl border border-slate-200 bg-[#F8FAF9] p-5"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#064A30] text-[#D89B28]"><CalendarDays size={19}/></div><div><h3 className="font-black text-[#17352A]">{item.title || "School event"}</h3><p className="mt-1 text-xs text-slate-500">{item.date ? String(item.date).slice(0,10) : "See school calendar"}</p></div></div>)}</div></div></section>}
 
       <section className="relative overflow-hidden bg-[#D89B28] px-4 py-16 sm:px-6 lg:px-8 lg:py-20"><div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10"/><div className="relative mx-auto flex max-w-7xl flex-col justify-between gap-8 lg:flex-row lg:items-center"><div><p className="text-xs font-black uppercase tracking-[.2em] text-[#061229]/65">YOUR CHILD'S NEXT CHAPTER</p><h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-[#061229] sm:text-5xl">Give your child a place to discover what they can become.</h2><p className="mt-4 max-w-2xl text-base leading-7 text-[#061229]/70">Explore Menwe, ask your questions and take the next step with confidence.</p></div><div className="flex flex-col gap-3 sm:flex-row"><button onClick={() => navigate("/admissions")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#061229] px-6 py-3.5 text-sm font-black text-white hover:bg-[#102044]">Explore admissions <ArrowRight size={17}/></button><button onClick={() => navigate("/contact")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#061229]/20 px-6 py-3.5 text-sm font-black text-[#061229] hover:bg-white/15"><MapPin size={16}/> Plan a visit</button></div></div></section>
-    </main>
+    </div>
   </PublicLayout>;
 }
