@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, Facebook, Instagram, Mail, MapPin, Menu, Phone, ShieldCheck, Sparkles, X, Youtube, BookOpen, HeartHandshake, GraduationCap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, Facebook, Instagram, Mail, MapPin, Menu, Phone, ShieldCheck, Sparkles, X, BookOpen, HeartHandshake, GraduationCap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Footer from "./Footer";
@@ -15,7 +15,6 @@ const socialChannels = [
 ] as const;
 const links = [["Home", "/"], ["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"], ["Gallery", "/gallery"], ["Contact", "/contact"]] as const;
 const discoverLinks = [["School life", "/school-life"], ["For families", "/families"], ["How it works", "/how-it-works"]] as const;
-const legalLinks = [["Terms & conditions", "/terms"], ["Privacy", "/privacy"], ["Cookies", "/cookies"]] as const;
 const footerPrinciples = [
   { label: "Learning", title: "A clear path through school", copy: "Keep academics, attendance and everyday school life connected in one experience.", icon: BookOpen },
   { label: "Families", title: "Closer communication", copy: "Make it easier for families to stay informed and connected with the school.", icon: HeartHandshake },
@@ -23,7 +22,7 @@ const footerPrinciples = [
 ] as const;
 
 export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
-  return <div className="flex items-center gap-3"><div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-[1rem] bg-[var(--ink)] text-white shadow-[0_10px_24px_rgba(29,43,37,.18)] ring-1 ring-white/20"><div className="absolute inset-[3px] rounded-[.78rem] border border-[var(--gold)]/55" /><span className="relative font-serif text-xl font-bold leading-none">M</span></div>{!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}</div>;
+  return <div className="flex items-center gap-3"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School" className="h-12 w-[214px] shrink-0 object-contain object-left" loading="eager" decoding="async" />{!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}</div>;
 }
 const primaryNav = [["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"]] as const;
 
