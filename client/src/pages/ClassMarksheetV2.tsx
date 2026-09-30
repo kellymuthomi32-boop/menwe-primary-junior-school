@@ -110,8 +110,8 @@ export default function ClassMarksheetV2() {
             </thead>
             <tbody>{rankedRows.map((item, i)=><tr key={str(item.row.id)}><td>{i+1}</td><td className="name-cell">{learnerName(item.row)}</td>{displaySubjects.flatMap(s=>{const a=achievementForPercentage(percentageFor(item.row,s));return [<td key={`${item.row.id}-${s.id}-score`} className="mark-cell">{markFor(item.row,s)}</td>,<td key={`${item.row.id}-${s.id}-level`} className="level-cell">{a?.code||"—"}</td>]})}<td className="total-marks-cell">{item.totalMarks==null?"—":fmt(item.totalMarks)}</td><td className="points-cell">{item.totalPoints==null?"—":item.totalPoints}</td><td className="rank-cell">{item.rank??"—"}</td></tr>)}</tbody>
             <tfoot>
-              <tr className="marksheet-summary-row"><td colSpan={1}>TOTAL MARKS</td>{displaySubjects.flatMap(s=><td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>)}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr>
-              <tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={1}>MEAN</td>{displaySubjects.flatMap(s=><td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>)}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1)):"—"}</td><td>—</td><td>—</td></tr>
+              <tr className="marksheet-summary-row"><td colSpan={2}>TOTAL MARKS</td>{displaySubjects.flatMap(s=><td key={`total-${s.id}`} colSpan={2}>{rows.length?fmt(subjectTotal(s)):"—"}</td>)}<td>{rows.length?fmt(classTotalMarks):"—"}</td><td>{rows.length?classTotalPoints:"—"}</td><td>—</td></tr>
+              <tr className="marksheet-summary-row marksheet-mean-row"><td colSpan={2}>MEAN</td>{displaySubjects.flatMap(s=><td key={`mean-${s.id}`} colSpan={2}>{subjectMean(s)==null?"—":`${fmt(subjectMean(s))}%`}</td>)}<td>{rankedRows.length?fmt(rankedRows.reduce((sum,x)=>sum+(x.mean??0),0)/(rankedRows.filter(x=>x.mean!=null).length||1))+"%":"—"}</td><td>—</td><td>—</td></tr>
             </tfoot>
           </table>
         </div>}
