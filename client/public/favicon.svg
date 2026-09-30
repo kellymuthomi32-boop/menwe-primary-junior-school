@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="285 95 680 790"><title>Menwe Primary &amp; Junior School favicon</title><image href="https://drive.google.com/uc?export=view&amp;id=1w0tBMoLtnZF-UTTb-W1CuA1Ok2PcEPD8" x="0" y="0" width="1254" height="1254" preserveAspectRatio="none"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Menwe Primary &amp; Junior School favicon</title>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1d3a"/><stop offset="1" stop-color="#061229"/></linearGradient></defs>
+  <circle cx="256" cy="256" r="244" fill="#fff"/>
+  <path d="M86 112 Q256 54 426 112 L402 332 Q380 407 256 458 Q132 407 110 332Z" fill="url(#g)" stroke="#D89B28" stroke-width="12"/>
+  <circle cx="256" cy="190" r="52" fill="#D89B28"/>
+  <path d="M151 264 Q205 229 256 266 Q307 229 361 264 V337 Q307 301 256 338 Q205 301 151 337Z" fill="#fff" stroke="#D89B28" stroke-width="8"/>
+  <path d="M256 266v72" stroke="#D89B28" stroke-width="7"/>
+  <path d="M256 270 C247 241 255 214 277 198 C283 224 275 250 256 270Z" fill="#fff"/>
+  <path d="M256 270 C264 244 284 227 307 228 C300 252 282 267 256 270Z" fill="#061229"/>
+  <path d="M256 270 C248 244 228 228 205 228 C212 252 230 267 256 270Z" fill="#061229"/>
+  <text x="256" y="118" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="31" font-weight="900" letter-spacing="4">M</text>
+</svg>
