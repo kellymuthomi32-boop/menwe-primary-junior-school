@@ -35,14 +35,6 @@
 .marksheet-v2 .marksheet-mean-row td{background:#fffaf0;border-top:1px solid #ead7aa}
 .marksheet-v2 .level-legend{margin:0!important;padding:15px 24px!important;border-top:1px solid #dbe5ef!important;background:#fff;color:#42546b;font-size:10px;line-height:1.65}
 .marksheet-v2 .level-legend strong{color:#0b315f;text-transform:uppercase;letter-spacing:.05em}
-.marksheet-print-brand-row{display:none!important}
-.marksheet-print-brand{display:flex;align-items:center;justify-content:flex-start;gap:8mm;text-align:left}
-.marksheet-print-brand img{width:18mm;height:18mm;object-fit:contain;background:#fff;border:1px solid #d89b28;border-radius:3mm;padding:1.5mm;box-sizing:border-box;flex:0 0 18mm}
-.marksheet-print-brand div{display:grid;gap:1mm}
-.marksheet-print-brand strong{font-size:12pt;line-height:1.05;letter-spacing:.02em}
-.marksheet-print-brand span{font-size:7pt;line-height:1.1;font-weight:600}
-.marksheet-print-brand b{font-size:8.5pt;line-height:1.1}
-.marksheet-print-brand em{font-size:7pt;line-height:1.1;font-style:normal;font-weight:800;color:#f3d78e}
 @media screen and (max-width:900px){.marksheet-v2{border-radius:18px}.marksheet-v2 .marksheet-header{padding:22px 20px 20px!important}.marksheet-v2 .marksheet-header h2{font-size:22px}.marksheet-v2 .marksheet-header h3{font-size:11px}.marksheet-v2 .marksheet-brand-logo{left:16px;width:52px;height:52px}.marksheet-v2 .marksheet-header-content{margin-left:68px!important}.marksheet-v2 .marksheet-table-wrap{padding:10px!important}.marksheet-v2 .marksheet-table{min-width:1080px}}
 
 @media print{
@@ -60,8 +52,7 @@
  html body .marksheet-v2>.marksheet-header p{margin-top:1mm!important;font-size:7pt!important;line-height:1.05!important;color:#fff!important}
  html body .marksheet-v2>.marksheet-header h3{margin-top:2mm!important;padding:1.5mm 3mm!important;border:1px solid rgba(216,155,40,.5)!important;border-radius:1.5mm!important;background:rgba(255,255,255,.06)!important;font-size:8.5pt!important;line-height:1.05!important;color:#fff!important}
  html body .marksheet-v2>.marksheet-header-content>div,html body .marksheet-v2>.marksheet-header .marksheet-header-content>div{margin-top:1mm!important;font-size:7pt!important;color:#f3d78e!important}
- html body .marksheet-v2 .marksheet-print-brand-row{display:none!important}
- html body .marksheet-v2 .marksheet-table-wrap{padding:0!important;background:#fff!important;overflow:visible!important}
+ html body .marksheet-v2  html body .marksheet-v2 .marksheet-table-wrap{padding:0!important;background:#fff!important;overflow:visible!important}
  html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:9pt!important}
  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
@@ -78,15 +69,6 @@
  html body .marksheet-v2 .marksheet-table thead tr:not(.marksheet-print-brand-row):first-of-type th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:50mm!important;min-width:50mm!important}
  html body .marksheet-v2 .marksheet-summary-row td{height:7.5mm!important;background:#f7f0df!important;font-size:9pt!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2 .marksheet-print-brand-row{display:table-row!important}
- html body .marksheet-v2 .marksheet-print-brand-row th{height:20mm!important;padding:1.5mm 3mm!important;background:#071b3a!important;color:#fff!important;text-align:left!important;border:1px solid #071b3a!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2 .marksheet-print-brand{display:flex!important;align-items:center!important;gap:5mm!important;width:100%!important;min-height:17mm!important;text-align:left!important}
- html body .marksheet-v2 .marksheet-print-brand img{display:block!important;visibility:visible!important;width:16mm!important;height:16mm!important;min-width:16mm!important;object-fit:contain!important;background:#fff!important;border:1px solid #d89b28!important;border-radius:2mm!important;padding:1mm!important}
- html body .marksheet-v2 .marksheet-print-brand div{display:grid!important;gap:.8mm!important;min-width:0!important}
- html body .marksheet-v2 .marksheet-print-brand strong{font-size:12pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2 .marksheet-print-brand span{font-size:7.5pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2 .marksheet-print-brand b{font-size:9pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2 .marksheet-print-brand em{font-size:7.5pt!important;line-height:1.05!important;color:#f3d78e!important;font-style:normal!important;font-weight:900!important}
- html body .marksheet-v2 .level-legend{font-size:8pt!important;line-height:1.2!important;padding:2mm 0!important;border:0!important}
+ html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2 .level-legend{font-size:8pt!important;line-height:1.2!important;padding:2mm 0!important;border:0!important}
  html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
