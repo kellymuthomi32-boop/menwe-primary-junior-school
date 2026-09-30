@@ -99,3 +99,13 @@ button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !impo
 /* Give the public header a visible gold identity instead of a muted generic mark. */
 header:has(nav[aria-label="Public navigation"]) { box-shadow: 0 10px 30px rgba(6,18,41,.10), inset 0 -2px 0 rgba(216,155,40,.55) !important; }
 header:has(nav[aria-label="Public navigation"]) nav button[aria-current="page"] { color: #061229 !important; }
+
+/* Final public-brand cleanup: one official logo, no stretched wordmark or duplicate footer artwork. */
+.menwe-school-mark{min-width:0!important}
+.menwe-school-mark-image{width:54px!important;height:54px!important;flex:0 0 54px;display:grid;place-items:center;border:1px solid rgba(216,155,40,.55);border-radius:15px;background:#fff;box-shadow:0 7px 20px rgba(6,18,41,.12);overflow:hidden}
+.menwe-school-mark-image img{display:block;width:100%;height:100%;object-fit:contain}
+.menwe-school-mark-copy{min-width:0}
+.menwe-school-mark-copy>span:first-child{white-space:nowrap}
+.menwe-footer-mark{width:82px!important;height:82px!important;border:1px solid rgba(216,155,40,.48)!important;border-radius:20px!important;background:#fff!important;box-shadow:0 12px 30px rgba(0,0,0,.20)!important}
+@media(max-width:1023px){.menwe-school-mark-image{width:48px!important;height:48px!important;flex-basis:48px;border-radius:13px}.menwe-school-mark-copy>span:first-child{font-size:15px}.menwe-school-mark-copy>span:last-child{font-size:8px}}
+@media(max-width:430px){.menwe-school-mark{gap:8px}.menwe-school-mark-image{width:44px!important;height:44px!important;flex-basis:44px}.menwe-school-mark-copy>span:last-child{letter-spacing:.13em}}

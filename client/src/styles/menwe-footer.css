@@ -4,3 +4,7 @@
 .menwe-footer-mark img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:left center!important}
 .menwe-footer-brand-name,.menwe-footer-brand-sub{display:none!important}
 @media(max-width:560px){.menwe-footer-mark{width:200px!important;height:70px!important}}
+/* Canonical official logo treatment — use the approved Menwe artwork without stretching it. */
+.menwe-footer-mark{width:82px!important;height:82px!important;display:grid!important;place-items:center!important;border:1px solid rgba(216,155,40,.48)!important;border-radius:20px!important;background:#fff!important;box-shadow:0 12px 30px rgba(0,0,0,.20)!important;overflow:hidden!important}
+.menwe-footer-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important}
+@media(max-width:560px){.menwe-footer-mark{width:74px!important;height:74px!important}}
