@@ -35,7 +35,7 @@
 .marksheet-v2 .marksheet-mean-row td{background:#fffaf0;border-top:1px solid #ead7aa}
 .marksheet-v2 .level-legend{margin:0!important;padding:15px 24px!important;border-top:1px solid #dbe5ef!important;background:#fff;color:#42546b;font-size:10px;line-height:1.65}
 .marksheet-v2 .level-legend strong{color:#0b315f;text-transform:uppercase;letter-spacing:.05em}
-.marksheet-print-brand-row{display:none}
+.marksheet-print-brand-row{display:none!important}
 .marksheet-print-brand{display:flex;align-items:center;justify-content:flex-start;gap:8mm;text-align:left}
 .marksheet-print-brand img{width:18mm;height:18mm;object-fit:contain;background:#fff;border:1px solid #d89b28;border-radius:3mm;padding:1.5mm;box-sizing:border-box;flex:0 0 18mm}
 .marksheet-print-brand div{display:grid;gap:1mm}
