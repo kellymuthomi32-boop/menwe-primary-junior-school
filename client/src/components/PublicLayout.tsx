@@ -22,7 +22,13 @@ const footerPrinciples = [
 ] as const;
 
 export function SchoolMark({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
-  return <div className="flex items-center gap-3"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School" className="h-12 w-[214px] shrink-0 object-contain object-left" loading="eager" decoding="async" />{!compact && <div className="leading-tight"><p className={`font-serif text-[17px] font-semibold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</p><p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</p></div>}</div>;
+  return <div className="menwe-school-mark flex items-center gap-3">
+    <span className="menwe-school-mark-image" aria-hidden="true"><img src="/menwe-logo.svg" alt="" loading="eager" decoding="async" /></span>
+    {!compact && <span className="menwe-school-mark-copy leading-tight">
+      <span className={`block font-serif text-[17px] font-bold tracking-tight ${inverted ? "text-white" : "text-[var(--ink)]"}`}>Menwe</span>
+      <span className="mt-0.5 block text-[9px] font-extrabold uppercase tracking-[0.19em] text-[var(--accent)]">Primary & Junior School</span>
+    </span>}
+  </div>;
 }
 const primaryNav = [["About", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["News", "/news"], ["Events", "/events"]] as const;
 
