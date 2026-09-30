@@ -1,5 +1,4 @@
 import { ArrowRight, BookOpen, GraduationCap, HeartHandshake, MapPin, MessageCircle, Phone } from "lucide-react";
-import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { prefetchPublicRoute } from "@/lib/publicNavigation";
 import "@/styles/menwe-footer.css";
