@@ -92,6 +92,20 @@ export default function ExamPublishingWorkspace() {
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
   const visibleExams = exams.filter(e => admin || assigned.has(String(e.class_id)));
+  const examGroups = useMemo(() => {
+    const groups = new Map<string, Row[]>();
+    for (const exam of visibleExams) {
+      const key = [exam.term_id, String(exam.name ?? "").trim().toLowerCase(), String(exam.exam_type ?? "").trim().toLowerCase(), String(exam.maximum_score ?? ""), exam.starts_on ?? "", exam.ends_on ?? ""].join("|");
+      const list = groups.get(key) ?? [];
+      list.push(exam);
+      groups.set(key, list);
+    }
+    return Array.from(groups.entries()).map(([key, list]) => ({
+      key,
+      exams: list.sort((a,b) => String(classes.find(c => String(c.id) === String(a.class_id))?.name ?? "").localeCompare(String(classes.find(c => String(c.id) === String(b.class_id))?.name ?? ""))),
+      representative: list[0]
+    }));
+  }, [visibleExams, classes]);
   const selectedExam = exams.find(e => String(e.id) === selected);
   const requiredSubjects = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
   const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || assignments.some(a => String(a.class_id) === String(selectedExam?.class_id) && String(a.subject_id) === String(s.id))));
@@ -101,6 +115,18 @@ export default function ExamPublishingWorkspace() {
     const done = new Set(rows.map(r => `${r.student_id}:${r.subject_id}`)).size;
     return { required, done, percent: required ? Math.round((done / required) * 100) : 0, complete: required > 0 && done === required };
   }, [learnerCount, requiredSubjects, rows]);
+
+  const selectExamGroup = (groupKey: string) => {
+    const group = examGroups.find(g => g.key === groupKey);
+    const first = group?.exams[0];
+    if (first) void load(String(first.id));
+    else {
+      setSelected("");
+      setSubjectId("");
+      setRows([]);
+      setStudents([]);
+    }
+  };
 
   const load = async (id: string, override?: string) => {
     setSelected(id);
@@ -206,7 +232,7 @@ export default function ExamPublishingWorkspace() {
       const r = await getSupabase().from("exams").insert(targets.map(c => ({ term_id: term, class_id: c.id, name: examName.trim(), exam_type: examType, maximum_score: maximum, starts_on: start, ends_on: end, status: "DRAFT", created_by: user.id })));
       if (r.error) throw r.error;
       setExamName("");
-      setMessage("Examination created as DRAFT. Marks must be complete before publication.");
+      setMessage(allGrades ? `Examination created once and assigned to all ${targets.length} active classes as one school-wide assessment.` : "Examination created as DRAFT for the selected class. Marks must be complete before publication.");
       await refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Examination could not be created.");
@@ -220,24 +246,26 @@ export default function ExamPublishingWorkspace() {
 
   return <div className="grid gap-6">
     {admin && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
-      <div className="flex gap-3 items-start"><Layers className="text-[var(--gold)] mt-1" /><div><h1 className="font-serif text-3xl font-semibold">Examinations & publishing</h1><p className="mt-2 text-sm opacity-60">Create an assessment, enter marks, monitor completion, then publish only when the full class result is complete.</p></div></div>
+      <div className="flex gap-3 items-start"><Layers className="text-[var(--gold)] mt-1" /><div><h1 className="font-serif text-3xl font-semibold">Examinations & publishing</h1><p className="mt-2 text-sm opacity-60">Create an assessment once for all active classes, enter marks by class and subject, monitor completion, then publish only when the full class result is complete.</p></div></div>
       <form onSubmit={create} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <input required value={examName} onChange={e => setExamName(e.target.value)} placeholder="Exam name e.g. Opener" className={input} />
         <select value={yearId} onChange={e => { setYearId(e.target.value); setTermId(""); }} className={input}><option value="">Academic year</option>{years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}</select>
         <select value={termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? "")} onChange={e => setTermId(e.target.value)} className={input}><option value="">Term</option>{terms.filter(t => String(t.academic_year_id) === yearId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-        <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All grades</label>
+        <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All classes</label>
         {!allGrades && <select value={classId} onChange={e => setClassId(e.target.value)} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
         <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option>MIDTERM</option><option>ENDTERM</option><option>CONTINUOUS_ASSESSMENT</option><option>OTHER</option></select>
         <input type="date" value={start} onChange={e => setStart(e.target.value)} className={input} />
         <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={input} />
         <input type="number" min="1" value={maxScore} onChange={e => setMaxScore(e.target.value)} className={input} />
-        <button disabled={busy} className="rounded-xl bg-[var(--ink)] px-4 py-3 text-sm font-bold text-white">{busy ? "Working…" : "Create examination"}</button>
+        <button disabled={busy} className="rounded-xl bg-[var(--ink)] px-4 py-3 text-sm font-bold text-white">{busy ? "Working…" : allGrades ? "Create for All Classes" : "Create Examination"}</button>
       </form>
     </section>}
 
     <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
+      {admin && <div className="mb-4 rounded-2xl border border-[var(--gold)]/25 bg-[var(--gold)]/10 p-4 text-sm"><b>School-wide assessment:</b> Create the exam once with <b>All classes</b>. The system assigns it to every active class automatically; you do not need to create the same exam again for each class.</div>}
       <div className="flex items-center gap-2"><GraduationCap className="text-[var(--gold)]" /><h2 className="font-serif text-2xl font-semibold">Marks workspace</h2></div>
-      <select value={selected} onChange={e => e.target.value && void load(e.target.value)} className={`${input} mt-5`}><option value="">Select examination</option>{visibleExams.map(e => <option key={e.id} value={e.id}>{e.name} — {classes.find(c => String(c.id) === String(e.class_id))?.name} — {e.status}</option>)}</select>
+      <select value={examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.key ?? ""} onChange={e => selectExamGroup(e.target.value)} className={`${input} mt-5`}><option value="">Select examination</option>{examGroups.map(g => <option key={g.key} value={g.key}>{g.representative.name} — All {g.exams.length} Classes — {g.representative.status}</option>)}</select>
+      {selectedExam && (examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.length ?? 0) > 1 && <select value={selected} onChange={e => void load(e.target.value)} className={`${input} mt-3`}><option value="">Select class</option>{examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.map(e => <option key={e.id} value={e.id}>{classes.find(c => String(c.id) === String(e.class_id))?.name}</option>)}</select>}
       {selectedExam && <>
         <div className="mt-4 rounded-2xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><b>{classes.find(c => String(c.id) === String(selectedExam.class_id))?.name} · {selectedExam.name}</b><p className="text-xs opacity-60 mt-1">{completion.done}/{completion.required} required marks entered · {completion.percent}% complete</p></div><div className="flex gap-2 items-center">{selectedExam.status === "PUBLISHED" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-2 text-xs font-bold text-green-800"><Lock size={14} />PUBLISHED</span> : <span className="rounded-full bg-[var(--gold)]/10 px-3 py-2 text-xs font-bold">DRAFT</span>}{admin && selectedExam.status !== "PUBLISHED" && <button onClick={() => void publish()} disabled={busy || !completion.complete} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">{completion.complete ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}{completion.complete ? "Publish Results" : "Complete Marks to Publish"}</button>}</div></div><div className="mt-3 h-2 rounded-full bg-black/10 overflow-hidden"><div className="h-full rounded-full bg-[var(--gold)]" style={{ width: `${completion.percent}%` }} /></div></div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedExam.status !== "PUBLISHED" && <select value={subjectId} onChange={e => void load(String(selectedExam.id), e.target.value)} className={input}><option value="">Select subject</option>{availableSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}<div className="rounded-xl bg-[var(--gold)]/10 px-3 py-3 text-sm">{subjectId ? `${rows.filter(r => String(r.subject_id) === String(subjectId)).length}/${learnerCount} learners have marks for this subject.` : "Select a subject to enter marks."}</div></div>
