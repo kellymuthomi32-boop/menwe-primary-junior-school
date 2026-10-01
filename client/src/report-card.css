@@ -51,7 +51,18 @@
 .signature-line{height:20px;border-bottom:1px solid var(--rc-navy);margin-top:7px}
 .report-footer small{display:block;margin-top:3px;color:#738294;font-size:7px}.footer-note{text-align:center}.footer-note strong{display:block;color:var(--rc-navy);font-size:9px}.footer-note small{line-height:1.35}
 @media print{
-  body{background:#fff!important}.no-print{display:none!important}.report-card-print{width:100%;max-width:none!important;border:0!important;box-shadow:none!important;border-radius:0!important}
-  .report-logo-slot img{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:100%!important;object-fit:contain!important}.report-hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-table-wrap th,.report-table-wrap tfoot td,.level-pill,.summary-grid>div{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .report-card-print,.report-card-print *{break-inside:avoid;page-break-inside:avoid}.report-logo-slot,.report-logo-slot img{visibility:visible!important;opacity:1!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{background:#fff!important;height:auto!important;min-height:0!important}
+  body{margin:0!important}
+  .no-print{display:none!important}
+  .report-card-print{display:block!important;visibility:visible!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;overflow:visible!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+  .report-card-print *{visibility:visible!important}
+  .report-logo-slot{display:flex!important;visibility:visible!important;opacity:1!important}
+  .report-logo-slot img{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:100%!important;object-fit:contain!important}
+  .report-hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .report-table-wrap{overflow:visible!important}
+  .report-table-wrap th,.report-table-wrap tfoot td,.level-pill,.summary-grid>div{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .report-card-print,.report-card-print>*{break-inside:auto;page-break-inside:auto}
+  .report-section,.report-comment-grid>div,.summary-grid>div{break-inside:avoid;page-break-inside:avoid}
+  .report-table-wrap tr{break-inside:avoid;page-break-inside:avoid}
+  .report-logo-slot,.report-logo-slot img{visibility:visible!important;opacity:1!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
