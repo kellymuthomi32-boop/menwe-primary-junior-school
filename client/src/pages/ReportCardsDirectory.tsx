@@ -176,8 +176,8 @@ function attendancePercent(rows: Row[]) {
 
 export default function ReportCardsDirectory(){
   const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";
-  const [students,setStudents]=useState<Row[]>([]),[years,setYears]=useState<Row[]>([]),[terms,setTerms]=useState<Row[]>([]);
-  const [studentId,setStudentId]=useState(""),[yearId,setYearId]=useState(""),[termId,setTermId]=useState(""),[mode,setMode]=useState<"term"|"annual">("term");
+  const [students,setStudents]=useState<Row[]>([]),[years,setYears]=useState<Row[]>([]),[terms,setTerms]=useState<Row[]>([]),[classes,setClasses]=useState<Row[]>([]);
+  const [studentId,setStudentId]=useState(""),[yearId,setYearId]=useState(""),[termId,setTermId]=useState(""),[mode,setMode]=useState<"term"|"annual">("term"),[batchClassId,setBatchClassId]=useState("");
   const [classRow,setClassRow]=useState<Row|null>(null),[rank,setRank]=useState<number|null>(null),[allSubjects,setAllSubjects]=useState<Row[]>([]),[results,setResults]=useState<Row[]>([]),[attendance,setAttendance]=useState<Row[]>([]),[report,setReport]=useState<Row|null>(null),[teacherRemark,setTeacherRemark]=useState(""),[headRemark,setHeadRemark]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
 
   useEffect(()=>{void(async()=>{if(!user)return;try{const db=getSupabase();const[s,y,t]=await Promise.all([
@@ -188,12 +188,12 @@ export default function ReportCardsDirectory(){
 const currentYearId=String(y.data?.find((x:any)=>x.is_current)?.id??y.data?.[0]?.id??"");
 const [enr,cls]=await Promise.all([
   db.from("enrollments").select("student_id,class_id").eq("academic_year_id",currentYearId).eq("status","ACTIVE"),
-  db.from("classes").select("id,name,code,level").eq("academic_year_id",currentYearId).eq("status","ACTIVE")
+  db.from("classes").select("id,academic_year_id,name,code,level,status").eq("academic_year_id",currentYearId).eq("status","ACTIVE")
 ]);
 const classById=new Map<string,Row>((cls.data??[]).map((c:any)=>[String(c.id),c]));
 const classByStudent=new Map<string,Row>((enr.data??[]).reduce<Array<[string,Row]>>((acc,e:any)=>{const cls=classById.get(String(e.class_id));if(cls)acc.push([String(e.student_id),cls]);return acc;},[]));
 const orderedStudents=[...(s.data??[])].map((st:any)=>({...st,_className:classByStudent.get(String(st.id))?.name??classByStudent.get(String(st.id))?.code??"",_classGrade:gradeFromClass(classByStudent.get(String(st.id)))})).sort((a:any,b:any)=>(a._classGrade??999)-(b._classGrade??999)||String(a._className??"").localeCompare(String(b._className??""),undefined,{numeric:true,sensitivity:"base"})||learnerName(a).localeCompare(learnerName(b),undefined,{sensitivity:"base"})||String(a.admission_number??"").localeCompare(String(b.admission_number??""),undefined,{numeric:true,sensitivity:"base"}));
-setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId(currentYearId);}catch(e){setMessage(e instanceof Error?e.message:"Report-card workspace could not be loaded.");}finally{setLoading(false);}})();},[user]);
+setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasses(cls.data??[]);setYearId(currentYearId);}catch(e){setMessage(e instanceof Error?e.message:"Report-card workspace could not be loaded.");}finally{setLoading(false);}})();},[user]);
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
   const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band),[allSubjects,band]);
   const assessments=useMemo(()=>assessmentSummary(results),[results]);
@@ -360,13 +360,20 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
   const print=()=>window.print();
   const downloadPdf=async()=>{if(!selected||!classRow)return;setBusy(true);try{const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});await drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));}finally{setBusy(false);}};
   const batchPdf=async()=>{
-    if(!selected||!classRow||!yearId||mode!=="term"||!termId){
-      setMessage("Generate one learner first and select a term before creating the class batch.");
+    if(!batchClassId||!yearId||mode!=="term"||!termId){
+      setMessage("Select a grade/class, academic year and term before creating the class batch.");
       return;
     }
     setBusy(true);setMessage("");
     try{
-      const db=getSupabase();const classId=String(classRow.id);
+      const db=getSupabase();
+      const selectedBatchClass=classes.find(c=>String(c.id)===batchClassId);
+      if(!selectedBatchClass)throw new Error("The selected grade/class could not be found for this academic year.");
+      const classId=String(selectedBatchClass.id);
+      const classSubjectsQuery=await db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId);
+      if(classSubjectsQuery.error)throw classSubjectsQuery.error;
+      const batchSubjects=(classSubjectsQuery.data??[]).map((x:any)=>x.subjects).filter(Boolean);
+      if(!batchSubjects.length)throw new Error(`No subjects are configured for ${selectedBatchClass.name??selectedBatchClass.code??"the selected class"}.`);
       const enr=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(enr.error)throw enr.error;
       const ids=Array.from(new Set((enr.data??[]).map((r:any)=>String(r.student_id))));
@@ -374,7 +381,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
 
       const [sr,ar,rc,attAll]=await Promise.all([
         db.from("students").select("id,admission_number,first_name,middle_name,last_name").in("id",ids),
-        db.from("exam_results").select("student_id,subject_id,score,maximum_score,exam_id,grade,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",ids).eq("exams.class_id",classId).eq("exams.term_id",termId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",allSubjects.map(s=>String(s.id))),
+        db.from("exam_results").select("student_id,subject_id,score,maximum_score,exam_id,grade,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",ids).eq("exams.class_id",classId).eq("exams.term_id",termId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",batchSubjects.map(s=>String(s.id))),
         db.from("report_cards").select("student_id,teacher_remark,headteacher_remark").in("student_id",ids).eq("term_id",termId),
         db.from("attendance_records").select("student_id,status,attendance_sessions!inner(class_id,session_date)").in("student_id",ids)
       ]);
@@ -385,12 +392,12 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       const attendanceGroups=new Map<string,Row[]>();
       for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}
 
-      const subjects=allSubjects;
-      const reportAreas=reportAreasForBand(subjects,bandFromClass(classRow));
+      const subjects=batchSubjects;
+      const reportAreas=reportAreasForBand(subjects,bandFromClass(selectedBatchClass));
       const standings=ids.map(id=>{
         const ls=reportAreas.map(x=>lineFor(x,groups.get(id)??[]));
         return{id,marks:ls.reduce((n,l)=>n+(l.score??0),0),points:ls.reduce((n,l)=>n+(l.level??0),0)};
-      }).sort((a,b)=>bandFromClass(classRow)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);
+      }).sort((a,b)=>bandFromClass(selectedBatchClass)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);
 
       const existingRemarks=new Map<string,Row>((rc.data??[]).map((r:any)=>[String(r.student_id),r]));
       const prepared=(sr.data??[]).map((st:any)=>{
@@ -423,9 +430,9 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       for (const [i,p] of persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).entries()) {
         if(i)doc.addPage();
         const pos=standings.findIndex(x=>x.id===p.id);
-        await drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
+        await drawPdfPage(doc,p.st,selectedBatchClass,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
       }
-      doc.save(`${safePart(classRow.name??classRow.code)}_${safePart(selectedTerm?.name)}_Report_Cards.pdf`);
+      doc.save(`${safePart(selectedBatchClass.name??selectedBatchClass.code)}_${safePart(selectedTerm?.name)}_Report_Cards.pdf`);
       setMessage(`Batch PDF created for ${persisted.length} learners. Supabase persistence verified before PDF generation.`);
     }catch(e){setMessage(e instanceof Error?e.message:"Batch report generation failed. No PDF was generated.");}
     finally{setBusy(false);}
@@ -433,8 +440,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
 
   const title=band==="LOWER_PRIMARY"?"Lower Primary Report Card":band==="UPPER_PRIMARY"?"Upper Primary Report Card":"Junior School Report Card";
   return <PortalLayout><div className="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6 lg:px-8">
-    <div className="no-print rounded-2xl border border-[#D7E5DC] bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#D7A52A]">Menwe Academic Records</p><h1 className="mt-1 text-2xl font-black tracking-tight text-[#064A30]">Report Cards</h1><p className="mt-1 max-w-2xl text-sm text-[#587064]">One report-card system that automatically follows Lower Primary, Upper Primary and Junior School rules.</p></div><div className="flex flex-wrap gap-2"><button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#064A30] px-4 text-sm font-black text-white" onClick={generate} disabled={busy||loading}>{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<Sparkles className="h-4 w-4"/>}Generate</button>{report||lines.some(l=>l.percentage!=null)?<><button className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#D7E5DC] bg-white px-4 text-sm font-black text-[#064A30]" onClick={print}><Printer className="h-4 w-4"/>Print</button><button className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#D7E5DC] bg-white px-4 text-sm font-black text-[#064A30]" onClick={downloadPdf}><FileDown className="h-4 w-4"/>PDF</button>{admin?<button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D89B28] px-4 text-sm font-black text-[#061229]" onClick={batchPdf} disabled={busy}><FileDown className="h-4 w-4"/>Batch Class PDF</button>:null}</>:null}</div></div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5"><select className={input} value={studentId} onChange={e=>setStudentId(e.target.value)}><option value="">Select learner</option>{students.map(s=><option key={s.id} value={s.id}>{s._className?`${s._className} • `:""}{learnerName(s)} • {s.admission_number??"—"}</option>)}</select><select className={input} value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("")}}><option value="">Academic year</option>{years.map(y=><option key={y.id} value={y.id}>{y.name}</option>)}</select><select className={input} value={termId} onChange={e=>setTermId(e.target.value)} disabled={mode==="annual"}><option value="">Term</option>{visibleTerms.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select><select className={input} value={mode} onChange={e=>setMode(e.target.value as any)}><option value="term">Term report</option><option value="annual">Annual report</option></select><button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D7E5DC] bg-[#F1F7F3] px-4 text-sm font-black text-[#064A30]" onClick={generate} disabled={busy}><RefreshCw className="h-4 w-4"/>Refresh</button></div>{message?<div className="mt-3 rounded-xl border border-[#E7D5A0] bg-[#FFF9EE] px-3 py-2 text-sm font-semibold text-[#6B5319]">{message}</div>:null}</div>
+    <div className="no-print rounded-2xl border border-[#D7E5DC] bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#D7A52A]">Menwe Academic Records</p><h1 className="mt-1 text-2xl font-black tracking-tight text-[#064A30]">Report Cards</h1><p className="mt-1 max-w-2xl text-sm text-[#587064]">Select a grade/class to produce every learner report at once, or select one learner for an individual report.</p></div><div className="flex flex-wrap gap-2"><button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#064A30] px-4 text-sm font-black text-white" onClick={generate} disabled={busy||loading}>{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<Sparkles className="h-4 w-4"/>}Generate</button>{report||lines.some(l=>l.percentage!=null)?<><button className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#D7E5DC] bg-white px-4 text-sm font-black text-[#064A30]" onClick={print}><Printer className="h-4 w-4"/>Print</button><button className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#D7E5DC] bg-white px-4 text-sm font-black text-[#064A30]" onClick={downloadPdf}><FileDown className="h-4 w-4"/>PDF</button>{admin?<button className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D89B28] px-4 text-sm font-black text-[#061229]" onClick={batchPdf} disabled={busy}><FileDown className="h-4 w-4"/>Produce Grade Reports</button>:null}</>:null}</div></div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-6"><select className={input} value={batchClassId} onChange={e=>setBatchClassId(e.target.value)}><option value="">Grade / Class — produce all reports</option>{[...classes].sort((a,b)=>(gradeFromClass(a)??99)-(gradeFromClass(b)??99)||String(a.name??a.code??"").localeCompare(String(b.name??b.code??""),undefined,{numeric:true})).map(c=><option key={c.id} value={c.id}>{c.name??c.code??"Class"}{gradeFromClass(c)?` • Grade ${gradeFromClass(c)}`:""}</option>)}</select><select className={input} value={studentId} onChange={e=>setStudentId(e.target.value)}><option value="">Select learner</option>{students.map(s=><option key={s.id} value={s.id}>{s._className?`${s._className} • `:""}{learnerName(s)} • {s.admission_number??"—"}</option>)}</select><select className={input} value={yearId} onChange={e=>{setYearId(e.target.value);setTermId("")}}><option value="">Academic year</option>{years.map(y=><option key={y.id} value={y.id}>{y.name}</option>)}</select><select className={input} value={termId} onChange={e=>setTermId(e.target.value)} disabled={mode==="annual"}><option value="">Term</option>{visibleTerms.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select><select className={input} value={mode} onChange={e=>setMode(e.target.value as any)}><option value="term">Term report</option><option value="annual">Annual report</option></select><button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D7E5DC] bg-[#F1F7F3] px-4 text-sm font-black text-[#064A30]" onClick={generate} disabled={busy}><RefreshCw className="h-4 w-4"/>Refresh</button></div>{message?<div className="mt-3 rounded-xl border border-[#E7D5A0] bg-[#FFF9EE] px-3 py-2 text-sm font-semibold text-[#6B5319]">{message}</div>:null}</div>
 
     {(selected&&classRow&&lines.length)?<div className="report-card-print overflow-hidden rounded-2xl border border-[#D7E5DC] bg-white shadow-sm">
       <div className="report-hero"><div className="report-logo-slot" aria-label="Menwe Primary & Junior School official crest"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School official crest" /></div><div><div className="report-eyebrow">MENWE PRIMARY & JUNIOR SCHOOL</div><div className="report-contact">Igoki, Abogeta • School Contact: __________________</div><h2>{title}</h2><p>{mode==="term"?`${selectedTerm?.name??"Term"} • ${selectedYear?.name??"Academic Year"}`:`Annual Performance • ${selectedYear?.name??"Academic Year"}`}</p></div><div className="report-badge"><span>{band==="JUNIOR_SCHOOL"?"POINTS":"AVERAGE"}</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:(average==null?"—":`${average.toFixed(0)}%`)}</strong></div></div>
@@ -445,6 +452,6 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
         {admin&&mode==="term"?<section className="report-section no-print"><div className="grid gap-3 md:grid-cols-2"><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Teacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={teacherRemark} onChange={e=>setTeacherRemark(e.target.value)}/></label><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Headteacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={headRemark} onChange={e=>setHeadRemark(e.target.value)}/></label></div><button onClick={save} disabled={saving} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D7A52A] px-4 text-sm font-black text-[#17352A]">{saving?<Loader2 className="h-4 w-4 animate-spin"/>:<Save className="h-4 w-4"/>}Save report card</button></section>:null}
       </div>
       <div className="report-footer"><div><span>Class Teacher</span><div className="signature-line"/><small>Signature / Date</small></div><div className="footer-note"><strong>Menwe Primary & Junior School</strong><small>This report reflects recorded assessment results for the selected academic period. CBC achievement levels are calculated automatically from the recorded percentage.</small></div><div><span>Headteacher</span><div className="signature-line"/><small>Signature / Date</small></div></div>
-    </div>:loading?<div className="no-print rounded-2xl border border-[#D7E5DC] bg-white p-8 text-center text-sm font-semibold text-[#587064]"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin"/>Loading report-card workspace…</div>:<div className="no-print rounded-2xl border border-dashed border-[#D7E5DC] bg-[#FBFDFC] p-10 text-center"><p className="text-sm font-black text-[#064A30]">Select a learner, academic period and generate the report card.</p><p className="mt-1 text-xs text-[#718178]">The system automatically determines Lower Primary, Upper Primary or Junior School from the learner's class.</p></div>}
+    </div>:loading?<div className="no-print rounded-2xl border border-[#D7E5DC] bg-white p-8 text-center text-sm font-semibold text-[#587064]"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin"/>Loading report-card workspace…</div>:<div className="no-print rounded-2xl border border-dashed border-[#D7E5DC] bg-[#FBFDFC] p-10 text-center"><p className="text-sm font-black text-[#064A30]">Select a grade/class to produce every learner report at once, or select one learner for an individual report.</p><p className="mt-1 text-xs text-[#718178]">The system automatically determines Lower Primary, Upper Primary or Junior School from the learner's class.</p></div>}
   </div></PortalLayout>;
 }
