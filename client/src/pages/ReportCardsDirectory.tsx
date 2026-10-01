@@ -358,7 +358,69 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     doc.setTextColor(105,115,125);doc.setFont("helvetica","normal");doc.setFontSize(7);addText("This report reflects recorded assessment results for the selected academic period.",W/2,y,CW,7,{align:"center"});
   };
   const print=()=>window.print();
-  const downloadPdf=async()=>{if(!selected||!classRow)return;setBusy(true);try{const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});await drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));}finally{setBusy(false);}};
+
+  const ensureHtml2Canvas=async()=>{
+    const existing=(window as any).html2canvas;
+    if(existing)return existing;
+    await new Promise<void>((resolve,reject)=>{
+      const script=document.createElement("script");
+      script.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      script.async=true;
+      script.onload=()=>resolve();
+      script.onerror=()=>reject(new Error("The PDF rendering engine could not be loaded. Please check your internet connection and try again."));
+      document.head.appendChild(script);
+    });
+    const renderer=(window as any).html2canvas;
+    if(!renderer)throw new Error("The PDF rendering engine loaded without exposing html2canvas.");
+    return renderer;
+  };
+
+  const downloadPdf=async()=>{
+    if(!selected||!classRow)return;
+    const source=document.querySelector(".report-card-print") as HTMLElement|null;
+    if(!source){setMessage("Generate the learner report first, then download the PDF.");return;}
+    setBusy(true);setMessage("");
+    let clone:HTMLElement|null=null;
+    try{
+      await ensureHtml2Canvas();
+      clone=source.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll(".no-print").forEach(el=>el.remove());
+      clone.style.width="794px";
+      clone.style.maxWidth="794px";
+      clone.style.margin="0";
+      clone.style.overflow="visible";
+      clone.style.boxShadow="none";
+      clone.style.borderRadius="0";
+      clone.style.background="#ffffff";
+      clone.style.position="absolute";
+      clone.style.left="-100000px";
+      clone.style.top="0";
+      clone.style.visibility="visible";
+      clone.querySelectorAll("*").forEach((el:any)=>{
+        el.style.breakInside="auto";
+        el.style.pageBreakInside="auto";
+      });
+      document.body.appendChild(clone);
+
+      const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+      await new Promise<void>((resolve,reject)=>{
+        doc.html(clone!,{
+          x:8,y:8,width:194,windowWidth:794,
+          margin:[8,8,8,8],
+          autoPaging:"text",
+          html2canvas:{scale:2,useCORS:true,allowTaint:false,backgroundColor:"#ffffff",logging:false,scrollX:0,scrollY:0},
+          callback:(pdf:any)=>{pdf.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));resolve();}
+        });
+        setTimeout(()=>reject(new Error("PDF generation timed out. The report is still available through Print → Save as PDF.")),30000);
+      });
+      setMessage("PDF downloaded using the same complete report-card content shown on screen and in Print.");
+    }catch(e){
+      setMessage(e instanceof Error?e.message:"PDF generation failed. Use Print → Save as PDF while the renderer is retried.");
+    }finally{
+      if(clone?.parentNode)clone.parentNode.removeChild(clone);
+      setBusy(false);
+    }
+  };
   const batchPdf=async()=>{
     if(!batchClassId||!yearId||mode!=="term"||!termId){
       setMessage("Select a grade/class, academic year and term before creating the class batch.");
