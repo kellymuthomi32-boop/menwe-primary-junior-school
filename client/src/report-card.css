@@ -1,9 +1,9 @@
 /* Professional Menwe report card — screen + single-page A4 print. */
-@page{size:A4 portrait;margin:7mm}
+@page{size:A4 portrait;margin:6mm}
 :root{--rc-navy:#061229;--rc-blue:#123F78;--rc-gold:#D89B28;--rc-ink:#102A43;--rc-line:#C9D4DF;--rc-soft:#F5F8FB}
 .report-card-print{font-family:Arial,Helvetica,sans-serif;color:var(--rc-ink);background:#fff}
 .report-card-print *{box-sizing:border-box}
-.report-hero{position:relative;display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#061229,#123F78);color:#fff;padding:18px 20px 15px;border-bottom:5px solid var(--rc-gold)}
+.report-hero{position:relative;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#061229,#123F78);color:#fff;padding:14px 16px 12px;border-bottom:5px solid var(--rc-gold)}
 .report-logo-slot{width:58px;height:58px;flex:0 0 58px;border:2px solid var(--rc-gold);border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;font-size:0;box-shadow:0 8px 20px rgba(0,0,0,.18);padding:4px}
 .report-logo-slot img{display:block;width:100%;height:100%;object-fit:contain}
 .report-eyebrow{font-size:17px;font-weight:900;letter-spacing:.08em}
@@ -18,8 +18,8 @@
 .report-identity>div:nth-child(3n){border-right:0}.report-identity>div:nth-last-child(-n+3){border-bottom:0}
 .report-identity span,.summary-grid span{display:block;color:#657789;font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
 .report-identity strong{display:block;margin-top:2px;font-size:10px}
-.report-body{padding:0 12px 10px}
-.report-section{margin-top:10px;break-inside:avoid;page-break-inside:avoid}
+.report-body{padding:0 10px 8px}
+.report-section{margin-top:8px;break-inside:avoid;page-break-inside:avoid}
 .report-section-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .report-section-head>span{display:grid;place-items:center;width:23px;height:23px;border-radius:7px;background:var(--rc-gold);color:var(--rc-navy);font-size:8px;font-weight:900}
 .report-section-head h3{margin:0;color:var(--rc-navy);font-size:11px;font-weight:900}
