@@ -246,11 +246,40 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
 
   const safePart=(v:unknown)=>String(v??"").trim().replace(/\\s+/g,"_").replace(/[^a-zA-Z0-9_-]/g,"")||"Unknown";
   const reportFilename=(student:Row,className:unknown,termName:unknown)=>`${safePart(className)}_${safePart(termName)}_${safePart(learnerName(student))}_Report_Card.pdf`;
-  const drawPdfPage=(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
+  let pdfLogoDataUrl: string | null = null;
+  const getPdfLogoDataUrl = async () => {
+    if (pdfLogoDataUrl) return pdfLogoDataUrl;
+    try {
+      const response = await fetch("/menwe-logo.svg", { cache: "force-cache" });
+      const svg = await response.text();
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      try {
+        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Logo image could not be loaded."));
+          img.src = url;
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = 320; canvas.height = 320;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas is unavailable.");
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 12, 12, 296, 296);
+        pdfLogoDataUrl = canvas.toDataURL("image/png");
+        return pdfLogoDataUrl;
+      } finally { URL.revokeObjectURL(url); }
+    } catch { return null; }
+  };
+  const drawPdfPage=async(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
     const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b), ls=areas.map(x=>lineFor(x,studentResults));
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), avg=mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     let y=11; const W=210, M=10;
-    doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F"); doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2,y+8,{align:"center"}); doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.text("Igoki, Abogeta  •  Term Academic Report",W/2,y+13,{align:"center"}); doc.setFillColor(216,155,40); doc.rect(M,y+20,W-M*2,5,"F"); doc.setTextColor(6,18,41); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`${mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD"} - ${b.replaceAll("_"," ")}`,W/2,y+23.5,{align:"center"}); y+=31;
+    doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F");
+    const logoDataUrl = await getPdfLogoDataUrl();
+    if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", M+4, y+4, 17, 17, undefined, "FAST");
+    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2+8,y+8,{align:"center"}); doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.text("Igoki, Abogeta  •  Term Academic Report",W/2+8,y+13,{align:"center"}); doc.setFillColor(216,155,40); doc.rect(M,y+20,W-M*2,5,"F"); doc.setTextColor(6,18,41); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`${mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD"} - ${b.replaceAll("_"," ")}`,W/2,y+23.5,{align:"center"}); y+=31;
     const includedAssessments=assessmentSummary(studentResults).slice(0,2);
     doc.setDrawColor(190,200,215); doc.setFillColor(247,250,252); doc.roundedRect(M,y,W-M*2,23,2,2,"FD"); doc.setFontSize(8); doc.setTextColor(70,85,100); doc.setFont("helvetica","bold");
     const meta=[["LEARNER",learnerName(student)],["ADMISSION NO.",student.admission_number??"—"],["CLASS",cls.name??cls.code??"—"],["TERM",mode==="term"?(selectedTerm?.name??"—"):"Annual"],["YEAR",selectedYear?.name??"—"],["ATTENDANCE",att==null?"—":att.toFixed(1)+"%"]];
@@ -264,7 +293,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
     const boxW=92;[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]].forEach((m,i)=>{const x=M+i*94;doc.setDrawColor(190,200,215);doc.roundedRect(x,y,boxW,24,2,2,"S");doc.setTextColor(7,27,58);doc.setFontSize(6.5);doc.setFont("helvetica","bold");doc.text(m[0],x+4,y+5);doc.setTextColor(55,70,85);doc.setFontSize(7);doc.setFont("helvetica","normal");doc.text(doc.splitTextToSize(String(m[1]),boxW-8).slice(0,3),x+4,y+10);doc.setDrawColor(70,85,100);doc.line(x+4,y+19,x+55,y+19);doc.setFontSize(5.5);doc.text("Signature / Date",x+4,y+22);});y+=29;doc.setFontSize(5.8);doc.setTextColor(105,115,125);doc.text("This report reflects recorded assessment results for the selected academic period.",W/2,y,{align:"center"});
   };
   const print=()=>window.print();
-  const downloadPdf=()=>{if(!selected||!classRow)return;const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));};
+  const downloadPdf=async()=>{if(!selected||!classRow)return;setBusy(true);try{const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});await drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));}finally{setBusy(false);}};
   const batchPdf=async()=>{
     if(!selected||!classRow||!yearId||mode!=="term"||!termId){
       setMessage("Generate one learner first and select a term before creating the class batch.");
@@ -326,11 +355,11 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       }
 
       const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
-      persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).forEach((p:any,i:number)=>{
+      for (const [i,p] of persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).entries()) {
         if(i)doc.addPage();
         const pos=standings.findIndex(x=>x.id===p.id);
-        drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
-      });
+        await drawPdfPage(doc,p.st,classRow,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
+      }
       doc.save(`${safePart(classRow.name??classRow.code)}_${safePart(selectedTerm?.name)}_Report_Cards.pdf`);
       setMessage(`Batch PDF created for ${persisted.length} learners. Supabase persistence verified before PDF generation.`);
     }catch(e){setMessage(e instanceof Error?e.message:"Batch report generation failed. No PDF was generated.");}
@@ -346,8 +375,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
       <div className="report-hero"><div className="report-logo-slot" aria-label="Menwe Primary & Junior School official crest"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School official crest" /></div><div><div className="report-eyebrow">MENWE PRIMARY & JUNIOR SCHOOL</div><div className="report-contact">Igoki, Abogeta • School Contact: __________________</div><h2>{title}</h2><p>{mode==="term"?`${selectedTerm?.name??"Term"} • ${selectedYear?.name??"Academic Year"}`:`Annual Performance • ${selectedYear?.name??"Academic Year"}`}</p></div><div className="report-badge"><span>{band==="JUNIOR_SCHOOL"?"POINTS":"AVERAGE"}</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:(average==null?"—":`${average.toFixed(0)}%`)}</strong></div></div>
       <div className="report-identity"><div><span>Learner</span><strong>{fullName}</strong></div><div><span>Admission No.</span><strong>{selected.admission_number??"—"}</strong></div><div><span>Class</span><strong>{classRow.name??classRow.code??"—"}</strong></div><div><span>Year</span><strong>{selectedYear?.name??"—"}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div>
       <div className="report-body"><section className="report-section"><div className="report-section-head"><span>01</span><div><h3>Assessments Included</h3><p>This report combines the recorded assessments for the selected term. Exam 1 remains preserved when End-Term marks are entered.</p></div></div><div className="summary-grid">{assessments.slice(0,2).map((a,i)=><div key={String(a.exams?.id??a.exam_id)}><span>Assessment {i+1}</span><strong>{String(a.exams?.name??`Exam ${i+1}`)}</strong><small className="block mt-1 text-xs text-[#718178]">{String(a.exams?.starts_on??"")} {a.exams?.ends_on&&a.exams.ends_on!==a.exams.starts_on?`– ${a.exams.ends_on}`:""}</small></div>)}</div></section><section className="report-section"><div className="report-section-head"><span>02</span><div><h3>Learning Area Performance</h3><p>Learning areas shown here are the same class subjects used by the marksheet for this learner. Scores include both recorded assessments.</p></div></div><div className="report-table-wrap"><table><thead><tr><th>Learning Area</th><th>Score</th><th>Percentage</th><th>Level</th><th>Teacher Interpretation</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td><strong>{l.name}</strong><small>{l.code}{l.synthetic?" • Combined report area":""}</small></td><td className="score">{fmt(l.score)} / {fmt(l.max)}</td><td className="score">{l.percentage==null?"—":`${l.percentage.toFixed(1)}%`}</td><td className="score"><span className={`level-pill level-${l.levelCode.slice(0,2).toLowerCase()}`}>{l.levelCode}{l.level!=null?` • ${l.level}`:""}</span></td><td>{l.remark}</td></tr>)}</tbody><tfoot><tr><td>Total / Overall</td><td>{fmt(totalMarks)} / {fmt(totalMax||null)}</td><td>{average==null?"—":`${average.toFixed(1)}%`}</td><td>{band==="JUNIOR_SCHOOL"?`${totalPoints} points`:`Rank ${rank??"—"}`}</td><td>{band==="JUNIOR_SCHOOL"?`Rank ${rank??"—"} • Junior School ranks by Total Points.`:`Ranks by Total Marks.`}</td></tr></tfoot></table></div></section>
-        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and family.</p></div></div><div className="summary-grid"><div><span>Total Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>Average</span><strong>{average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:"Not used"}</strong></div><div><span>{rankLabel}</span><strong>{rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
-        <section className="report-section"><div className="report-section-head"><span>04</span><div><h3>Comments & Guidance</h3><p>Professional remarks retained with the report card.</p></div></div><div className="report-comment-grid"><div><label>Teacher's remark</label><div className="comment-box">{teacherRemark||"No teacher remark entered."}</div></div><div><label>Headteacher's remark</label><div className="comment-box">{headRemark||"No headteacher remark entered."}</div></div></div></section>
+        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and parent/guardian.</p></div></div><div className="summary-grid"><div><span>Total Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>Average</span><strong>{average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:"Not used"}</strong></div><div><span>{rankLabel}</span><strong>{rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
+        <section className="report-section"><div className="report-section-head"><span>04</span><div><h3>Comments & Guidance</h3><p>Professional guidance for the learner and parent/guardian.</p></div></div><div className="report-comment-grid"><div><label>Teacher's remark</label><div className="comment-box">{teacherRemark||"No teacher remark entered."}</div></div><div><label>Headteacher's remark</label><div className="comment-box">{headRemark||"No headteacher remark entered."}</div></div></div></section>
         {admin&&mode==="term"?<section className="report-section no-print"><div className="grid gap-3 md:grid-cols-2"><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Teacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={teacherRemark} onChange={e=>setTeacherRemark(e.target.value)}/></label><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Headteacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={headRemark} onChange={e=>setHeadRemark(e.target.value)}/></label></div><button onClick={save} disabled={saving} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D7A52A] px-4 text-sm font-black text-[#17352A]">{saving?<Loader2 className="h-4 w-4 animate-spin"/>:<Save className="h-4 w-4"/>}Save report card</button></section>:null}
       </div>
       <div className="report-footer"><div><span>Class Teacher</span><div className="signature-line"/><small>Signature / Date</small></div><div className="footer-note"><strong>Menwe Primary & Junior School</strong><small>This report reflects recorded assessment results for the selected academic period. CBC achievement levels are calculated automatically from the recorded percentage.</small></div><div><span>Headteacher</span><div className="signature-line"/><small>Signature / Date</small></div></div>
