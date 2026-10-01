@@ -273,24 +273,89 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setYearId
     } catch { return null; }
   };
   const drawPdfPage=async(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
+    // PDF is laid out independently from the browser preview so downloaded files
+    // contain the same information without clipped, crowded or overlapping text.
     const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b), ls=areas.map(x=>lineFor(x,studentResults));
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), avg=mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
-    let y=11; const W=210, M=10;
-    doc.setFillColor(6,18,41); doc.rect(M,y,W-M*2,25,"F");
-    const logoDataUrl = await getPdfLogoDataUrl();
-    if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", M+4, y+4, 17, 17, undefined, "FAST");
-    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2+8,y+8,{align:"center"}); doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.text("Igoki, Abogeta  •  Term Academic Report",W/2+8,y+13,{align:"center"}); doc.setFillColor(216,155,40); doc.rect(M,y+20,W-M*2,5,"F"); doc.setTextColor(6,18,41); doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text(`${mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD"} - ${b.replaceAll("_"," ")}`,W/2,y+23.5,{align:"center"}); y+=31;
+    const W=210, M=10, CW=W-M*2, bottom=287;
+    let y=10;
+    const logoDataUrl=await getPdfLogoDataUrl();
+    const addText=(text:string,x:number,y0:number,width:number,size:number,opts:any={})=>{
+      doc.setFontSize(size); const lines=doc.splitTextToSize(String(text??"—"),width); doc.text(lines,x,y0,opts); return lines.length;
+    };
+    const sectionTitle=(num:string,title:string,sub?:string)=>{
+      if(y>bottom-18){doc.addPage();y=12;}
+      doc.setFillColor(6,18,41);doc.roundedRect(M,y,CW,9,1.5,1.5,"F");
+      doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text(num,M+4,y+5.9);
+      doc.setFontSize(9);doc.text(title,M+15,y+5.9);
+      y+=12;
+      if(sub){doc.setTextColor(95,110,125);doc.setFont("helvetica","normal");doc.setFontSize(7.2);const n=addText(sub,M,y,CW,7.2);y+=n*3.5+3;}
+    };
+
+    doc.setFillColor(6,18,41);doc.roundedRect(M,y,CW,29,2,2,"F");
+    if(logoDataUrl)doc.addImage(logoDataUrl,"PNG",M+4,y+4,20,20,undefined,"FAST");
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(14);
+    doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2+7,y+9,{align:"center"});
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Igoki, Abogeta  •  Term Academic Report",W/2+7,y+14,{align:"center"});
+    doc.setFillColor(216,155,40);doc.rect(M,y+24,CW,5,"F");
+    doc.setTextColor(6,18,41);doc.setFont("helvetica","bold");doc.setFontSize(9);
+    doc.text((mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD")+" — "+b.replaceAll("_"," "),W/2,y+27.4,{align:"center"});
+    y+=34;
+
     const includedAssessments=assessmentSummary(studentResults).slice(0,2);
-    doc.setDrawColor(190,200,215); doc.setFillColor(247,250,252); doc.roundedRect(M,y,W-M*2,23,2,2,"FD"); doc.setFontSize(9); doc.setTextColor(70,85,100); doc.setFont("helvetica","bold");
-    const meta=[["LEARNER",learnerName(student)],["ADMISSION NO.",student.admission_number??"—"],["CLASS",cls.name??cls.code??"—"],["TERM",mode==="term"?(selectedTerm?.name??"—"):"Annual"],["YEAR",selectedYear?.name??"—"],["ATTENDANCE",att==null?"—":att.toFixed(1)+"%"]];
-    meta.forEach((m,i)=>{const col=i%2,row=Math.floor(i/2),x=M+5+col*92,yy=y+6+row*7.1;doc.setFontSize(7.5);doc.setTextColor(90,105,120);doc.text(m[0],x,yy);doc.setFontSize(9);doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.text(String(m[1]).slice(0,42),x+25,yy);});
-    doc.setFontSize(7.5);doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.text("ASSESSMENTS",M+5,y+20);
-    doc.setFont("helvetica","normal");doc.setTextColor(16,42,67);doc.setFontSize(8);doc.text(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${String(a.exams?.name??`Assessment ${i+1}`)}`).join("   •   "):"No assessment recorded",M+28,y+20);
-    y+=28;
-    doc.setFillColor(7,27,58);doc.rect(M,y,W-M*2,7,"F");doc.setTextColor(255,255,255);doc.setFontSize(8.5);doc.setFont("helvetica","bold");doc.text("LEARNING AREA",M+3,y+4.8);doc.text("SCORE",103,y+4.8,{align:"right"});doc.text("%",128,y+4.8,{align:"right"});doc.text("LEVEL",151,y+4.8,{align:"center"});doc.text("ACHIEVEMENT",M+162,y+4.8);y+=7;
-    ls.forEach((l,i)=>{const h=7.4;if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,W-M*2,h,"F");}doc.setDrawColor(205,214,224);doc.rect(M,y,W-M*2,h);doc.setTextColor(16,42,67);doc.setFontSize(8.2);doc.setFont("helvetica","bold");doc.text(l.name.slice(0,36),M+3,y+4.2);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text(`${fmt(l.score)} / ${fmt(l.max)}`,103,y+4.2,{align:"right"});doc.setFontSize(8);doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",128,y+4.2,{align:"right"});doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(l.levelCode,151,y+4.2,{align:"center"});doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.text(l.remark.slice(0,24),M+162,y+4.2);y+=h;});
-    y+=4; doc.setFillColor(243,247,250);doc.roundedRect(M,y,W-M*2,15,2,2,"F");const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],["MEAN AVERAGE",avg==null?"—":avg.toFixed(1)+"%"],["CLASS RANK",studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];metrics.forEach((m,i)=>{const x=M+4+i*47;doc.setTextColor(90,105,120);doc.setFontSize(7);doc.setFont("helvetica","bold");doc.text(m[0],x,y+5);doc.setTextColor(6,18,41);doc.setFontSize(11);doc.text(m[1],x,y+11);});y+=19;
-    const boxW=92;[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]].forEach((m,i)=>{const x=M+i*94;doc.setDrawColor(190,200,215);doc.roundedRect(x,y,boxW,24,2,2,"S");doc.setTextColor(7,27,58);doc.setFontSize(7.5);doc.setFont("helvetica","bold");doc.text(m[0],x+4,y+5);doc.setTextColor(55,70,85);doc.setFontSize(8.5);doc.setFont("helvetica","normal");doc.text(doc.splitTextToSize(String(m[1]),boxW-8).slice(0,3),x+4,y+10);doc.setDrawColor(70,85,100);doc.line(x+4,y+19,x+55,y+19);doc.setFontSize(6.5);doc.text("Signature / Date",x+4,y+22);});y+=29;doc.setFontSize(7);doc.setTextColor(105,115,125);doc.text("This report reflects recorded assessment results for the selected academic period.",W/2,y,{align:"center"});
+    doc.setDrawColor(190,200,215);doc.setFillColor(247,250,252);doc.roundedRect(M,y,CW,35,2,2,"FD");
+    const meta=[
+      ["LEARNER",learnerName(student)],["ADMISSION NO.",student.admission_number??"—"],
+      ["CLASS",cls.name??cls.code??"—"],["TERM",mode==="term"?(selectedTerm?.name??"—"):"Annual"],
+      ["YEAR",selectedYear?.name??"—"],["ATTENDANCE",att==null?"—":att.toFixed(1)+"%"]
+    ];
+    meta.forEach((m,i)=>{
+      const col=i%2,row=Math.floor(i/2),x=M+5+col*92,yy=y+7+row*8.2;
+      doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text(m[0],x,yy);
+      doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8.5);
+      addText(String(m[1]),x+29,yy,58,8.5);
+    });
+    doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text("ASSESSMENTS",M+5,y+32);
+    doc.setTextColor(16,42,67);doc.setFont("helvetica","normal");doc.setFontSize(7.5);
+    addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${String(a.exams?.name??`Assessment ${i+1}`)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
+    y+=41;
+
+    sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments.");
+    const cols=[M,M+62,M+89,M+115,M+143], widths=[60,25,25,25,47];
+    doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
+    ["LEARNING AREA","SCORE","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
+    ls.forEach((l,i)=>{
+      const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[4]-6);
+      const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
+      const rowH=Math.max(9,Math.max(nameLines.length,remarkLines.length)*4+4);
+      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);["LEARNING AREA","SCORE","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,j)=>doc.text(h,cols[j]+3,y+5.3));y+=8;}
+      if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,CW,rowH,"F");}
+      doc.setDrawColor(205,214,224);doc.rect(M,y,CW,rowH);
+      doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(nameLines,cols[0]+3,y+5);
+      doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.text(`${fmt(l.score)} / ${fmt(l.max)}`,cols[1]+3,y+5);
+      doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[2]+3,y+5);
+      doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[3]+3,y+5);
+      doc.setFont("helvetica","normal");doc.text(remarkLines,cols[4]+3,y+5);y+=rowH;
+    });
+    const totalH=14;
+    if(y+totalH>bottom-35){doc.addPage();y=12;}
+    doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
+    const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],["MEAN AVERAGE",avg==null?"—":avg.toFixed(1)+"%"],["CLASS RANK",studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
+    metrics.forEach((m,i)=>{const x=M+4+i*47;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text(m[0],x,y+5);doc.setTextColor(6,18,41);doc.setFontSize(10.5);doc.text(m[1],x,y+11);});y+=20;
+
+    sectionTitle("02","Comments & Guidance","For the learner and parent/guardian.");
+    const boxes=[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]];
+    boxes.forEach((m,i)=>{
+      const x=M+i*95,w=90;doc.setDrawColor(190,200,215);const lines=doc.splitTextToSize(String(m[1]),w-8);const h=Math.max(30,Math.min(45,14+lines.length*4));
+      if(y+h>bottom-12){doc.addPage();y=12;}
+      doc.roundedRect(x,y,w,h,2,2,"S");doc.setTextColor(7,27,58);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(m[0],x+4,y+6);
+      doc.setTextColor(55,70,85);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text(lines.slice(0,6),x+4,y+12);
+      doc.setDrawColor(70,85,100);doc.line(x+4,y+h-7,x+55,y+h-7);doc.setFontSize(6.2);doc.text("Signature / Date",x+4,y+h-3);
+    });
+    y+=48;
+    if(y>bottom-18){doc.addPage();y=12;}
+    doc.setDrawColor(6,18,41);doc.line(M,y,M+CW,y);y+=6;doc.setTextColor(6,18,41);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2,y,{align:"center"});y+=4;
+    doc.setTextColor(105,115,125);doc.setFont("helvetica","normal");doc.setFontSize(7);addText("This report reflects recorded assessment results for the selected academic period.",W/2,y,CW,7,{align:"center"});
   };
   const print=()=>window.print();
   const downloadPdf=async()=>{if(!selected||!classRow)return;setBusy(true);try{const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});await drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));}finally{setBusy(false);}};
