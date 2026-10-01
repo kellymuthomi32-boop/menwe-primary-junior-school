@@ -43,7 +43,7 @@ export default function ExamPublishingWorkspace() {
   const [termId, setTermId] = useState("");
   const [examName, setExamName] = useState("");
   const [maxScore, setMaxScore] = useState("100");
-  const [examType, setExamType] = useState("MIDTERM");
+  const [examType, setExamType] = useState("EXAM_1");
   const [start, setStart] = useState(new Date().toISOString().slice(0, 10));
   const [end, setEnd] = useState(new Date().toISOString().slice(0, 10));
   const [allGrades, setAllGrades] = useState(true);
@@ -217,6 +217,39 @@ export default function ExamPublishingWorkspace() {
     }
   };
 
+  const publishGroup = async () => {
+    if (!admin || !selectedExam) return;
+    const group = examGroups.find(g => g.exams.some(e => String(e.id) === String(selectedExam.id)));
+    if (!group) return;
+    setBusy(true);
+    try {
+      const db = getSupabase();
+      const incomplete: string[] = [];
+      for (const ex of group.exams) {
+        const cls = classes.find(c => String(c.id) === String(ex.class_id));
+        const en = await db.from("enrollments").select("student_id").eq("class_id", ex.class_id).eq("academic_year_id", cls?.academic_year_id ?? "").eq("status", "ACTIVE");
+        if (en.error) throw en.error;
+        const studentIds = Array.from(new Set((en.data ?? []).map((x: any) => String(x.student_id))));
+        const subjectsForClass = classSubjects.filter(x => String(x.class_id) === String(ex.class_id)).map(x => String(x.subject_id));
+        const rs = await db.from("exam_results").select("student_id,subject_id").eq("exam_id", ex.id);
+        if (rs.error) throw rs.error;
+        const done = new Set((rs.data ?? []).map((x: any) => `${x.student_id}:${x.subject_id}`));
+        const required = studentIds.length * subjectsForClass.length;
+        if (required === 0 || done.size !== required) incomplete.push(`${cls?.name ?? "Class"} (${done.size}/${required})`);
+      }
+      if (incomplete.length) throw new Error(`Cannot publish the school-wide assessment yet. Complete all marks in: ${incomplete.join(", ")}.`);
+      if (!window.confirm(`Publish ${selectedExam.name} for all ${group.exams.length} classes? Published marks become official and locked.`)) return;
+      const ids = group.exams.map(e => String(e.id));
+      const update = await db.from("exams").update({ status: "PUBLISHED" }).in("id", ids).eq("status", "DRAFT");
+      if (update.error) throw update.error;
+      setMessage(`School-wide ${selectedExam.name} published successfully for all ${group.exams.length} classes.`);
+      await refresh();
+      await load(String(selectedExam.id));
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Results could not be published.");
+    } finally { setBusy(false); }
+  };
+
   const create = async (e: FormEvent) => {
     e.preventDefault();
     if (!admin || !user || !examName.trim()) return;
@@ -229,7 +262,13 @@ export default function ExamPublishingWorkspace() {
       const maximum = Number(maxScore);
       if (!Number.isFinite(maximum) || maximum <= 0) throw new Error("Maximum score must be greater than zero.");
       if (start > end) throw new Error("End date cannot be before start date.");
-      const r = await getSupabase().from("exams").insert(targets.map(c => ({ term_id: term, class_id: c.id, name: examName.trim(), exam_type: examType, maximum_score: maximum, starts_on: start, ends_on: end, status: "DRAFT", created_by: user.id })));
+      const db = getSupabase();
+      const duplicate = await db.from("exams").select("id,class_id").eq("term_id", term).eq("exam_type", examType).eq("maximum_score", maximum).eq("starts_on", start).eq("ends_on", end).ilike("name", examName.trim());
+      if (duplicate.error) throw duplicate.error;
+      const duplicateClasses = new Set((duplicate.data ?? []).map((x: any) => String(x.class_id)));
+      const remaining = targets.filter(c => !duplicateClasses.has(String(c.id)));
+      if (!remaining.length) throw new Error(`This ${examType === "ENDTERM" ? "End-Term" : "Exam 1"} already exists for the selected class scope. No duplicate examination was created.`);
+      const r = await db.from("exams").insert(remaining.map(c => ({ term_id: term, class_id: c.id, name: examName.trim(), exam_type: examType, maximum_score: maximum, starts_on: start, ends_on: end, status: "DRAFT", created_by: user.id })));
       if (r.error) throw r.error;
       setExamName("");
       setMessage(allGrades ? `Examination created once and assigned to all ${targets.length} active classes as one school-wide assessment.` : "Examination created as DRAFT for the selected class. Marks must be complete before publication.");
@@ -253,7 +292,7 @@ export default function ExamPublishingWorkspace() {
         <select value={termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? "")} onChange={e => setTermId(e.target.value)} className={input}><option value="">Term</option>{terms.filter(t => String(t.academic_year_id) === yearId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All classes</label>
         {!allGrades && <select value={classId} onChange={e => setClassId(e.target.value)} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
-        <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option>MIDTERM</option><option>ENDTERM</option><option>CONTINUOUS_ASSESSMENT</option><option>OTHER</option></select>
+        <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option value="EXAM_1">Exam 1</option><option value="ENDTERM">End-Term</option></select>
         <input type="date" value={start} onChange={e => setStart(e.target.value)} className={input} />
         <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={input} />
         <input type="number" min="1" value={maxScore} onChange={e => setMaxScore(e.target.value)} className={input} />
@@ -267,7 +306,7 @@ export default function ExamPublishingWorkspace() {
       <select value={examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.key ?? ""} onChange={e => selectExamGroup(e.target.value)} className={`${input} mt-5`}><option value="">Select examination</option>{examGroups.map(g => <option key={g.key} value={g.key}>{g.representative.name} — All {g.exams.length} Classes — {g.representative.status}</option>)}</select>
       {selectedExam && (examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.length ?? 0) > 1 && <select value={selected} onChange={e => void load(e.target.value)} className={`${input} mt-3`}><option value="">Select class</option>{examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.map(e => <option key={e.id} value={e.id}>{classes.find(c => String(c.id) === String(e.class_id))?.name}</option>)}</select>}
       {selectedExam && <>
-        <div className="mt-4 rounded-2xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><b>{classes.find(c => String(c.id) === String(selectedExam.class_id))?.name} · {selectedExam.name}</b><p className="text-xs opacity-60 mt-1">{completion.done}/{completion.required} required marks entered · {completion.percent}% complete</p></div><div className="flex gap-2 items-center">{selectedExam.status === "PUBLISHED" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-2 text-xs font-bold text-green-800"><Lock size={14} />PUBLISHED</span> : <span className="rounded-full bg-[var(--gold)]/10 px-3 py-2 text-xs font-bold">DRAFT</span>}{admin && selectedExam.status !== "PUBLISHED" && <button onClick={() => void publish()} disabled={busy || !completion.complete} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">{completion.complete ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}{completion.complete ? "Publish Results" : "Complete Marks to Publish"}</button>}</div></div><div className="mt-3 h-2 rounded-full bg-black/10 overflow-hidden"><div className="h-full rounded-full bg-[var(--gold)]" style={{ width: `${completion.percent}%` }} /></div></div>
+        <div className="mt-4 rounded-2xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><b>{classes.find(c => String(c.id) === String(selectedExam.class_id))?.name} · {selectedExam.name}</b><p className="text-xs opacity-60 mt-1">{completion.done}/{completion.required} required marks entered · {completion.percent}% complete</p></div><div className="flex gap-2 items-center">{selectedExam.status === "PUBLISHED" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-2 text-xs font-bold text-green-800"><Lock size={14} />PUBLISHED</span> : <span className="rounded-full bg-[var(--gold)]/10 px-3 py-2 text-xs font-bold">DRAFT</span>}{admin && selectedExam.status !== "PUBLISHED" && <button onClick={() => void publishGroup()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40"><CheckCircle2 size={15} />Publish All Classes</button>}</div></div><div className="mt-3 h-2 rounded-full bg-black/10 overflow-hidden"><div className="h-full rounded-full bg-[var(--gold)]" style={{ width: `${completion.percent}%` }} /></div></div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedExam.status !== "PUBLISHED" && <select value={subjectId} onChange={e => void load(String(selectedExam.id), e.target.value)} className={input}><option value="">Select subject</option>{availableSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}<div className="rounded-xl bg-[var(--gold)]/10 px-3 py-3 text-sm">{subjectId ? `${rows.filter(r => String(r.subject_id) === String(subjectId)).length}/${learnerCount} learners have marks for this subject.` : "Select a subject to enter marks."}</div></div>
         {subjectId && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-sm"><thead><tr className="border-b text-left"><th className="p-3">#</th><th className="p-3">Admission</th><th className="p-3">Learner</th><th className="p-3">Mark / {selectedExam.maximum_score}</th><th className="p-3">Level</th></tr></thead><tbody>{students.map((s, i) => { const v = scores[String(s.id)] ?? ""; const n = v === "" ? null : Number(v); return <tr key={s.id} className="border-b border-[var(--ink)]/5"><td className="p-3">{i + 1}</td><td className="p-3">{s.admission_number}</td><td className="p-3 font-medium">{nameOf(s)}</td><td className="p-3"><input disabled={selectedExam.status === "PUBLISHED"} value={v} onChange={e => setScores(p => ({ ...p, [String(s.id)]: e.target.value }))} type="number" min="0" max={selectedExam.maximum_score} step="0.01" className="w-32 rounded-lg border px-3 py-2 disabled:bg-black/5" /></td><td className="p-3">{n == null || !Number.isFinite(n) ? "—" : levelFromScore(n, Number(selectedExam.maximum_score))}</td></tr>; })}</tbody></table>{selectedExam.status !== "PUBLISHED" && <div className="mt-4 flex justify-end"><button onClick={() => void save()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}Save Marks</button></div>}</div>}
       </>}
