@@ -139,23 +139,46 @@ function reportAreasForBand(subjects: Row[], band: Band): ReportSubject[] {
   return out.length ? out : sortSubjects(canonical);
 }
 
-function assessmentSummary(rows: Row[]) {
-  const byId = new Map<string, Row>();
+const examTypeRank = (value: unknown) => {
+  const type = normalize(value);
+  return type === "EXAM 1" ? 1 : type === "ENDTERM" ? 2 : 99;
+};
+
+function canonicalTermResults(rows: Row[]) {
+  // A term report has exactly two assessment slots: Exam 1 and End-Term.
+  // If an old/duplicate record exists, use the most recently dated exam of
+  // that type so stale records cannot silently contaminate the report.
+  const byType = new Map<string, Row>();
   for (const row of rows) {
-    const exam = row.exams;
-    const id = String(exam?.id ?? row.exam_id ?? "");
+    const type = normalize(row.exams?.exam_type);
+    if (type !== "EXAM 1" && type !== "ENDTERM") continue;
+    const id = String(row.exams?.id ?? row.exam_id ?? "");
     if (!id) continue;
-    const existing = byId.get(id);
-    if (!existing) byId.set(id, row);
+    const previous = byType.get(type);
+    const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
+    const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
+    if (!previous || currentDate >= previousDate) byType.set(type, row);
   }
-  return [...byId.values()].sort((a,b) =>
-    String(a.exams?.ends_on ?? a.exams?.starts_on ?? a.exam_id)
-      .localeCompare(String(b.exams?.ends_on ?? b.exams?.starts_on ?? b.exam_id))
-  );
+  const ids = new Set([...byType.values()].map(row => String(row.exams?.id ?? row.exam_id ?? "")));
+  return rows.filter(row => ids.has(String(row.exams?.id ?? row.exam_id ?? "")));
 }
+
+function assessmentSummary(rows: Row[]) {
+  const byType = new Map<string, Row>();
+  for (const row of rows) {
+    const type = normalize(row.exams?.exam_type);
+    if (type !== "EXAM 1" && type !== "ENDTERM") continue;
+    const id = String(row.exams?.id ?? row.exam_id ?? "");
+    if (!id) continue;
+    const previous = byType.get(type);
+    const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
+    const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
+    if (!previous || currentDate >= previousDate) byType.set(type, row);
+  }
+  return [...byType.values()].sort((a,b) => examTypeRank(a.exams?.exam_type) - examTypeRank(b.exams?.exam_type));
+}
+
 function aggregate(rows: Row[], ids: string[]) {
-  // A term report deliberately combines the two recorded assessments rather
-  // than silently replacing Exam 1 with the End-Term result.
   const chosen = rows.filter(r=>ids.includes(String(r.subject_id)));
   const score = chosen.reduce((n,r)=>n+(num(r.score)??0),0);
   const max = chosen.reduce((n,r)=>n+(num(r.maximum_score)??0),0);
@@ -214,7 +237,9 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       ]);for(const q of[cls,sub,a])if(q.error)throw q.error;setClassRow(cls.data??null);setAllSubjects((sub.data??[]).map((x:any)=>x.subjects).filter(Boolean));setAttendance(a.data??[]);
       const ids=(sub.data??[]).map((x:any)=>String(x.subject_id)); const termIds=terms.filter(t=>String(t.academic_year_id)===yearId).map(t=>String(t.id));
       const q=mode==="term"?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):termIds.length?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):{data:[],error:null} as any;
-      if(q.error)throw q.error;setResults(q.data??[]);
+      if(q.error)throw q.error;
+      const normalizedResults = mode === "term" ? canonicalTermResults(q.data ?? []) : (q.data ?? []);
+      setResults(normalizedResults);
       const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
@@ -508,8 +533,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     {(selected&&classRow&&lines.length)?<div className="report-card-print overflow-hidden rounded-2xl border border-[#D7E5DC] bg-white shadow-sm">
       <div className="report-hero"><div className="report-logo-slot" aria-label="Menwe Primary & Junior School official crest"><img src="/menwe-logo.svg" alt="Menwe Primary & Junior School official crest" /></div><div><div className="report-eyebrow">MENWE PRIMARY & JUNIOR SCHOOL</div><div className="report-contact">Igoki, Abogeta • School Contact: __________________</div><h2>{title}</h2><p>{mode==="term"?`${selectedTerm?.name??"Term"} • ${selectedYear?.name??"Academic Year"}`:`Annual Performance • ${selectedYear?.name??"Academic Year"}`}</p></div><div className="report-badge"><span>{band==="JUNIOR_SCHOOL"?"POINTS":"AVERAGE"}</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:(average==null?"—":`${average.toFixed(0)}%`)}</strong></div></div>
       <div className="report-identity"><div><span>Learner</span><strong>{fullName}</strong></div><div><span>Admission No.</span><strong>{selected.admission_number??"—"}</strong></div><div><span>Class</span><strong>{classRow.name??classRow.code??"—"}</strong></div><div><span>Year</span><strong>{selectedYear?.name??"—"}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div>
-      <div className="report-body"><section className="report-section"><div className="report-section-head"><span>01</span><div><h3>Assessments Included</h3><p>This report combines the recorded assessments for the selected term. Exam 1 remains preserved when End-Term marks are entered.</p></div></div><div className="summary-grid">{assessments.slice(0,2).map((a,i)=><div key={String(a.exams?.id??a.exam_id)}><span>Assessment {i+1}</span><strong>{String(a.exams?.name??`Exam ${i+1}`)}</strong><small className="block mt-1 text-xs text-[#718178]">{String(a.exams?.starts_on??"")} {a.exams?.ends_on&&a.exams.ends_on!==a.exams.starts_on?`– ${a.exams.ends_on}`:""}</small></div>)}</div></section><section className="report-section"><div className="report-section-head"><span>02</span><div><h3>Learning Area Performance</h3><p>Learning areas shown here are the same class subjects used by the marksheet for this learner. Scores include both recorded assessments.</p></div></div><div className="report-table-wrap"><table><thead><tr><th>Learning Area</th><th>Score</th><th>Percentage</th><th>Level</th><th>Teacher Interpretation</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td><strong>{l.name}</strong><small>{l.code}{l.synthetic?" • Combined report area":""}</small></td><td className="score">{fmt(l.score)} / {fmt(l.max)}</td><td className="score">{l.percentage==null?"—":`${l.percentage.toFixed(1)}%`}</td><td className="score"><span className={`level-pill level-${l.levelCode.slice(0,2).toLowerCase()}`}>{l.levelCode}{l.level!=null?` • ${l.level}`:""}</span></td><td>{l.remark}</td></tr>)}</tbody><tfoot><tr><td>Total / Overall</td><td>{fmt(totalMarks)} / {fmt(totalMax||null)}</td><td>{average==null?"—":`${average.toFixed(1)}%`}</td><td>{band==="JUNIOR_SCHOOL"?`${totalPoints} points`:`Rank ${rank??"—"}`}</td><td>{band==="JUNIOR_SCHOOL"?`Rank ${rank??"—"} • Junior School ranks by Total Points.`:`Ranks by Total Marks.`}</td></tr></tfoot></table></div></section>
-        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and parent/guardian.</p></div></div><div className="summary-grid"><div><span>Total Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>Average</span><strong>{average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:"Not used"}</strong></div><div><span>{rankLabel}</span><strong>{rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
+      <div className="report-body"><section className="report-section"><div className="report-section-head"><span>01</span><div><h3>Assessments Included</h3><p>This report combines the recorded assessments for the selected term. Exam 1 remains preserved when End-Term marks are entered.</p></div></div><div className="summary-grid">{assessments.slice(0,2).map((a,i)=><div key={String(a.exams?.id??a.exam_id)}><span>Assessment {i+1}</span><strong>{String(a.exams?.name??`Exam ${i+1}`)}</strong><small className="block mt-1 text-xs text-[#718178]">{String(a.exams?.starts_on??"")} {a.exams?.ends_on&&a.exams.ends_on!==a.exams.starts_on?`– ${a.exams.ends_on}`:""}</small></div>)}</div></section><section className="report-section"><div className="report-section-head"><span>02</span><div><h3>Learning Area Performance</h3><p>Learning areas mirror the class marksheet. The combined score adds Exam 1 and End-Term; when both are out of 100, the percentage remains on a 0–100% scale.</p></div></div><div className="report-table-wrap"><table><thead><tr><th>Learning Area</th><th>Combined Score</th><th>Percentage</th><th>Level</th><th>Teacher Interpretation</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td><strong>{l.name}</strong><small>{l.code}{l.synthetic?" • Combined report area":""}</small></td><td className="score">{fmt(l.score)} / {fmt(l.max)}</td><td className="score">{l.percentage==null?"—":`${l.percentage.toFixed(1)}%`}</td><td className="score"><span className={`level-pill level-${l.levelCode.slice(0,2).toLowerCase()}`}>{l.levelCode}{l.level!=null?` • ${l.level}`:""}</span></td><td>{l.remark}</td></tr>)}</tbody><tfoot><tr><td>Total / Overall</td><td>{fmt(totalMarks)} / {fmt(totalMax||null)}</td><td>{average==null?"—":`${average.toFixed(1)}%`}</td><td>{band==="JUNIOR_SCHOOL"?`${totalPoints} points`:`Rank ${rank??"—"}`}</td><td>{band==="JUNIOR_SCHOOL"?`Rank ${rank??"—"} • Junior School ranks by Total Points.`:`Ranks by Total Marks.`}</td></tr></tfoot></table></div></section>
+        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and parent/guardian.</p></div></div><div className="summary-grid"><div><span>Combined Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>Average</span><strong>{average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"?totalPoints:"Not used"}</strong></div><div><span>{rankLabel}</span><strong>{rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
         <section className="report-section"><div className="report-section-head"><span>04</span><div><h3>Comments & Guidance</h3><p>Professional guidance for the learner and parent/guardian.</p></div></div><div className="report-comment-grid"><div><label>Teacher's remark</label><div className="comment-box">{teacherRemark||"No teacher remark entered."}</div></div><div><label>Headteacher's remark</label><div className="comment-box">{headRemark||"No headteacher remark entered."}</div></div></div></section>
         {admin&&mode==="term"?<section className="report-section no-print"><div className="grid gap-3 md:grid-cols-2"><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Teacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={teacherRemark} onChange={e=>setTeacherRemark(e.target.value)}/></label><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Headteacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={headRemark} onChange={e=>setHeadRemark(e.target.value)}/></label></div><button onClick={save} disabled={saving} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D7A52A] px-4 text-sm font-black text-[#17352A]">{saving?<Loader2 className="h-4 w-4 animate-spin"/>:<Save className="h-4 w-4"/>}Save report card</button></section>:null}
       </div>
