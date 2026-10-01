@@ -58,7 +58,6 @@
  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tfoot{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
- html body .marksheet-v2 .marksheet-table tbody tr:nth-child(20){break-after:page!important;page-break-after:always!important}
  html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:1.45mm .55mm!important;height:7mm!important;min-height:7mm!important;line-height:1.05!important;color:#071b3a!important;border:1px solid #8e9dad!important;font-size:9pt!important;font-weight:800!important}
  html body .marksheet-v2 .marksheet-table .name-cell{font-size:10pt!important;font-weight:900!important;text-align:left!important;white-space:nowrap!important}
  html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:10.5pt!important;font-weight:900!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
