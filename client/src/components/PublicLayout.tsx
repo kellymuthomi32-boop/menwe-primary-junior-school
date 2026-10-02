@@ -46,6 +46,68 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); setDiscoverOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
   const isActive = (path: string) => location === path || (path !== "/" && location.startsWith(`${path}/`));
   useEffect(() => { document.body.style.overflow = open ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [open]);
+  // Make subject mentions throughout public pages discoverable: clicking a subject name
+  // takes visitors to the same detailed learning-area page used by Academics.
+  useEffect(() => {
+    const subjectRoutes = [
+      ["Mathematics", "/academics/mathematics-financial-literacy"],
+      ["English", "/academics/languages"],
+      ["Kiswahili", "/academics/languages"],
+      ["Agriculture", "/academics/agriculture-nutrition"],
+      ["Nutrition", "/academics/agriculture-nutrition"],
+      ["Integrated Science", "/academics/integrated-science-health"],
+      ["Science", "/academics/integrated-science-health"],
+      ["Pre-Technical", "/academics/pre-technical-studies-ict"],
+      ["ICT", "/academics/pre-technical-studies-ict"],
+      ["Creative Arts", "/academics/creative-arts-sports"],
+      ["Sports", "/academics/creative-arts-sports"],
+    ] as const;
+    const root = document.getElementById("main-content");
+    if (!root) return;
+    const excluded = new Set(["A", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "SCRIPT", "STYLE"]);
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^$()|[\\]\\]/g, "\\  useEffect(() => { document.body.style.overflow = open ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [open]);
+");
+    const pattern = new RegExp(subjectRoutes.map(([name]) => escapeRegExp(name)).join("|"), "g");
+    const routeFor = (label: string) => subjectRoutes.find(([name]) => name.toLowerCase() === label.toLowerCase())?.[1];
+    const linkNode = (node: Text) => {
+      const parent = node.parentElement;
+      if (!parent || excluded.has(parent.tagName) || parent.closest("a,button,[data-subject-link]")) return;
+      const textValue = node.nodeValue || "";
+      pattern.lastIndex = 0;
+      if (!pattern.test(textValue)) return;
+      pattern.lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+      let last = 0;
+      textValue.replace(pattern, (match, offset: number) => {
+        if (offset > last) fragment.appendChild(document.createTextNode(textValue.slice(last, offset)));
+        const href = routeFor(match);
+        if (!href) { fragment.appendChild(document.createTextNode(match)); last = offset + match.length; return match; }
+        const link = document.createElement("a");
+        link.href = href;
+        link.dataset.subjectLink = "true";
+        link.textContent = match;
+        link.title = "Explore this learning area";
+        link.className = "font-semibold text-[#061229] underline decoration-[#D89B28]/50 underline-offset-4 transition-colors hover:text-[#D89B28] focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 rounded-sm";
+        link.addEventListener("click", (event) => { event.preventDefault(); go(href); });
+        fragment.appendChild(link);
+        last = offset + match.length;
+        return match;
+      });
+      if (last < textValue.length) fragment.appendChild(document.createTextNode(textValue.slice(last)));
+      if (fragment.childNodes.length) node.replaceWith(fragment);
+    };
+    const scan = () => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      let current: Node | null;
+      while ((current = walker.nextNode())) nodes.push(current as Text);
+      nodes.forEach(linkNode);
+    };
+    scan();
+    const observer = new MutationObserver(() => scan());
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [location, go]);
 
   return <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--gold)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-[var(--ink)]">Skip to main content</a>
