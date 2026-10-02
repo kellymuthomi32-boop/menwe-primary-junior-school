@@ -210,6 +210,8 @@ export default function ReportCardsDirectory(){
   const {user,profile}=useSchoolAuth(); const admin=ADMINS.includes(profile?.role??""); const canUseEnteredResults=admin||profile?.role==="TEACHER";
   const [students,setStudents]=useState<Row[]>([]),[years,setYears]=useState<Row[]>([]),[terms,setTerms]=useState<Row[]>([]),[classes,setClasses]=useState<Row[]>([]);
   const [studentId,setStudentId]=useState(""),[yearId,setYearId]=useState(""),[termId,setTermId]=useState(""),[mode,setMode]=useState<"term"|"annual">("term"),[batchClassId,setBatchClassId]=useState("");
+  const [selectionRestored,setSelectionRestored]=useState(false);
+  const storageKey=user?.id?`menwe:report-card-workspace:${user.id}`:"";
   const [classRow,setClassRow]=useState<Row|null>(null),[rank,setRank]=useState<number|null>(null),[allSubjects,setAllSubjects]=useState<Row[]>([]),[results,setResults]=useState<Row[]>([]),[attendance,setAttendance]=useState<Row[]>([]),[report,setReport]=useState<Row|null>(null),[teacherRemark,setTeacherRemark]=useState(""),[headRemark,setHeadRemark]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
 
   useEffect(()=>{void(async()=>{if(!user)return;try{const db=getSupabase();const[s,y,t]=await Promise.all([
@@ -226,6 +228,26 @@ const classById=new Map<string,Row>((cls.data??[]).map((c:any)=>[String(c.id),c]
 const classByStudent=new Map<string,Row>((enr.data??[]).reduce<Array<[string,Row]>>((acc,e:any)=>{const cls=classById.get(String(e.class_id));if(cls)acc.push([String(e.student_id),cls]);return acc;},[]));
 const orderedStudents=[...(s.data??[])].map((st:any)=>({...st,_className:classByStudent.get(String(st.id))?.name??classByStudent.get(String(st.id))?.code??"",_classGrade:gradeFromClass(classByStudent.get(String(st.id)))})).sort((a:any,b:any)=>(a._classGrade??999)-(b._classGrade??999)||String(a._className??"").localeCompare(String(b._className??""),undefined,{numeric:true,sensitivity:"base"})||learnerName(a).localeCompare(learnerName(b),undefined,{sensitivity:"base"})||String(a.admission_number??"").localeCompare(String(b.admission_number??""),undefined,{numeric:true,sensitivity:"base"}));
 setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasses(cls.data??[]);setYearId(currentYearId);}catch(e){setMessage(e instanceof Error?e.message:"Report-card workspace could not be loaded.");}finally{setLoading(false);}})();},[user]);
+  useEffect(()=>{
+    if(loading||!storageKey)return;
+    try{
+      const raw=localStorage.getItem(storageKey);
+      if(raw){const saved=JSON.parse(raw) as {studentId?:string;yearId?:string;termId?:string;mode?:"term"|"annual";batchClassId?:string};
+        if(saved.studentId)setStudentId(saved.studentId);
+        if(saved.yearId)setYearId(saved.yearId);
+        if(saved.termId)setTermId(saved.termId);
+        if(saved.mode)setMode(saved.mode);
+        if(saved.batchClassId)setBatchClassId(saved.batchClassId);
+      }
+    }catch{/* Ignore invalid browser state. */}
+    setSelectionRestored(true);
+  },[loading,storageKey]);
+
+  useEffect(()=>{
+    if(!storageKey||!selectionRestored)return;
+    try{localStorage.setItem(storageKey,JSON.stringify({studentId,yearId,termId,mode,batchClassId}));}catch{/* Ignore storage failures. */}
+  },[storageKey,selectionRestored,studentId,yearId,termId,mode,batchClassId]);
+
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
   const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band),[allSubjects,band]);
   const assessments=useMemo(()=>assessmentSummary(results),[results]);
@@ -256,6 +278,11 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(!(q.data??[]).length)setMessage("No recorded results were found for this learner in the selected period.");
     }catch(e){setMessage(e instanceof Error?e.message:"Report card could not be generated.");}finally{setBusy(false);}
   };
+
+  useEffect(()=>{
+    if(!selectionRestored||loading||!studentId||!yearId||(mode==="term"&&!termId)||classRow)return;
+    if(students.some(s=>String(s.id)===studentId))void generate();
+  },[selectionRestored,loading,studentId,yearId,termId,mode,students,classRow]);
 
   const save=async()=>{
     if(!admin||mode!=="term"||!studentId||!termId||!classRow)return;
