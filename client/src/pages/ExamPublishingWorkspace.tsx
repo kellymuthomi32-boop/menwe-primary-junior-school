@@ -120,6 +120,12 @@ export default function ExamPublishingWorkspace() {
     try { localStorage.setItem(storageKey, JSON.stringify(payload)); } catch { /* Browser storage may be unavailable/full. */ }
   }, [storageKey, draftRestored, selected, subjectId, yearId, termId, examName, maxScore, examType, start, end, allGrades, classId, scores]);
 
+  useEffect(() => {
+    if (!draftRestored || !selected || !exams.some(e => String(e.id) === String(selected))) return;
+    const savedSubject = subjectId;
+    if (students.length === 0) void load(String(selected), savedSubject || undefined);
+  }, [draftRestored, selected, exams, subjectId]);
+
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
   const visibleExams = exams.filter(e => admin || assigned.has(String(e.class_id)));
