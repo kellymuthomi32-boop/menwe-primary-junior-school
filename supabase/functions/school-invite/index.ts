@@ -63,7 +63,7 @@ Deno.serve(async req => {
     if (action === "set_password") {
       const email = payload.email?.trim().toLowerCase();
       const password = (payload as { password?: string }).password ?? "";
-      if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) return response({ error: "Provide a valid teacher email address." }, 400);
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) return response({ error: "Provide a valid teacher email address." }, 400);
       if (password.length < 8) return response({ error: "Password must be at least 8 characters long." }, 400);
       const { data: existingProfile, error: profileLookupError } = await serviceClient
         .from("profiles")
