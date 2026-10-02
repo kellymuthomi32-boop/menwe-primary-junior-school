@@ -71,3 +71,5 @@
  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2 .level-legend{font-size:8pt!important;line-height:1.2!important;padding:2mm 0!important;border:0!important}
  html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
+
+.marksheet-v2 .marksheet-table .marksheet-no-col{width:42px}.marksheet-v2 .marksheet-table .marksheet-learner-col{width:240px}.marksheet-v2 .marksheet-table .marksheet-subject-col{width:64px}.marksheet-v2 .marksheet-table .marksheet-total-col{width:82px}.marksheet-v2 .marksheet-table .marksheet-points-col{width:78px}.marksheet-v2 .marksheet-table .marksheet-rank-col{width:58px}
