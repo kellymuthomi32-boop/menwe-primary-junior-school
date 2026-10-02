@@ -42,7 +42,7 @@ Deno.serve(async req => {
     }
 
     const payload = await req.json() as {
-      action?: "invite" | "resend" | "set_password" | "direct";
+      action?: "invite" | "resend" | "set_password" | "direct" | "deactivate_teacher" | "reactivate_teacher" | "delete_teacher";
       email?: string;
       fullName?: string;
       role?: InviteRole;
@@ -55,11 +55,68 @@ Deno.serve(async req => {
 
     // Resending an existing invitation only needs the existing account email.
     // It must not require the UI to resend a school record type.
-    if (!["deactivate_teacher", "reactivate_teacher"].includes(action) && action !== "resend" && action !== "set_password" && (!recordType || !["teacher", "parent", "student"].includes(recordType))) {
+    if (!["deactivate_teacher", "reactivate_teacher", "delete_teacher"].includes(action) && action !== "resend" && action !== "set_password" && (!recordType || !["teacher", "parent", "student"].includes(recordType))) {
       return response({ error: "Select a valid school record type." }, 400);
     }
 
     const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    if (action === "delete_teacher") {
+      const teacherId = payload.recordId?.trim();
+      if (!teacherId) return response({ error: "A teacher record is required." }, 400);
+      const { data: teacherRecord, error: teacherLookupError } = await serviceClient
+        .from("teachers")
+        .select("id,profile_id,first_name,last_name,status")
+        .eq("id", teacherId)
+        .maybeSingle();
+      if (teacherLookupError || !teacherRecord) return response({ error: "The selected teacher could not be found." }, 404);
+
+      const [attendance, homework, duties, loans] = await Promise.all([
+        serviceClient.from("attendance_sessions").select("id", { count: "exact", head: true }).eq("taken_by", teacherId),
+        serviceClient.from("homework").select("id", { count: "exact", head: true }).eq("teacher_id", teacherId),
+        serviceClient.from("teacher_duty_roster_entries").select("id", { count: "exact", head: true }).eq("teacher_id", teacherId),
+        serviceClient.from("teacher_library_loans").select("id", { count: "exact", head: true }).eq("teacher_id", teacherId)
+      ]);
+      const failedCheck = [attendance, homework, duties, loans].find(x => x.error);
+      if (failedCheck?.error) return response({ error: "The teacher's protected school history could not be checked before deletion." }, 500);
+      const protectedCount = (attendance.count ?? 0) + (homework.count ?? 0) + (duties.count ?? 0) + (loans.count ?? 0);
+      if (protectedCount > 0) {
+        return response({
+          error: "This teacher cannot be permanently deleted because protected school history is linked to the record.",
+          protectedRecords: {
+            attendanceSessions: attendance.count ?? 0,
+            homework: homework.count ?? 0,
+            dutyRosterEntries: duties.count ?? 0,
+            libraryLoans: loans.count ?? 0
+          },
+          message: "Use Remove access instead. It keeps the teacher's historical records safe."
+        }, 409);
+      }
+
+      await serviceClient.from("audit_logs").insert({
+        actor_id: user.id,
+        action: "DELETE_TEACHER",
+        entity_type: "teacher",
+        entity_id: teacherId,
+        metadata: { profileId: teacherRecord.profile_id, name: teacherRecord.first_name + " " + teacherRecord.last_name }
+      });
+
+      const { error: teacherDeleteError } = await serviceClient.from("teachers").delete().eq("id", teacherId);
+      if (teacherDeleteError) return response({ error: "The teacher record could not be deleted. No school data was removed." }, 409);
+
+      if (teacherRecord.profile_id) {
+        const { error: authDeleteError } = await serviceClient.auth.admin.deleteUser(teacherRecord.profile_id);
+        if (authDeleteError) {
+          return response({ error: "The teacher record was deleted, but the linked portal account could not be removed. The account has been left inactive for safety; contact the administrator to finish cleanup." }, 500);
+        }
+      }
+
+      return response({
+        id: teacherId,
+        deleted: true,
+        message: "Teacher deleted permanently. No protected historical school records were removed."
+      });
+    }
 
     if (action === "deactivate_teacher" || action === "reactivate_teacher") {
       const teacherId = payload.recordId?.trim();
