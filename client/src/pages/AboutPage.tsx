@@ -11,7 +11,7 @@ const physicalLocation = "Menwe Village, Igoki, Abogeta Division, South Imenti C
 const postalAddress = "P.O. Box 19, Kionyo";
 
 const stats = [
-  { value: "314", label: "Active learners", note: "Grades PP1–9", icon: UsersRound },
+  { value: "411", label: "Active learners", note: "Grades PP1–9", icon: UsersRound },
   { value: "5", label: "Active teachers", note: "Current portal records", icon: GraduationCap },
   { value: "9", label: "Grade levels", note: "Grade 1–9", icon: BookOpen },
   { value: "3", label: "Learning stages", note: "Early Years · Primary · Junior", icon: Sprout },
