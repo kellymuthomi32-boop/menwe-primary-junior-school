@@ -49,6 +49,8 @@ export default function ExamPublishingWorkspace() {
   const [end, setEnd] = useState(new Date().toISOString().slice(0, 10));
   const [allGrades, setAllGrades] = useState(true);
   const [classId, setClassId] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
+  const storageKey = user?.id ? `menwe:marks-workspace:${user.id}` : "";
 
   const refresh = useCallback(async () => {
     if (!user || (!admin && !teacher)) return;
@@ -89,6 +91,34 @@ export default function ExamPublishingWorkspace() {
   }, [user, admin, teacher, yearId]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { selected?: string; subjectId?: string; yearId?: string; termId?: string; examName?: string; maxScore?: string; examType?: string; start?: string; end?: string; allGrades?: boolean; classId?: string; scores?: Record<string, string> };
+      if (saved.yearId) setYearId(saved.yearId);
+      if (saved.termId) setTermId(saved.termId);
+      if (saved.examName != null) setExamName(saved.examName);
+      if (saved.maxScore) setMaxScore(saved.maxScore);
+      if (saved.examType) setExamType(saved.examType);
+      if (saved.start) setStart(saved.start);
+      if (saved.end) setEnd(saved.end);
+      if (typeof saved.allGrades === "boolean") setAllGrades(saved.allGrades);
+      if (saved.classId) setClassId(saved.classId);
+      if (saved.scores) setScores(saved.scores);
+      if (saved.selected) setSelected(saved.selected);
+      if (saved.subjectId) setSubjectId(saved.subjectId);
+    } catch { /* Ignore an invalid browser draft. */ }
+    setDraftRestored(true);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || !draftRestored) return;
+    const payload = { selected, subjectId, yearId, termId, examName, maxScore, examType, start, end, allGrades, classId, scores };
+    try { localStorage.setItem(storageKey, JSON.stringify(payload)); } catch { /* Browser storage may be unavailable/full. */ }
+  }, [storageKey, draftRestored, selected, subjectId, yearId, termId, examName, maxScore, examType, start, end, allGrades, classId, scores]);
 
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
@@ -191,6 +221,11 @@ export default function ExamPublishingWorkspace() {
       const fresh = await db.from("exam_results").select("exam_id,student_id,subject_id,score,maximum_score,grade").eq("exam_id", selectedExam.id);
       if (fresh.error) throw fresh.error;
       setRows(fresh.data ?? []);
+      setScores(Object.fromEntries((fresh.data ?? []).filter((r: any) => String(r.subject_id) === String(subjectId)).map((r: any) => [String(r.student_id), r.score == null ? "" : String(r.score)])));
+      try {
+        const raw = storageKey ? localStorage.getItem(storageKey) : null;
+        if (raw) { const draft = JSON.parse(raw); draft.scores = {}; localStorage.setItem(storageKey, JSON.stringify(draft)); }
+      } catch { /* Ignore storage cleanup failure. */ }
       setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Marks could not be saved.");
