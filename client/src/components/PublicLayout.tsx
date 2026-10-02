@@ -52,7 +52,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     const subjectRoutes = [
       ["Mathematics", "/academics/mathematics-financial-literacy"],
       ["English", "/academics/languages"],
+      ["Languages", "/academics/languages"],
       ["Kiswahili", "/academics/languages"],
+      ["Mother Tongue", "/academics/languages"],
       ["Agriculture", "/academics/agriculture-nutrition"],
       ["Nutrition", "/academics/agriculture-nutrition"],
       ["Integrated Science", "/academics/integrated-science-health"],
