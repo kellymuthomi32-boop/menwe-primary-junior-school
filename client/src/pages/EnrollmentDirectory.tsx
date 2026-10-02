@@ -59,9 +59,14 @@ export default function EnrollmentDirectory() {
   useEffect(() => { void load(); }, [load]);
 
   const stageOf = (row: Row) => { const name = String(row.class?.name || "").toUpperCase(); if (name === "PP1" || name === "PP2") return "ECDE"; const match = name.match(/GRADE\s*(\d+)/); if (!match) return "OTHER"; const n = Number(match[1]); if (n >= 1 && n <= 3) return "LOWER PRIMARY"; if (n >= 4 && n <= 6) return "UPPER PRIMARY"; if (n >= 7 && n <= 9) return "JUNIOR SCHOOL"; return "OTHER"; };
-  const stages = ["ALL", "ECDE", "LOWER PRIMARY", "UPPER PRIMARY", "JUNIOR SCHOOL"];
-  const grades = useMemo(() => ["ALL", ...Array.from(new Set(rows.map(r => text(r.class?.name || r.class?.level, "")).filter(Boolean))).sort((a,b) => a.localeCompare(b, undefined, {numeric:true}))], [rows]);
-  const stageCounts = useMemo(() => Object.fromEntries(stages.map(s => [s, s === "ALL" ? rows.filter(r => r.status === "ACTIVE").length : rows.filter(r => r.status === "ACTIVE" && stageOf(r) === s).length])), [rows]);
+  const stages = ["ECDE", "LOWER PRIMARY", "UPPER PRIMARY", "JUNIOR SCHOOL"];
+  const stageLabels: Record<string, string> = { "ECDE": "ECDE", "LOWER PRIMARY": "Lower Primary", "UPPER PRIMARY": "Upper Primary", "JUNIOR SCHOOL": "Junior School" };
+  const stageCounts = useMemo(() => Object.fromEntries(stages.map(s => [s, rows.filter(r => r.status === "ACTIVE" && stageOf(r) === s).length])), [rows]);
+  const stageGrades = useMemo(() => {
+    if (stage === "ALL") return [];
+    return Array.from(new Set(rows.filter(r => r.status === "ACTIVE" && stageOf(r) === stage).map(r => text(r.class?.name || r.class?.level, "")).filter(Boolean)))
+      .sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+  }, [rows, stage]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
@@ -123,12 +128,41 @@ export default function EnrollmentDirectory() {
         <div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--gold)]"><Users size={15}/> Enrollment / learner profile</div><h1 className="mt-2 font-serif text-3xl font-semibold">School-wide enrollment register</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Organized as ECDE → Lower Primary → Upper Primary → Junior School → Grade → Stream → Learners.</p></div>
         <button type="button" onClick={newLearner} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={16}/>Add learner</button>
       </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search assessment number, learner, parent or class…" className={inputClass}/><select value={grade} onChange={e => setGrade(e.target.value)} className={inputClass}>{grades.map(g => <option key={g} value={g}>{g === "ALL" ? "All classes" : g}</option>)}</select></div>
+      <div className="mt-5"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search assessment number, learner, parent or class…" className={inputClass}/></div>
     </section>
 
     {message && <div role="status" className="rounded-2xl bg-[var(--sage)]/20 px-4 py-3 text-sm text-[var(--ink)]">{message}</div>}
-    <section className="menwe-card overflow-hidden rounded-[1.75rem] p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-serif text-xl font-semibold">{stage === "ALL" ? "All learners" : stage}</h2><p className="text-xs text-[var(--ink)]/50">{visible.filter(r => r.status === "ACTIVE").length} active learner{visible.filter(r => r.status === "ACTIVE").length === 1 ? "" : "s"}</p></div><div className="rounded-full bg-[var(--paper)] px-3 py-1 text-xs font-semibold">Current-year enrollment protected</div></div>
+    <section className="grid gap-5">
+      {stage === "ALL" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stages.map(s => <button key={s} type="button" onClick={() => { setStage(s); setGrade("ALL"); }} className="menwe-card rounded-[1.5rem] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-xl">
+          <div className="text-xs font-bold uppercase tracking-[.12em] text-[var(--gold)]">{stageLabels[s]}</div>
+          <div className="mt-2 flex items-end justify-between gap-3"><span className="font-serif text-4xl font-semibold">{stageCounts[s] ?? 0}</span><span className="rounded-full bg-[var(--paper)] px-3 py-1 text-xs font-semibold">learners</span></div>
+          <p className="mt-3 text-sm text-[var(--ink)]/55">Open {stageLabels[s]} → grades</p>
+        </button>)}
+      </div> : <div className="menwe-card rounded-[1.5rem] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-[.12em] text-[var(--gold)]">{stageLabels[stage]}</p><h2 className="mt-1 font-serif text-2xl font-semibold">Choose a grade</h2><p className="mt-1 text-sm text-[var(--ink)]/55">Click a grade to open its complete learner register.</p></div>
+          <button type="button" onClick={() => { setStage("ALL"); setGrade("ALL"); }} className="rounded-xl border border-[var(--ink)]/15 px-4 py-2 text-sm font-semibold">← All school levels</button>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {stageGrades.map(g => {
+            const count = rows.filter(r => r.status === "ACTIVE" && text(r.class?.name || r.class?.level, "") === g).length;
+            return <button key={g} type="button" onClick={() => setGrade(g)} className={`rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${grade === g ? "ring-2 ring-[var(--accent)]" : ""}`}>
+              <div className="font-serif text-2xl font-semibold">{g}</div>
+              <div className="mt-2 text-sm text-[var(--ink)]/55">{count} active learner{count === 1 ? "" : "s"}</div>
+              <div className="mt-4 text-xs font-bold uppercase tracking-[.1em] text-[var(--gold)]">Open register →</div>
+            </button>;
+          })}
+        </div>
+      </div>}
+
+      {(stage === "ALL" || grade === "ALL") ? <div className="menwe-card rounded-[1.5rem] p-5 text-center text-sm text-[var(--ink)]/55">{stage === "ALL" ? "Select a school level above, then choose a grade." : "Select a grade above to view all learners in that grade."}</div> : <div className="menwe-card overflow-hidden rounded-[1.75rem] p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div><div className="flex items-center gap-2"><button type="button" onClick={() => setGrade("ALL")} className="rounded-lg border border-[var(--ink)]/10 px-2 py-1 text-xs font-bold">← Grades</button><h2 className="font-serif text-xl font-semibold">{grade}</h2></div><p className="text-xs text-[var(--ink)]/50">{visible.filter(r => r.status === "ACTIVE").length} active learner{visible.filter(r => r.status === "ACTIVE").length === 1 ? "" : "s"} in {stageLabels[stage]}</p></div>
+          <div className="rounded-full bg-[var(--paper)] px-3 py-1 text-xs font-semibold">Current-year enrollment protected</div>
+        </div>
       {loading ? <div className="flex items-center justify-center gap-3 py-14 text-sm text-[var(--ink)]/60"><Loader2 className="animate-spin" size={18}/>Loading learner profiles…</div> : <div className="overflow-x-auto"><table className="w-full min-w-[1900px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-[11px] font-bold uppercase tracking-[.1em] text-[var(--ink)]/45"><th className="px-3 py-3">Assessment Number</th><th className="px-3 py-3">First Name</th><th className="px-3 py-3">Middle Name</th><th className="px-3 py-3">Last Name</th><th className="px-3 py-3">Birth Certificate Number</th><th className="px-3 py-3">Date of Birth</th><th className="px-3 py-3">Gender</th><th className="px-3 py-3">Class</th><th className="px-3 py-3">Stream</th><th className="px-3 py-3">Admission Date</th><th className="px-3 py-3">Parent/Guardian</th><th className="px-3 py-3">Parent phone</th><th className="px-3 py-3">Address</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Action</th></tr></thead><tbody>{visible.map(row => <tr key={row.id} className="border-b border-[var(--ink)]/7 last:border-0 hover:bg-[var(--paper)]">{cell(row.admission_number)}{cell(row.first_name)}{cell(row.middle_name)}{cell(row.last_name)}{cell(row.birth_certificate_number)}{cell(row.date_of_birth)}{cell(row.gender)}{cell(row.class?.name || row.class?.level)}{cell(row.stream?.name)}{cell(row.admission_date || row.enrollment?.enrolled_on)}{cell(row.parent?.full_name)}{cell(row.parent?.phone)}{cell(row.address)}{cell(row.status)}<td className="px-3 py-3"><button type="button" onClick={() => open(row)} className="inline-flex items-center gap-1 rounded-lg border border-[var(--ink)]/15 px-2.5 py-1.5 text-xs font-bold"><Pencil size={13}/>Edit</button></td></tr>)}</tbody></table>{visible.length === 0 && <div className="py-12 text-center text-sm text-[var(--ink)]/55">No learners match the selected class/search.</div>}</div>}
+    </div>}
     </section>
 
     {(selected || create) && <div className="fixed inset-0 z-50 bg-[var(--ink)]/55 p-4" onClick={() => { setSelected(null); setCreate(false); }}><aside className="mx-auto h-full max-w-4xl overflow-y-auto rounded-[1.75rem] bg-white p-5 shadow-2xl sm:p-7" onClick={e => e.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--gold)]">Enrollment / learner profile</p><h2 className="mt-1 font-serif text-3xl font-semibold">{create ? "Add learner" : "Edit learner profile"}</h2></div><button type="button" onClick={() => { setSelected(null); setCreate(false); }} className="rounded-xl border p-2"><X size={18}/></button></div><form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
