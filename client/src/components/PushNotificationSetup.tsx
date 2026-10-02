@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
-const PUBLIC_KEY = (import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined)?.trim();
+const PUBLIC_KEY = "BIY4jW/2AxwPahknETo4tBdCRJvDhgN6VZ8fOAUYhg1d5lT/qbl16Zg2Y5kPgcr3Q1amIlh+KsVon2V3kYTy6K8=";
 
 function base64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
