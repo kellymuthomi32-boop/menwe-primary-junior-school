@@ -61,6 +61,47 @@ Deno.serve(async req => {
 
     const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
+    if (action === "deactivate_teacher" || action === "reactivate_teacher") {
+      const teacherId = payload.recordId?.trim();
+      if (!teacherId) return response({ error: "A teacher record is required." }, 400);
+      const { data: teacherRecord, error: teacherLookupError } = await serviceClient
+        .from("teachers")
+        .select("id,profile_id,first_name,last_name,status")
+        .eq("id", teacherId)
+        .maybeSingle();
+      if (teacherLookupError || !teacherRecord) return response({ error: "The selected teacher could not be found." }, 404);
+      const nextStatus = action === "reactivate_teacher" ? "ACTIVE" : "INACTIVE";
+      const { error: teacherStatusError } = await serviceClient
+        .from("teachers")
+        .update({ status: nextStatus })
+        .eq("id", teacherId);
+      if (teacherStatusError) return response({ error: "The teacher record could not be updated." }, 400);
+      if (teacherRecord.profile_id) {
+        const { error: profileStatusError } = await serviceClient
+          .from("profiles")
+          .update({ status: nextStatus })
+          .eq("id", teacherRecord.profile_id);
+        if (profileStatusError) {
+          await serviceClient.from("teachers").update({ status: teacherRecord.status }).eq("id", teacherId);
+          return response({ error: "The teacher record changed but the login access could not be updated. No partial change was kept." }, 500);
+        }
+      }
+      await serviceClient.from("audit_logs").insert({
+        actor_id: user.id,
+        action: nextStatus === "ACTIVE" ? "REACTIVATE_TEACHER" : "DEACTIVATE_TEACHER",
+        entity_type: "teacher",
+        entity_id: teacherId,
+        metadata: { profileId: teacherRecord.profile_id, status: nextStatus }
+      });
+      return response({
+        id: teacherId,
+        status: nextStatus,
+        message: nextStatus === "ACTIVE"
+          ? "Teacher reactivated. Portal access is active again."
+          : "Teacher deactivated. Portal access is disabled, while the teacher's school history remains intact."
+      });
+    }
+
     if (action === "set_password") {
       const email = payload.email?.trim().toLowerCase();
       const password = (payload as { password?: string }).password ?? "";
