@@ -138,10 +138,10 @@ export default function SubjectDetailPage(){
     <button onClick={()=>go("/academics")} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold hover:bg-white/10"><ArrowLeft size={15}/> All academic areas</button>
     <div className="mt-9 flex flex-wrap items-center gap-3">
      <span className="inline-flex items-center gap-2 rounded-full bg-[#D89B28]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#D89B28]"><Icon size={14}/>{s.shortTitle}</span>
-     <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-white/60">{s.levels}</span>
+     <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-white/80">{s.levels}</span>
     </div>
     <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">{s.title}</h1>
-    <p className="mt-6 max-w-3xl text-base leading-8 text-white/75 sm:text-lg">{s.intro}</p>
+    <p className="mt-6 max-w-3xl text-base leading-8 text-white/85 sm:text-lg">{s.intro}</p>
    </div>
   </section>
 
@@ -164,14 +164,14 @@ export default function SubjectDetailPage(){
    </section>
 
    <section className="mt-14 grid gap-6 lg:grid-cols-2">
-    <div className="rounded-3xl bg-[#061229] p-7 text-white sm:p-9"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">What parents may notice</p><h2 className="mt-3 font-serif text-3xl font-semibold">Evidence of learning beyond a test score.</h2><ul className="mt-6 space-y-4">{s.parentSees.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-white/70"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></div>
+    <div className="rounded-3xl bg-[#061229] p-7 text-white sm:p-9"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">What parents may notice</p><h2 className="mt-3 font-serif text-3xl font-semibold">Evidence of learning beyond a test score.</h2><ul className="mt-6 space-y-4">{s.parentSees.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-white/82"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></div>
     <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">At home</p><h2 className="mt-3 font-serif text-3xl font-semibold text-[#061229]">Simple ways families can help.</h2><ul className="mt-6 space-y-4">{s.homeSupport.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#D89B28]/10 text-xs font-black text-[#D89B28]">✓</span>{x}</li>)}</ul></div>
    </section>
 
    <section className="mt-14" aria-labelledby="progression-title">
     <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">Progression</p>
     <h2 id="progression-title" className="mt-3 font-serif text-3xl font-semibold text-[#061229] sm:text-4xl">How learning develops as your child grows</h2>
-    <div className="mt-7 grid gap-5 lg:grid-cols-2">{s.progression.map(p=><article key={p.stage} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-[#D89B28]/10 px-3 py-1.5 text-xs font-black text-[#061229]">{p.stage}</span><span className="text-xs font-bold text-slate-400">Learning focus</span></div><h3 className="mt-5 text-xl font-bold text-slate-900">{p.title}</h3><ul className="mt-5 space-y-3">{p.items.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></article>)}</div>
+    <div className="mt-7 grid gap-5 lg:grid-cols-2">{s.progression.map(p=><article key={p.stage} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-[#D89B28]/10 px-3 py-1.5 text-xs font-black text-[#061229]">{p.stage}</span><span className="text-xs font-bold text-slate-600">Learning focus</span></div><h3 className="mt-5 text-xl font-bold text-slate-900">{p.title}</h3><ul className="mt-5 space-y-3">{p.items.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></article>)}</div>
    </section>
 
    <section className="mt-14 rounded-3xl border border-slate-200 bg-slate-50 p-7 sm:p-9">
@@ -181,7 +181,7 @@ export default function SubjectDetailPage(){
 
    <section className="mt-14 rounded-[2rem] bg-gradient-to-r from-[#061229] to-[#0b1d3a] p-7 text-white sm:p-10">
     <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
-     <div><Sparkles className="text-[#D89B28]" size={24}/><h2 className="mt-4 font-serif text-3xl font-semibold">Want to understand your child's learning better?</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-white/65">Explore the other learning areas or contact Menwe if you would like help understanding grade placement, learning expectations or the school experience.</p></div>
+     <div><Sparkles className="text-[#D89B28]" size={24}/><h2 className="mt-4 font-serif text-3xl font-semibold">Want to understand your child's learning better?</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-white/80">Explore the other learning areas or contact Menwe if you would like help understanding grade placement, learning expectations or the school experience.</p></div>
      <div className="flex flex-col gap-3 sm:flex-row"><button onClick={()=>go("/academics")} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-bold hover:bg-white/10">Explore academics <ArrowRight size={16}/></button><button onClick={()=>go("/contact")} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 py-3 text-sm font-extrabold text-[#061229]">Contact Menwe <ArrowRight size={16}/></button></div>
     </div>
    </section>
