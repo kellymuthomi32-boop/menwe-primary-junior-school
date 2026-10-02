@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
-const [publicKey, setPublicKey] = useState("");
 
 function base64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -14,6 +13,7 @@ function base64ToUint8Array(value: string) {
 
 export default function PushNotificationSetup() {
   const { user, profile } = useSchoolAuth();
+  const [publicKey, setPublicKey] = useState("");
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [busy, setBusy] = useState(false);
