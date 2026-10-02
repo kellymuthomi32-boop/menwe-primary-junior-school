@@ -61,6 +61,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       ["ICT", "/academics/pre-technical-studies-ict"],
       ["Creative Arts", "/academics/creative-arts-sports"],
       ["Sports", "/academics/creative-arts-sports"],
+      ["Social Studies", "/academics/social-studies"],
+      ["CRE", "/academics/cre"],
+      ["Christian Religious Education", "/academics/cre"],
+      ["Religious Education", "/academics/cre"],
     ] as const;
     const root = document.getElementById("main-content");
     if (!root) return;
