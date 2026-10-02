@@ -42,14 +42,15 @@ Deno.serve(async req => {
     }
 
     const payload = await req.json() as {
-      action?: "invite" | "resend" | "set_password";
+      action?: "invite" | "resend" | "set_password" | "direct";
       email?: string;
       fullName?: string;
       role?: InviteRole;
       recordType?: RecordType;
       recordId?: string;
+      password?: string;
     };
-    const action = payload.action ?? "invite";
+    const action = payload.action ?? (payload.password ? "direct" : "invite");
     const recordType = payload.recordType;
 
     // Resending an existing invitation only needs the existing account email.
@@ -149,6 +150,39 @@ Deno.serve(async req => {
       createdTeacherId = newTeacher.id;
     } else {
       return response({ error: "Link the invited account to an existing school record before sending the invitation." }, 400);
+    }
+
+    // Direct teacher entry: when an administrator supplies a password, create/activate the account immediately.
+    // This intentionally avoids invitation emails and password-confirmation flows for school staff.
+    if (action === "direct") {
+      if (payload.role !== "TEACHER" || recordType !== "teacher") return response({ error: "Direct entry is currently available for teacher accounts only." }, 400);
+      const password = payload.password ?? "";
+      if (password.length < 8) {
+        if (createdTeacherId) await serviceClient.from("teachers").delete().eq("id", createdTeacherId).is("profile_id", null);
+        return response({ error: "Password must be at least 8 characters long." }, 400);
+      }
+      const { data: createdAuth, error: authError } = await serviceClient.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } });
+      if (authError || !createdAuth.user) {
+        if (createdTeacherId) await serviceClient.from("teachers").delete().eq("id", createdTeacherId).is("profile_id", null);
+        return response({ error: authError?.message || "The teacher login could not be created." }, 400);
+      }
+      const authId = createdAuth.user.id;
+      const removeDirectAccount = async () => {
+        await serviceClient.auth.admin.deleteUser(authId);
+        if (createdTeacherId) await serviceClient.from("teachers").delete().eq("id", createdTeacherId).is("profile_id", null);
+      };
+      const { error: profileError } = await serviceClient.from("profiles").update({ role: "TEACHER", full_name: fullName, email }).eq("id", authId);
+      if (profileError) {
+        await removeDirectAccount();
+        return response({ error: "The teacher account could not be prepared for portal access." }, 500);
+      }
+      const { error: recordError } = await serviceClient.from("teachers").update({ profile_id: authId, email, first_name: fullName.split(/\\s+/)[0] ?? fullName, last_name: fullName.split(/\\s+/).slice(-1)[0] ?? fullName, status: "ACTIVE" }).eq("id", recordId).is("profile_id", null);
+      if (recordError) {
+        await removeDirectAccount();
+        return response({ error: "The teacher account could not be linked to the staff record." }, 500);
+      }
+      await serviceClient.from("audit_logs").insert({ actor_id: user.id, action: "DIRECT_TEACHER_ACCOUNT_CREATED", entity_type: "profile", entity_id: authId, metadata: { role: "TEACHER", recordType: "teacher", recordId } });
+      return response({ id: authId, recordId, message: "Teacher account created and ready for direct login." });
     }
 
     const siteUrl = normaliseSiteUrl(Deno.env.get("SITE_URL") ?? req.headers.get("origin"));
