@@ -89,6 +89,29 @@ export default function MenweHomepagePremium() {
         {[["New family","Explore admissions","/admissions"],["Learning","Explore academics","/academics"],["Current family","Open family portal","/portal/login"],["Visit","Plan a school visit","/contact"]].map(([eyebrow,title,href]) => <button key={title} onClick={() => navigate(href)} className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-[#F9FBFA] p-4 text-left transition hover:-translate-y-0.5 hover:border-[#D89B28]/50 hover:shadow-lg"><span><span className="block text-xs font-black uppercase tracking-widest text-[#D89B28]">{eyebrow}</span><span className="mt-1 block text-sm font-bold text-[#061229]">{title}</span></span><ArrowRight className="transition group-hover:translate-x-1" size={18}/></button>)}
       </div></section>
 
+      <section className="bg-[#F1F4F8] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-4 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[.2em] text-[#D89B28]">YOUR NEXT STEP</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-[#061229] sm:text-3xl">Joining Menwe is simple.</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Start with a conversation, explore the school and move forward when you are ready.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["01","Enquire","Ask about the right entry point and available places."],
+                ["02","Explore","Contact us or plan a visit to understand school life."],
+                ["03","Apply","Complete the admissions process with the school team."]
+              ].map(([number,title,text]) => <button key={number} onClick={() => navigate(title === "Apply" ? "/admissions" : "/contact")} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#D89B28]/50 hover:shadow-md">
+                <span className="text-[10px] font-black tracking-[.18em] text-[#D89B28]">{number}</span>
+                <span className="mt-2 block text-sm font-black text-[#061229]">{title}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{text}</span>
+              </button>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8 lg:py-24"><div className="mx-auto max-w-7xl"><SectionHeading eyebrow="OUR LEADERSHIP COMMITMENT" title="Every child deserves to be known, encouraged and challenged." text="Our school is built around a simple belief: when learners feel that they belong, they are more ready to learn, grow and discover their strengths." />
         <div className="mt-10 grid items-stretch gap-7 lg:grid-cols-[.9fr_1.1fr]"><div className="relative overflow-hidden rounded-[2rem] bg-[#061229] p-8 shadow-xl sm:p-10"><div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#D89B28]/15 blur-2xl"/><div className="relative flex h-full flex-col justify-between gap-8"><div><div className="mb-6 grid h-12 w-12 place-items-center rounded-2xl bg-[#D89B28] text-[#061229]"><Sparkles size={22}/></div><p className="text-xs font-black uppercase tracking-[.2em] text-[#D89B28]">OUR LEADERSHIP COMMITMENT</p><p className="mt-5 text-2xl font-black leading-tight text-white sm:text-3xl">We are committed to preparing learners not only for the next class, but for life — building confidence, character, capability and a sense of purpose.</p></div><div className="border-t border-white/15 pt-5"><p className="text-sm font-black text-white">Menwe Primary &amp; Junior School</p><p className="mt-1 text-xs text-white/55">A commitment to every learner, every day.</p></div></div></div>
           <div className="grid gap-5 sm:grid-cols-2">{[[UsersRound,"Every learner","A school culture that values individual potential, participation and progress."],[BookOpen,"Whole-child","Academic learning balanced with character, creativity, sport and practical skills."],[Medal,"High aspirations","We encourage learners to set goals, take responsibility and keep improving."],[CheckCircle2,"Belonging","Strong relationships between learners, families, teachers and the wider school community."]].map(([Icon,title,text]) => <div key={String(title)} className="rounded-[1.5rem] border border-slate-200 bg-[#F8FAF9] p-6"><Icon className="text-[#D89B28]" size={25}/><p className="mt-6 text-2xl font-black text-[#061229]">{title as string}</p><p className="mt-2 text-sm leading-6 text-slate-600">{text as string}</p></div>)}</div>
