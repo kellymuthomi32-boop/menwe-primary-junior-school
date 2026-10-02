@@ -1,5 +1,5 @@
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, Facebook, Instagram, Mail, MapPin, Menu, Phone, ShieldCheck, Sparkles, X, BookOpen, HeartHandshake, GraduationCap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import Footer from "./Footer";
 import SchoolFAQAssistant from "./SchoolFAQAssistant";
@@ -41,7 +41,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   const [open, setOpen] = useState(false);
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const go = (to: string) => { setLocation(to); setOpen(false); setDiscoverOpen(false); window.scrollTo({ top: 0, behavior: "auto" }); };
+  const go = useCallback((to: string) => { setLocation(to); setOpen(false); setDiscoverOpen(false); window.scrollTo({ top: 0, behavior: "auto" }); }, [setLocation]);
   useEffect(() => { const onScroll = () => setScrolled(window.scrollY > 18); onScroll(); window.addEventListener("scroll", onScroll, { passive: true }); return () => window.removeEventListener("scroll", onScroll); }, []);
   useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); setDiscoverOpen(false); } }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, []);
   const isActive = (path: string) => location === path || (path !== "/" && location.startsWith(`${path}/`));
@@ -50,28 +50,35 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   // takes visitors to the same detailed learning-area page used by Academics.
   useEffect(() => {
     const subjectRoutes = [
+      ["Mathematics & Financial Literacy", "/academics/mathematics-financial-literacy"],
+      ["Financial Literacy", "/academics/mathematics-financial-literacy"],
       ["Mathematics", "/academics/mathematics-financial-literacy"],
-      ["English", "/academics/languages"],
+      ["English & Kiswahili", "/academics/languages"],
       ["Languages", "/academics/languages"],
+      ["English", "/academics/languages"],
       ["Kiswahili", "/academics/languages"],
       ["Mother Tongue", "/academics/languages"],
+      ["Agriculture & Nutrition", "/academics/agriculture-nutrition"],
       ["Agriculture", "/academics/agriculture-nutrition"],
       ["Nutrition", "/academics/agriculture-nutrition"],
+      ["Integrated Science & Health Education", "/academics/integrated-science-health"],
       ["Integrated Science", "/academics/integrated-science-health"],
       ["Science", "/academics/integrated-science-health"],
+      ["Pre-Technical Studies & ICT", "/academics/pre-technical-studies-ict"],
       ["Pre-Technical", "/academics/pre-technical-studies-ict"],
       ["ICT", "/academics/pre-technical-studies-ict"],
+      ["Creative Arts & Sports", "/academics/creative-arts-sports"],
       ["Creative Arts", "/academics/creative-arts-sports"],
       ["Sports", "/academics/creative-arts-sports"],
       ["Social Studies", "/academics/social-studies"],
-      ["CRE", "/academics/cre"],
       ["Christian Religious Education", "/academics/cre"],
       ["Religious Education", "/academics/cre"],
+      ["CRE", "/academics/cre"],
     ] as const;
     const root = document.getElementById("main-content");
     if (!root) return;
     const excluded = new Set(["A", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "SCRIPT", "STYLE"]);
-    const pattern = new RegExp(`\\b(?:${subjectRoutes.map(([name]) => name).join("|")})\\b`, "gi");
+    const pattern = new RegExp(`\\b(?:${subjectRoutes.map(([name]) => name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\    const pattern = new RegExp(`\\b(?:${subjectRoutes.map(([name]) => name).join("|")})\\b`, "gi");")).sort((a, b) => b.length - a.length).join("|")})\\b`, "gi");
     const routeFor = (label: string) => subjectRoutes.find(([name]) => name.toLowerCase() === label.toLowerCase())?.[1];
     const linkNode = (node: Text) => {
       const parent = node.parentElement;
@@ -125,10 +132,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <button onClick={() => go("/")} className="menwe-focus-ring group shrink-0 rounded-2xl text-left" aria-label="Menwe Primary & Junior School home"><SchoolMark /></button>
         <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Public navigation">
           <button onPointerEnter={() => prefetchPublicRoute("/")} onFocus={() => prefetchPublicRoute("/")} onClick={() => go("/")} aria-current={location === "/" ? "page" : undefined} className={`relative rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${location === "/" ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/78 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Home{location === "/" && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>
-          {primaryNav.map(([label, path]) => { const active = isActive(path); return <button key={path} onPointerEnter={() => prefetchPublicRoute(path)} onFocus={() => prefetchPublicRoute(path)} onClick={() => go(path)} aria-current={active ? "page" : undefined} className={`relative rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${active ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/62 hover:bg-white/65 hover:text-[var(--ink)]"}`}>{label}{active && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>; })}
-          <div className="relative"><button onPointerEnter={() => discoverLinks.forEach(([, path]) => prefetchPublicRoute(path))} onClick={() => setDiscoverOpen(value => !value)} aria-expanded={discoverOpen} aria-haspopup="menu" className={`flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${discoverOpen ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/62 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Explore <ChevronDown size={13} className={`transition-transform duration-300 ${discoverOpen ? "rotate-180" : ""}`} /></button>{discoverOpen && <div role="menu" className="absolute right-0 top-[calc(100%+12px)] w-[310px] overflow-hidden rounded-[1.35rem] border border-[var(--ink)]/9 bg-[var(--paper)] p-2 shadow-[0_24px_60px_rgba(29,43,37,.16)]"><div className="px-3 pb-2 pt-2"><p className="text-[9px] font-extrabold uppercase tracking-[.22em] text-[var(--accent)]">Discover Menwe</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/48">A closer look at the people, culture and journey behind the school.</p></div>{discoverLinks.map(([label, path]) => <button key={path} role="menuitem" onClick={() => go(path)} className="group flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-white"><span><span className="block text-sm font-bold">{label}</span><span className="mt-0.5 block text-[10px] text-[var(--ink)]/40">Explore this part of Menwe</span></span><ArrowUpRight size={14} className="text-[var(--ink)]/25 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" /></button>)}</div>}</div>
-          <button onPointerEnter={() => prefetchPublicRoute("/gallery")} onFocus={() => prefetchPublicRoute("/gallery")} onClick={() => go("/gallery")} aria-current={isActive("/gallery") ? "page" : undefined} className={`relative ml-0.5 rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive("/gallery") ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/62 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Gallery{isActive("/gallery") && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>
-          <button onPointerEnter={() => prefetchPublicRoute("/contact")} onFocus={() => prefetchPublicRoute("/contact")} onClick={() => go("/contact")} aria-current={isActive("/contact") ? "page" : undefined} className={`relative rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive("/contact") ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/62 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Contact{isActive("/contact") && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>
+          {primaryNav.map(([label, path]) => { const active = isActive(path); return <button key={path} onPointerEnter={() => prefetchPublicRoute(path)} onFocus={() => prefetchPublicRoute(path)} onClick={() => go(path)} aria-current={active ? "page" : undefined} className={`relative rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${active ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/78 hover:bg-white/65 hover:text-[var(--ink)]"}`}>{label}{active && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>; })}
+          <div className="relative"><button onPointerEnter={() => discoverLinks.forEach(([, path]) => prefetchPublicRoute(path))} onClick={() => setDiscoverOpen(value => !value)} aria-expanded={discoverOpen} aria-haspopup="menu" className={`flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${discoverOpen ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/78 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Explore <ChevronDown size={13} className={`transition-transform duration-300 ${discoverOpen ? "rotate-180" : ""}`} /></button>{discoverOpen && <div role="menu" className="absolute right-0 top-[calc(100%+12px)] w-[310px] overflow-hidden rounded-[1.35rem] border border-[var(--ink)]/9 bg-[var(--paper)] p-2 shadow-[0_24px_60px_rgba(29,43,37,.16)]"><div className="px-3 pb-2 pt-2"><p className="text-[9px] font-extrabold uppercase tracking-[.22em] text-[var(--accent)]">Discover Menwe</p><p className="mt-1 text-xs leading-5 text-[var(--ink)]/48">A closer look at the people, culture and journey behind the school.</p></div>{discoverLinks.map(([label, path]) => <button key={path} role="menuitem" onClick={() => go(path)} className="group flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-white"><span><span className="block text-sm font-bold">{label}</span><span className="mt-0.5 block text-[10px] text-[var(--ink)]/40">Explore this part of Menwe</span></span><ArrowUpRight size={14} className="text-[var(--ink)]/25 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]" /></button>)}</div>}</div>
+          <button onPointerEnter={() => prefetchPublicRoute("/gallery")} onFocus={() => prefetchPublicRoute("/gallery")} onClick={() => go("/gallery")} aria-current={isActive("/gallery") ? "page" : undefined} className={`relative ml-0.5 rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive("/gallery") ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/78 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Gallery{isActive("/gallery") && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>
+          <button onPointerEnter={() => prefetchPublicRoute("/contact")} onFocus={() => prefetchPublicRoute("/contact")} onClick={() => go("/contact")} aria-current={isActive("/contact") ? "page" : undefined} className={`relative rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all ${isActive("/contact") ? "bg-white text-[var(--ink)] shadow-sm ring-1 ring-[var(--ink)]/8" : "text-[var(--ink)]/78 hover:bg-white/65 hover:text-[var(--ink)]"}`}>Contact{isActive("/contact") && <span className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--gold)]" />}</button>
         </nav>
         <div className="hidden items-center gap-2 lg:flex"><button onClick={() => go("/admissions")} className="group inline-flex items-center gap-1.5 rounded-full bg-[var(--ink)] px-4 py-2.5 text-[12px] font-extrabold text-white shadow-[0_8px_24px_rgba(29,43,37,.14)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(29,43,37,.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">Start application <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" /></button><button onClick={() => go("/portal/login")} className="menwe-interactive group flex items-center gap-2 rounded-full border border-[var(--ink)]/12 bg-white px-4 py-2.5 text-[12px] font-bold text-[var(--ink)] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"><span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--mist)]"><ShieldCheck size={14} className="text-[var(--accent)]" /></span> Family portal <ArrowUpRight size={13} className="opacity-40 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button></div>
         <button onClick={() => setOpen(value => !value)} className="menwe-focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-[var(--ink)]/12 bg-white shadow-sm lg:hidden" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open}>{open ? <X size={20} /> : <Menu size={20} />}</button>
