@@ -21,15 +21,51 @@ export default function PasswordSetupPage() {
   useEffect(() => {
     let active = true;
     const client = getSupabase();
+    let subscription: { unsubscribe: () => void } | null = null;
 
-    void client.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setHasSession(Boolean(data.session));
-      setReady(true);
-    });
+    const restoreAuthLink = async () => {
+      try {
+        // Invitation/recovery emails can arrive as either a PKCE ?code= link
+        // or a Supabase access-token hash. Handle both before checking the
+        // session so the password page never mistakes a valid link for logout.
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
+        if (authError) {
+          setError(decodeURIComponent(authError.replace(/\\+/g, " ")));
+        }
+        if (code) {
+          const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
+          if (exchangeError && active) setError(exchangeError.message);
+          url.searchParams.delete("code");
+          url.searchParams.delete("error");
+          url.searchParams.delete("error_description");
+          window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : "") + url.hash);
+        }
 
+        subscription = client.auth.onAuthStateChange((_event, session) => {
+          if (!active) return;
+          setHasSession(Boolean(session));
+          setReady(true);
+        }).data.subscription;
+
+        const { data, error: sessionError } = await client.auth.getSession();
+        if (!active) return;
+        if (sessionError) setError(sessionError.message);
+        setHasSession(Boolean(data.session));
+        setReady(true);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "We could not open this secure setup link.");
+        setHasSession(false);
+        setReady(true);
+      }
+    };
+
+    void restoreAuthLink();
     return () => {
       active = false;
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -58,7 +94,9 @@ export default function PasswordSetupPage() {
 
     setSuccess(true);
     setSaving(false);
-    window.setTimeout(() => setLocation("/portal"), 1200);
+    // Keep the authenticated session; the auth provider will load the school
+    // profile and route the teacher/admin to the correct workspace.
+    window.setTimeout(() => setLocation("/portal"), 700);
   }
 
   return (
