@@ -50,8 +50,29 @@ export default function ClassMarksheetV2() {
   const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
   const [years, setYears] = useState<Row[]>([]), [terms, setTerms] = useState<Row[]>([]), [classes, setClasses] = useState<Row[]>([]), [allSubjects, setAllSubjects] = useState<Subject[]>([]), [subjects, setSubjects] = useState<Subject[]>([]), [rows, setRows] = useState<Row[]>([]);
   const [yearId, setYearId] = useState(""), [termId, setTermId] = useState(""), [classId, setClassId] = useState(""), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [selectionRestored, setSelectionRestored] = useState(false);
+  const storageKey = user?.id ? `menwe:marksheet-workspace:${user.id}` : "";
 
   useEffect(() => { void (async () => { if (!user) return; try { const db = getSupabase(); const [y, t, c, s] = await Promise.all([db.from("academic_years").select("id,name,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }), db.from("terms").select("id,academic_year_id,name,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }), db.from("classes").select("id,academic_year_id,code,name,level,status").eq("status", "ACTIVE").order("name"), db.from("subjects").select("id,code,name,status").eq("status", "ACTIVE")]); for (const q of [y, t, c, s]) if (q.error) throw q.error; setYears(y.data ?? []); setTerms(t.data ?? []); setClasses(c.data ?? []); setAllSubjects((s.data ?? []) as Subject[]); setYearId(str(y.data?.find(x => x.is_current)?.id ?? y.data?.[0]?.id ?? "")); } catch (e) { setMessage(e instanceof Error ? e.message : "Marksheet setup could not be loaded."); } finally { setLoading(false); } })(); }, [user]);
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as { yearId?: string; termId?: string; classId?: string };
+        if (saved.yearId) setYearId(saved.yearId);
+        if (saved.termId) setTermId(saved.termId);
+        if (saved.classId) setClassId(saved.classId);
+      }
+    } catch { /* Ignore invalid browser state. */ }
+    setSelectionRestored(true);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!storageKey || !selectionRestored) return;
+    try { localStorage.setItem(storageKey, JSON.stringify({ yearId, termId, classId })); } catch { /* Ignore storage failures. */ }
+  }, [storageKey, selectionRestored, yearId, termId, classId]);
+
   const visibleTerms = useMemo(() => terms.filter(t => !yearId || str(t.academic_year_id) === yearId), [terms, yearId]);
   const visibleClasses = useMemo(() => classes.filter(c => !yearId || str(c.academic_year_id) === yearId), [classes, yearId]);
   const selectedClass = classes.find(c => str(c.id) === classId), selectedTerm = terms.find(t => str(t.id) === termId);
@@ -67,6 +88,11 @@ export default function ClassMarksheetV2() {
     const studentIds = [...new Set(enrollmentRows.map(x => str(x.student_id)))]; if (!studentIds.length) { setRows([]); setMessage("No active learners are enrolled in this class."); return; }
     const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean); const [st, rr] = await Promise.all([db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id", studentIds).order("first_name").order("last_name"), subjectIds.length ? db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,subjects(id,code,name),exams!inner(id,term_id,class_id,name,exam_type)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", studentIds).in("subject_id", subjectIds) : Promise.resolve({ data: [], error: null } as any)]); if (st.error) throw st.error; if (rr.error) throw rr.error; const results = rr.data ?? []; const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id))); setSubjects(allSubjects.filter(s => enteredSubjectIds.has(str(s.id)))); setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) }))); if (!results.length) setMessage("Learners loaded. No persisted assessment results exist for this class and term yet.");
   } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); } finally { setBusy(false); } };
+
+  useEffect(() => {
+    if (!selectionRestored || loading || !yearId || !termId || !classId || rows.length) return;
+    if (classes.some(c => str(c.id) === classId) && terms.some(t => str(t.id) === termId)) void generate();
+  }, [selectionRestored, loading, yearId, termId, classId]);
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
     if (band === "ECDE") { return subjects.map(s => ({ ...s, code: subjectCode(s) })); }
