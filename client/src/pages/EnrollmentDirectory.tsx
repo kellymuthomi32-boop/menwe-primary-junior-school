@@ -21,6 +21,7 @@ export default function EnrollmentDirectory() {
   const [form, setForm] = useState<Form>(emptyForm);
   const [create, setCreate] = useState(false);
   const [query, setQuery] = useState("");
+  const [stage, setStage] = useState("ALL");
   const [grade, setGrade] = useState("ALL");
 
   const load = useCallback(async () => {
@@ -29,7 +30,7 @@ export default function EnrollmentDirectory() {
       const db = getSupabase();
       const [students, enrollments, classRows, streamRows, parentLinks, profileRows] = await Promise.all([
         db.from("students").select("*").is("deleted_at", null).order("first_name").order("last_name"),
-        db.from("enrollments").select("id,student_id,class_id,stream_id,academic_year_id,enrolled_on,status,classes(id,name,level),streams(id,name)").order("enrolled_on", { ascending: false }),
+        db.from("enrollments").select("id,student_id,class_id,stream_id,academic_year_id,enrolled_on,status,classes(id,name,level),streams(id,name)").eq("status", "ACTIVE").order("enrolled_on", { ascending: false }),
         db.from("classes").select("id,name,level,code,status").eq("status", "ACTIVE").order("name"),
         db.from("streams").select("id,class_id,name,status").eq("status", "ACTIVE").order("name"),
         db.from("student_parents").select("student_id,parent_id,relationship,is_primary").eq("is_primary", true),
@@ -37,7 +38,8 @@ export default function EnrollmentDirectory() {
       ]);
       for (const result of [students, enrollments, classRows, streamRows, parentLinks, profileRows]) if (result.error) throw result.error;
       const enrollmentMap = new Map<string, Row>();
-      for (const e of (enrollments.data ?? []) as Row[]) if (!enrollmentMap.has(String(e.student_id))) enrollmentMap.set(String(e.student_id), e);
+      const activeYear = (await db.from("academic_years").select("id").eq("is_current", true).eq("status", "ACTIVE").maybeSingle()).data;
+      for (const e of (enrollments.data ?? []) as Row[]) { const key = String(e.student_id); const existing = enrollmentMap.get(key); if (!existing || (activeYear?.id && String(e.academic_year_id) === String(activeYear.id) && String(existing.academic_year_id) !== String(activeYear.id))) enrollmentMap.set(key, e); }
       const parentMap = new Map<string, Row>();
       for (const p of (profileRows.data ?? []) as Row[]) parentMap.set(String(p.id), p);
       const primaryParent = new Map<string, Row>();
@@ -56,14 +58,17 @@ export default function EnrollmentDirectory() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const grades = useMemo(() => ["ALL", ...Array.from(new Set(rows.map(r => text(r.class?.name || r.class?.level, "")).filter(Boolean))).sort()], [rows]);
+  const stageOf = (row: Row) => { const name = String(row.class?.name || "").toUpperCase(); if (name === "PP1" || name === "PP2") return "ECDE"; const match = name.match(/GRADE\s*(\d+)/); if (!match) return "OTHER"; const n = Number(match[1]); if (n >= 1 && n <= 3) return "LOWER PRIMARY"; if (n >= 4 && n <= 6) return "UPPER PRIMARY"; if (n >= 7 && n <= 9) return "JUNIOR SCHOOL"; return "OTHER"; };
+  const stages = ["ALL", "ECDE", "LOWER PRIMARY", "UPPER PRIMARY", "JUNIOR SCHOOL"];
+  const grades = useMemo(() => ["ALL", ...Array.from(new Set(rows.map(r => text(r.class?.name || r.class?.level, "")).filter(Boolean))).sort((a,b) => a.localeCompare(b, undefined, {numeric:true}))], [rows]);
+  const stageCounts = useMemo(() => Object.fromEntries(stages.map(s => [s, s === "ALL" ? rows.filter(r => r.status === "ACTIVE").length : rows.filter(r => r.status === "ACTIVE" && stageOf(r) === s).length])), [rows]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
       const searchable = [r.admission_number, r.first_name, r.middle_name, r.last_name, r.birth_certificate_number, r.date_of_birth, r.gender, r.class?.name, r.stream?.name, r.admission_date, r.parent?.full_name, r.parent?.phone, r.address, r.status].map(v => text(v, "")).join(" ").toLowerCase();
-      return (!q || searchable.includes(q)) && (grade === "ALL" || text(r.class?.name || r.class?.level, "") === grade);
+      return (!q || searchable.includes(q)) && (stage === "ALL" || stageOf(r) === stage) && (grade === "ALL" || text(r.class?.name || r.class?.level, "") === grade);
     });
-  }, [grade, query, rows]);
+  }, [grade, query, rows, stage]);
 
   const open = (row: Row) => {
     setCreate(false); setSelected(row);
@@ -115,14 +120,14 @@ export default function EnrollmentDirectory() {
   return <div className="grid gap-6">
     <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--gold)]"><Users size={15}/> Enrollment / learner profile</div><h1 className="mt-2 font-serif text-3xl font-semibold">Three-class learner register</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Grade 1, Grade 2 and Grade 3 use one consistent learner profile structure.</p></div>
+        <div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--gold)]"><Users size={15}/> Enrollment / learner profile</div><h1 className="mt-2 font-serif text-3xl font-semibold">School-wide enrollment register</h1><p className="mt-2 text-sm text-[var(--ink)]/60">Organized as ECDE → Lower Primary → Upper Primary → Junior School → Grade → Stream → Learners.</p></div>
         <button type="button" onClick={newLearner} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={16}/>Add learner</button>
       </div>
       <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search assessment number, learner, parent or class…" className={inputClass}/><select value={grade} onChange={e => setGrade(e.target.value)} className={inputClass}>{grades.map(g => <option key={g} value={g}>{g === "ALL" ? "All classes" : g}</option>)}</select></div>
     </section>
 
     {message && <div role="status" className="rounded-2xl bg-[var(--sage)]/20 px-4 py-3 text-sm text-[var(--ink)]">{message}</div>}
-    <section className="menwe-card overflow-hidden rounded-[1.75rem] p-4 sm:p-6">
+    <section className="menwe-card overflow-hidden rounded-[1.75rem] p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-serif text-xl font-semibold">{stage === "ALL" ? "All learners" : stage}</h2><p className="text-xs text-[var(--ink)]/50">{visible.filter(r => r.status === "ACTIVE").length} active learner{visible.filter(r => r.status === "ACTIVE").length === 1 ? "" : "s"}</p></div><div className="rounded-full bg-[var(--paper)] px-3 py-1 text-xs font-semibold">Current-year enrollment protected</div></div>
       {loading ? <div className="flex items-center justify-center gap-3 py-14 text-sm text-[var(--ink)]/60"><Loader2 className="animate-spin" size={18}/>Loading learner profiles…</div> : <div className="overflow-x-auto"><table className="w-full min-w-[1900px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-[11px] font-bold uppercase tracking-[.1em] text-[var(--ink)]/45"><th className="px-3 py-3">Assessment Number</th><th className="px-3 py-3">First Name</th><th className="px-3 py-3">Middle Name</th><th className="px-3 py-3">Last Name</th><th className="px-3 py-3">Birth Certificate Number</th><th className="px-3 py-3">Date of Birth</th><th className="px-3 py-3">Gender</th><th className="px-3 py-3">Class</th><th className="px-3 py-3">Stream</th><th className="px-3 py-3">Admission Date</th><th className="px-3 py-3">Parent/Guardian</th><th className="px-3 py-3">Parent phone</th><th className="px-3 py-3">Address</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Action</th></tr></thead><tbody>{visible.map(row => <tr key={row.id} className="border-b border-[var(--ink)]/7 last:border-0 hover:bg-[var(--paper)]">{cell(row.admission_number)}{cell(row.first_name)}{cell(row.middle_name)}{cell(row.last_name)}{cell(row.birth_certificate_number)}{cell(row.date_of_birth)}{cell(row.gender)}{cell(row.class?.name || row.class?.level)}{cell(row.stream?.name)}{cell(row.admission_date || row.enrollment?.enrolled_on)}{cell(row.parent?.full_name)}{cell(row.parent?.phone)}{cell(row.address)}{cell(row.status)}<td className="px-3 py-3"><button type="button" onClick={() => open(row)} className="inline-flex items-center gap-1 rounded-lg border border-[var(--ink)]/15 px-2.5 py-1.5 text-xs font-bold"><Pencil size={13}/>Edit</button></td></tr>)}</tbody></table>{visible.length === 0 && <div className="py-12 text-center text-sm text-[var(--ink)]/55">No learners match the selected class/search.</div>}</div>}
     </section>
 
