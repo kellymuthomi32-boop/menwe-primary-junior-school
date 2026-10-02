@@ -128,7 +128,7 @@ export default function ContactPage() {
             <h1 className="mt-5 max-w-3xl font-serif text-4xl font-semibold tracking-tight sm:text-6xl">
               Let&apos;s start a useful conversation.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/85 sm:text-lg">
               Questions about admissions, school visits, learning pathways or life at Menwe?
               Our team is ready to help.
             </p>
@@ -155,7 +155,7 @@ export default function ContactPage() {
                   <span className="mt-2 block break-words text-sm font-bold text-[#061229] dark:text-white">
                     {value}
                   </span>
-                  <span className="mt-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  <span className="mt-2 block text-xs leading-5 text-slate-600 dark:text-slate-300">
                     {note}
                   </span>
                 </span>
@@ -173,7 +173,7 @@ export default function ContactPage() {
               <h2 className="mt-5 font-serif text-3xl font-semibold sm:text-4xl">
                 Igoki · Abogeta Division
               </h2>
-              <p className="mt-4 text-sm leading-7 text-white/70">
+              <p className="mt-4 text-sm leading-7 text-white/85">
                 Official coordinates: -0.099245555, 37.58121778.
               </p>
 
@@ -297,7 +297,7 @@ export default function ContactPage() {
             <h2 className="mt-3 font-serif text-3xl font-semibold text-[#061229] sm:text-4xl dark:text-white">
               Find Menwe Primary &amp; Junior School
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400">
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-700 dark:text-slate-300">
               Use the exact school coordinates for navigation.
             </p>
             <div className="mt-8">
