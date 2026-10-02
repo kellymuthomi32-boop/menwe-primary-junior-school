@@ -28,18 +28,20 @@ export default function EnrollmentDirectory() {
     setLoading(true); setMessage(null);
     try {
       const db = getSupabase();
+      const { data: activeYear, error: yearError } = await db.from("academic_years").select("id,name,starts_on,ends_on").eq("is_current", true).eq("status", "ACTIVE").maybeSingle();
+      if (yearError) throw yearError;
+      if (!activeYear) throw new Error("No current active academic year is configured.");
       const [students, enrollments, classRows, streamRows, parentLinks, profileRows] = await Promise.all([
         db.from("students").select("*").is("deleted_at", null).order("first_name").order("last_name"),
-        db.from("enrollments").select("id,student_id,class_id,stream_id,academic_year_id,enrolled_on,status,classes(id,name,level),streams(id,name)").eq("status", "ACTIVE").order("enrolled_on", { ascending: false }),
-        db.from("classes").select("id,name,level,code,status").eq("status", "ACTIVE").order("name"),
+        db.from("enrollments").select("id,student_id,class_id,stream_id,academic_year_id,enrolled_on,status,classes(id,name,level),streams(id,name)").eq("status", "ACTIVE").eq("academic_year_id", activeYear.id).order("enrolled_on", { ascending: false }),
+        db.from("classes").select("id,name,level,code,status").eq("status", "ACTIVE").eq("academic_year_id", activeYear.id).order("name"),
         db.from("streams").select("id,class_id,name,status").eq("status", "ACTIVE").order("name"),
         db.from("student_parents").select("student_id,parent_id,relationship,is_primary").eq("is_primary", true),
         db.from("profiles").select("id,full_name,phone,email")
       ]);
       for (const result of [students, enrollments, classRows, streamRows, parentLinks, profileRows]) if (result.error) throw result.error;
       const enrollmentMap = new Map<string, Row>();
-      const activeYear = (await db.from("academic_years").select("id").eq("is_current", true).eq("status", "ACTIVE").maybeSingle()).data;
-      for (const e of (enrollments.data ?? []) as Row[]) { const key = String(e.student_id); const existing = enrollmentMap.get(key); if (!existing || (activeYear?.id && String(e.academic_year_id) === String(activeYear.id) && String(existing.academic_year_id) !== String(activeYear.id))) enrollmentMap.set(key, e); }
+      for (const e of (enrollments.data ?? []) as Row[]) enrollmentMap.set(String(e.student_id), e);
       const parentMap = new Map<string, Row>();
       for (const p of (profileRows.data ?? []) as Row[]) parentMap.set(String(p.id), p);
       const primaryParent = new Map<string, Row>();
