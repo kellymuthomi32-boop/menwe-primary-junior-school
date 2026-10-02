@@ -42,7 +42,7 @@ Deno.serve(async req => {
     }
 
     const payload = await req.json() as {
-      action?: "invite" | "resend";
+      action?: "invite" | "resend" | "set_password";
       email?: string;
       fullName?: string;
       role?: InviteRole;
@@ -59,6 +59,30 @@ Deno.serve(async req => {
     }
 
     const serviceClient = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    if (action === "set_password") {
+      const email = payload.email?.trim().toLowerCase();
+      const password = (payload as { password?: string }).password ?? "";
+      if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) return response({ error: "Provide a valid teacher email address." }, 400);
+      if (password.length < 8) return response({ error: "Password must be at least 8 characters long." }, 400);
+      const { data: existingProfile, error: profileLookupError } = await serviceClient
+        .from("profiles")
+        .select("id,full_name,role,status")
+        .eq("email", email)
+        .maybeSingle();
+      if (profileLookupError || !existingProfile) return response({ error: "No school account was found for this email." }, 404);
+      if (existingProfile.role !== "TEACHER" || existingProfile.status !== "ACTIVE") return response({ error: "Only an active teacher account can be given a teacher password." }, 400);
+      const { data: teacherRecord, error: teacherLookupError } = await serviceClient
+        .from("teachers")
+        .select("id")
+        .eq("profile_id", existingProfile.id)
+        .maybeSingle();
+      if (teacherLookupError || !teacherRecord) return response({ error: "The school teacher record is not linked to this account." }, 400);
+      const { error: passwordError } = await serviceClient.auth.admin.updateUserById(existingProfile.id, { password });
+      if (passwordError) return response({ error: passwordError.message || "The teacher password could not be updated." }, 400);
+      await serviceClient.from("audit_logs").insert({ actor_id: user.id, action: "SET_TEACHER_PASSWORD", entity_type: "profile", entity_id: existingProfile.id, metadata: { teacherId: teacherRecord.id } });
+      return response({ id: existingProfile.id, message: "Teacher password updated successfully." });
+    }
     const table = recordType === "teacher" ? "teachers" : recordType === "parent" ? "parents" : "students";
     const roleForRecord = { teacher: "TEACHER", parent: "PARENT", student: "STUDENT" } as const;
 
