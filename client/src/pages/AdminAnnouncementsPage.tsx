@@ -38,9 +38,37 @@ export default function AdminAnnouncementsPage() {
       const status = String(edit.status || "DRAFT").toUpperCase();
       const payload = { title: String(edit.title || "").trim(), body: String(edit.body || "").trim(), target_roles: Array.isArray(edit.target_roles) ? edit.target_roles : ["PARENT"], status, published_at: status === "PUBLISHED" ? (edit.published_at || new Date().toISOString()) : null, created_by: edit.id ? edit.created_by : user.id };
       if (!payload.title || !payload.body) throw new Error("Title and message are required.");
-      const r = edit.id ? await getSupabase().from("announcements").update(payload).eq("id", edit.id) : await getSupabase().from("announcements").insert(payload);
+      const wasPublished = String(edit.status || "").toUpperCase() === "PUBLISHED";
+      const r = edit.id ? await getSupabase().from("announcements").update(payload).eq("id", edit.id) : await getSupabase().from("announcements").insert(payload).select("id").single();
       if (r.error) throw r.error;
-      setEdit(null); setMessage("Announcement saved."); await load();
+
+      // A newly published announcement also creates an in-portal notification
+      // for every targeted profile. The existing notifications RLS policy
+      // allows administrators to create these rows securely.
+      if (status === "PUBLISHED" && !wasPublished) {
+        const rolesForNotification = payload.target_roles.filter((role) => role === "TEACHER" || role === "PARENT" || role === "STUDENT");
+        if (rolesForNotification.length) {
+          const { data: recipients, error: recipientError } = await getSupabase()
+            .from("profiles")
+            .select("id")
+            .in("role", rolesForNotification)
+            .eq("status", "ACTIVE");
+          if (recipientError) throw recipientError;
+          const rows = (recipients ?? []).map((recipient) => ({
+            profile_id: recipient.id,
+            type: "ANNOUNCEMENT",
+            title: payload.title,
+            body: payload.body,
+            link: "/portal/teacher",
+          }));
+          if (rows.length) {
+            const { error: notificationError } = await getSupabase().from("notifications").insert(rows);
+            if (notificationError) throw notificationError;
+          }
+        }
+      }
+
+      setEdit(null); setMessage(status === "PUBLISHED" && !wasPublished ? "Announcement published and notifications created." : "Announcement saved."); await load();
     } catch (e) { setMessage(e instanceof Error ? e.message : "Announcement could not be saved."); }
     finally { setBusy(false); }
   };
