@@ -7,7 +7,7 @@ import "../marksheet-print.css";
 
 type Row = Record<string, any>;
 type Subject = { id: string; code: string; name: string; status?: string };
-type Band = "LOWER_PRIMARY" | "UPPER_PRIMARY" | "JUNIOR_SCHOOL";
+type Band = "ECDE" | "LOWER_PRIMARY" | "UPPER_PRIMARY" | "JUNIOR_SCHOOL";
 type Achievement = { code: string; points: number };
 type ReportSubject = Subject & { synthetic?: boolean; componentIds?: string[] };
 
@@ -32,7 +32,7 @@ function achievementForPercentage(value: number | null): Achievement | null {
   return { code: "BE2", points: 1 };
 }
 function getGrade(c?: Row) { const raw = `${str(c?.name)} ${str(c?.code)} ${str(c?.level)}`.toUpperCase(); const match = raw.match(/(?:GRADE|CLASS|STD|STANDARD|G)\s*([1-9])\b/); return match ? Number(match[1]) : null; }
-function getBand(c?: Row): Band { const n = getGrade(c); if (n && n <= 3) return "LOWER_PRIMARY"; if (n && n <= 6) return "UPPER_PRIMARY"; const raw = `${str(c?.name)} ${str(c?.code)} ${str(c?.level)}`.toUpperCase(); if (/LOWER|PRIMARY 1|PRIMARY 2|PRIMARY 3/.test(raw)) return "LOWER_PRIMARY"; if (/UPPER|PRIMARY 4|PRIMARY 5|PRIMARY 6/.test(raw)) return "UPPER_PRIMARY"; return "JUNIOR_SCHOOL"; }
+function getBand(c?: Row): Band { const raw = `${str(c?.name)} ${str(c?.code)} ${str(c?.level)}`.toUpperCase(); if (/\b(ECDE|PP1|PP2|PRE PRIMARY|PRE-PRIMARY)\b/.test(raw)) return "ECDE"; const n = getGrade(c); if (n && n <= 3) return "LOWER_PRIMARY"; if (n && n <= 6) return "UPPER_PRIMARY"; if (/LOWER|PRIMARY 1|PRIMARY 2|PRIMARY 3/.test(raw)) return "LOWER_PRIMARY"; if (/UPPER|PRIMARY 4|PRIMARY 5|PRIMARY 6/.test(raw)) return "UPPER_PRIMARY"; return "JUNIOR_SCHOOL"; }
 const normalized = (s: Subject) => `${str(s.code)} ${str(s.name)}`.toUpperCase().replace(/[^A-Z0-9]+/g, " ");
 const matches = (s: Subject, patterns: RegExp[]) => patterns.some(p => p.test(normalized(s)));
 const subjectCode = (s: Subject) => { if (matches(s, [/ENGLISH/, /^ENG\b/])) return "ENG"; if (matches(s, [/KISWAHILI/, /^KIS\b/, /^KSW\b/])) return "KIS"; if (matches(s, [/MATHEMATICS/, /^MATH?\b/, /^MAT\b/])) return "MATH"; if (matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])) return "INT SCI"; if (matches(s, [/SOCIAL STUDIES/, /^SST\b/])) return "SST"; if (matches(s, [/CREATIVE ARTS.*SPORT/, /^CAS\b/])) return "CAS"; if (matches(s, [/AGRICULTURE.*NUTRITION/, /AGRICULTURE/, /^AGR\b/])) return "AGR NUT"; if (matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\b/, /^IRE\b/, /^CRE\b/])) return "RE"; if (matches(s, [/PRE TECHNICAL/, /PRE TECH/, /^PRE\b/])) return "PRE TECH"; if (matches(s, [/HOME SCIENCE/, /^HSC\b/])) return "HSC"; if (matches(s, [/INFORMATION.*COMMUNICATION TECHNOLOGY/, /^ICT\b/])) return "ICT"; if (matches(s, [/MUSIC/, /^MUS\b/])) return "MUS"; if (matches(s, [/PHYSICAL EDUCATION/, /^PE\b/])) return "PE"; if (matches(s, [/CREATIVE ARTS/, /^ART\b/])) return "ART"; return str(s.code).trim().toUpperCase().slice(0, 8) || "SUBJ"; };
@@ -56,7 +56,7 @@ export default function ClassMarksheetV2() {
   const visibleClasses = useMemo(() => classes.filter(c => !yearId || str(c.academic_year_id) === yearId), [classes, yearId]);
   const selectedClass = classes.find(c => str(c.id) === classId), selectedTerm = terms.find(t => str(t.id) === termId);
   const band = getBand(selectedClass), grade = getGrade(selectedClass);
-  const bandTitle = band === "LOWER_PRIMARY" ? "LOWER PRIMARY CBC ASSESSMENT MARKSHEET" : band === "UPPER_PRIMARY" ? "UPPER PRIMARY CBC ASSESSMENT MARKSHEET" : "JUNIOR SCHOOL PERFORMANCE MARKSHEET";
+  const bandTitle = band === "ECDE" ? "ECDE CBC COMPETENCY ASSESSMENT MARKSHEET" : band === "LOWER_PRIMARY" ? "LOWER PRIMARY CBC ASSESSMENT MARKSHEET" : band === "UPPER_PRIMARY" ? "UPPER PRIMARY CBC ASSESSMENT MARKSHEET" : "JUNIOR SCHOOL PERFORMANCE MARKSHEET";
   const loadSubjects = async (cid: string) => { const q = await getSupabase().from("class_subjects").select("subject_id").eq("class_id", cid); if (q.error) { setSubjects(allSubjects); return; } const ids = [...new Set((q.data ?? []).map(x => str(x.subject_id)))]; setSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : allSubjects); };
   useEffect(() => { setRows([]); setSubjects([]); setMessage(""); if (classId && allSubjects.length) void loadSubjects(classId); }, [classId, allSubjects]);
 
@@ -69,6 +69,7 @@ export default function ClassMarksheetV2() {
   } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); } finally { setBusy(false); } };
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
+    if (band === "ECDE") { return subjects.map(s => ({ ...s, code: subjectCode(s) })); }
     if (band === "LOWER_PRIMARY") { const enteredSubjectIds = new Set(rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)); const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) })); return sortReportSubjects(entered); }
     if (band === "UPPER_PRIMARY") { const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) })); const out: ReportSubject[] = [...normal]; const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); const scienceComponents = subjects.filter(INT_SCI); if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false }); else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) }); const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/])); const casComponents = subjects.filter(CAS); if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false }); else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) }); return sortReportSubjects(out); }
     const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"]; const out: ReportSubject[] = []; for (const code of codes) { if (code === "INT SCI") { const s = subjects.find(x => matches(x, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); if (s) out.push({ ...s, code }); } else if (code === "CAS") { const s = subjects.find(x => matches(x, [/CREATIVE ARTS.*SPORT/])); const components = subjects.filter(CAS); if (s) out.push({ ...s, code }); else if (components.length) out.push({ id: "__junior_cas__", code, name: "Creative Arts & Sports", synthetic: true, componentIds: components.map(x => x.id) }); } else { const s = fixedJuniorSubject(code, subjects); if (s) out.push(s); } } return out.length ? out : sortReportSubjects(subjects.slice(0, 9).map(s => ({ ...s, code: subjectCode(s) })));
@@ -115,7 +116,7 @@ export default function ClassMarksheetV2() {
             </tfoot>
           </table>
         </div>}
-        <div className="level-legend border-t border-[var(--ink)]/10 px-4 py-3 sm:px-6"><strong>Achievement scale:</strong> EE1 90–100% (8) · EE2 75–89% (7) · ME1 58–74% (6) · ME2 41–57% (5) · AE1 31–40% (4) · AE2 21–30% (3) · BE1 11–20% (2) · BE2 0–10% (1).</div>
+        <div className="level-legend border-t border-[var(--ink)]/10 px-4 py-3 sm:px-6"><strong>Achievement scale:</strong> {band === "ECDE" ? "4 = EE (Exceeding Expectations) · 3 = ME (Meeting Expectations) · 2 = AE (Approaching Expectations) · 1 = BE (Below Expectations)." : "EE1 90–100% (8) · EE2 75–89% (7) · ME1 58–74% (6) · ME2 41–57% (5) · AE1 31–40% (4) · AE2 21–30% (3) · BE1 11–20% (2) · BE2 0–10% (1)."}</div>
       </section>}
     </main>
   </PortalLayout>;
