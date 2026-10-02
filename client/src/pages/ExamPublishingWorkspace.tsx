@@ -18,6 +18,7 @@ type MarkRow = {
 const ADMINS = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"];
 const input = "w-full min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
 const nameOf = (s: any) => [s?.first_name, s?.middle_name, s?.last_name].filter(Boolean).join(" ");
+const isEcdeClass = (c?: Row) => /\b(ECDE|PP1|PP2|PRE PRIMARY|PRE-PRIMARY)\b/i.test(`${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`);
 
 export default function ExamPublishingWorkspace() {
   const { user, profile } = useSchoolAuth();
@@ -107,6 +108,8 @@ export default function ExamPublishingWorkspace() {
     }));
   }, [visibleExams, classes]);
   const selectedExam = exams.find(e => String(e.id) === selected);
+  const selectedExamClass = classes.find(c => String(c.id) === String(selectedExam?.class_id));
+  const selectedExamIsEcde = isEcdeClass(selectedExamClass);
   const requiredSubjects = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
   const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || assignments.some(a => String(a.class_id) === String(selectedExam?.class_id) && String(a.subject_id) === String(s.id))));
 
@@ -257,7 +260,8 @@ export default function ExamPublishingWorkspace() {
     try {
       const term = termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? terms.find(t => String(t.academic_year_id) === yearId)?.id ?? "");
       if (!term) throw new Error("Select a term.");
-      const targets = allGrades ? visibleClasses : visibleClasses.filter(c => String(c.id) === classId);
+      const targets = allGrades ? visibleClasses.filter(c => !isEcdeClass(c)) : visibleClasses.filter(c => String(c.id) === classId);
+      if (!allGrades && targets.some(isEcdeClass) && maximum !== 4) throw new Error("ECDE assessments use the four competency levels EE, ME, AE and BE, so the maximum score must be 4.");
       if (!targets.length) throw new Error("No active class selected.");
       const maximum = Number(maxScore);
       if (!Number.isFinite(maximum) || maximum <= 0) throw new Error("Maximum score must be greater than zero.");
@@ -291,7 +295,7 @@ export default function ExamPublishingWorkspace() {
         <select value={yearId} onChange={e => { setYearId(e.target.value); setTermId(""); }} className={input}><option value="">Academic year</option>{years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}</select>
         <select value={termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? "")} onChange={e => setTermId(e.target.value)} className={input}><option value="">Term</option>{terms.filter(t => String(t.academic_year_id) === yearId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All classes</label>
-        {!allGrades && <select value={classId} onChange={e => setClassId(e.target.value)} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+        {!allGrades && <select value={classId} onChange={e => { const value=e.target.value; setClassId(value); const cls=visibleClasses.find(c=>String(c.id)===value); setMaxScore(isEcdeClass(cls) ? "4" : "100"); }} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
         <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option value="EXAM_1">Exam 1</option><option value="ENDTERM">End-Term</option></select>
         <input type="date" value={start} onChange={e => setStart(e.target.value)} className={input} />
         <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={input} />
@@ -307,7 +311,7 @@ export default function ExamPublishingWorkspace() {
       {selectedExam && (examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.length ?? 0) > 1 && <select value={selected} onChange={e => void load(e.target.value)} className={`${input} mt-3`}><option value="">Select class</option>{examGroups.find(g => g.exams.some(e => String(e.id) === selected))?.exams.map(e => <option key={e.id} value={e.id}>{classes.find(c => String(c.id) === String(e.class_id))?.name}</option>)}</select>}
       {selectedExam && <>
         <div className="mt-4 rounded-2xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><b>{classes.find(c => String(c.id) === String(selectedExam.class_id))?.name} · {selectedExam.name}</b><p className="text-xs opacity-60 mt-1">{completion.done}/{completion.required} required marks entered · {completion.percent}% complete</p></div><div className="flex gap-2 items-center">{selectedExam.status === "PUBLISHED" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-2 text-xs font-bold text-green-800"><Lock size={14} />PUBLISHED</span> : <span className="rounded-full bg-[var(--gold)]/10 px-3 py-2 text-xs font-bold">DRAFT</span>}{admin && selectedExam.status !== "PUBLISHED" && <button onClick={() => void publishGroup()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40"><CheckCircle2 size={15} />Publish All Classes</button>}</div></div><div className="mt-3 h-2 rounded-full bg-black/10 overflow-hidden"><div className="h-full rounded-full bg-[var(--gold)]" style={{ width: `${completion.percent}%` }} /></div></div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedExam.status !== "PUBLISHED" && <select value={subjectId} onChange={e => void load(String(selectedExam.id), e.target.value)} className={input}><option value="">Select subject</option>{availableSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}<div className="rounded-xl bg-[var(--gold)]/10 px-3 py-3 text-sm">{subjectId ? `${rows.filter(r => String(r.subject_id) === String(subjectId)).length}/${learnerCount} learners have marks for this subject.` : "Select a subject to enter marks."}</div></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">{selectedExam.status !== "PUBLISHED" && <select value={subjectId} onChange={e => void load(String(selectedExam.id), e.target.value)} className={input}><option value="">Select subject</option>{availableSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}<div className="rounded-xl bg-[var(--gold)]/10 px-3 py-3 text-sm">{subjectId ? `${rows.filter(r => String(r.subject_id) === String(subjectId)).length}/${learnerCount} learners have marks for this subject.${selectedExamIsEcde ? " ECDE scale: 4=EE, 3=ME, 2=AE, 1=BE." : ""}` : "Select a subject to enter marks."}</div></div>
         {subjectId && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-sm"><thead><tr className="border-b text-left"><th className="p-3">#</th><th className="p-3">Admission</th><th className="p-3">Learner</th><th className="p-3">Mark / {selectedExam.maximum_score}</th><th className="p-3">Level</th></tr></thead><tbody>{students.map((s, i) => { const v = scores[String(s.id)] ?? ""; const n = v === "" ? null : Number(v); return <tr key={s.id} className="border-b border-[var(--ink)]/5"><td className="p-3">{i + 1}</td><td className="p-3">{s.admission_number}</td><td className="p-3 font-medium">{nameOf(s)}</td><td className="p-3"><input disabled={selectedExam.status === "PUBLISHED"} value={v} onChange={e => setScores(p => ({ ...p, [String(s.id)]: e.target.value }))} type="number" min="0" max={selectedExam.maximum_score} step="0.01" className="w-32 rounded-lg border px-3 py-2 disabled:bg-black/5" /></td><td className="p-3">{n == null || !Number.isFinite(n) ? "—" : levelFromScore(n, Number(selectedExam.maximum_score))}</td></tr>; })}</tbody></table>{selectedExam.status !== "PUBLISHED" && <div className="mt-4 flex justify-end"><button onClick={() => void save()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--ink)] px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}Save Marks</button></div>}</div>}
       </>}
       {message && <p className="mt-4 rounded-xl bg-[var(--gold)]/10 p-3 text-sm">{message}</p>}
