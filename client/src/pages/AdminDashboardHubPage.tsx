@@ -92,7 +92,7 @@ export default function AdminDashboardHubPage() {
   ];
 
   const capabilities = [
-    ["People & enrolment", "Learners, admissions, parents and staff", Users, "/portal/people"],
+    ["Learner enrollment", "Learners, admissions, parents and staff", Users, "/portal/people"],
     ["Teacher invitations", "Invite teachers and link accounts to staff records", UserPlus, "/portal/admin/teacher-invitations"],
     ["Academic setup", "Years, terms, classes and subjects", BookOpen, "/portal/academics"],
     ["Attendance", "Daily register and attendance records", ClipboardCheck, "/portal/attendance"],
