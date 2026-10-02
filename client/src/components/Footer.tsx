@@ -9,7 +9,7 @@ const SCHOOL_EMAILS = ["Menweprimaryandjunior@gmail.com", "menweprimaryschool94@
 const SCHOOL_LOCATION = "Menwe Village, Abogeta Division · Meru Central District · South Imenti Constituency";
 const SCHOOL_PO_BOX = "P.O. Box 19, Kionyo";
 
-const quickLinks = [["Home", "/"], ["About Us", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["School Life", "/school-life"], ["Portal Access", "/portal"]] as const;
+const quickLinks = [["Home", "/"], ["About Us", "/about"], ["Academics", "/academics"], ["Admissions", "/admissions"], ["School Life", "/school-life"], ["Family Portal", "/portal"]] as const;
 const schoolLinks = [["News & Events", "/news"], ["Gallery", "/gallery"], ["Calendar", "/calendar"], ["Contact Us", "/contact"], ["Fee Structure", "/admissions"]] as const;
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default function Footer() {
           <div>
             <span className="menwe-footer-eyebrow">MENWE PRIMARY &amp; JUNIOR SCHOOL</span>
             <h2>Everything your child needs to thrive, connected in one place.</h2>
-            <p>Explore our learning journey, admissions information and family portal.</p>
+            <p>Explore learning, admissions, school life and the secure family portal.</p>
           </div>
           <div className="menwe-footer-cta-actions">
             <FooterLink href="/admissions"><span>Start an application</span><ArrowRight size={15} /></FooterLink>
