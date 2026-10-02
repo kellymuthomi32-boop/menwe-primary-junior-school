@@ -81,6 +81,34 @@ const DATA: Record<string, {
    {stage:"Grades 7–9",title:"Think mathematically",items:["Algebraic and numerical reasoning","Geometry, measurement and data","More complex problem solving","Financial and real-world applications"]}
   ]
  },
+ "social-studies":{
+  title:"Social Studies", shortTitle:"Social Studies", icon:Globe2, levels:"Grades 4–9",
+  intro:"Social Studies helps learners understand people, communities, history, geography, citizenship and the relationships between society and the environment.",
+  parentIntro:"For a parent, Social Studies helps a child understand the world they live in. Learners explore their community and country, places and environments, people and their histories, responsibilities and how communities work together.",
+  why:"The learning area develops informed, responsible learners who can understand their community, appreciate diversity, use evidence and participate positively in society.",
+  whatLearnersDo:["Explore people, places, communities and environments","Develop map, observation, research and interpretation skills","Learn about history, heritage, citizenship and social responsibility","Discuss how people and environments influence one another","Use information from sources to explain ideas and situations"],
+  parentSees:["A learner asking questions about community and current social issues","Improved ability to locate and interpret places or information","Greater appreciation of Kenyan heritage and diversity","More thoughtful discussion about rights, responsibilities and community life"],
+  homeSupport:["Talk about your community, county and country using respectful, factual discussion","Visit safe local places of historical, environmental or cultural interest when possible","Ask children to locate places on maps and explain what they know","Encourage curiosity about family and community history","Discuss responsibilities at home, school and in the community"],
+  skills:["Citizenship","Communication","Critical thinking","Research","Collaboration","Cultural awareness"],
+  progression:[
+   {stage:"Grades 4–6",title:"Understand people, place and community",items:["Community and citizenship","Geography, maps and environments","History and heritage","Social responsibility and cooperation"]},
+   {stage:"Grades 7–9",title:"Analyse society and evidence",items:["People, places and social systems","Historical interpretation and heritage","Geographical inquiry and environmental issues","Citizenship, values and responsible participation"]}
+  ]
+ },
+ "cre":{
+  title:"Christian Religious Education (CRE)", shortTitle:"CRE", icon:BookOpen, levels:"Grades 4–9",
+  intro:"Christian Religious Education helps learners explore Christian teachings, values, faith, relationships, responsibility and respectful living.",
+  parentIntro:"CRE is about more than memorising Bible passages. Learners engage with Christian teachings and values and consider how they relate to choices, relationships, responsibility, service and life in the community.",
+  why:"The learning area supports moral reflection, responsible decision-making, respect for others and the development of values that can guide everyday life.",
+  whatLearnersDo:["Explore biblical teachings and Christian beliefs","Discuss values, choices, relationships and responsibilities","Connect faith-based learning with everyday situations","Develop respectful communication and reflection","Consider service, care, integrity and responsibility"],
+  parentSees:["A child explaining values behind a decision","Greater awareness of responsibility and respect","Thoughtful participation in discussions about faith and life","Connections between classroom learning and everyday conduct"],
+  homeSupport:["Discuss values and decisions using age-appropriate examples","Encourage respectful questions about faith and beliefs","Talk about service, honesty, responsibility and care for others","Read and discuss suitable Bible passages together when appropriate"],
+  skills:["Moral reasoning","Communication","Reflection","Responsibility","Respect","Citizenship"],
+  progression:[
+   {stage:"Grades 4–6",title:"Build understanding and values",items:["Christian teachings and biblical stories","Values, relationships and responsibility","Faith in everyday life","Respect, service and community"]},
+   {stage:"Grades 7–9",title:"Reflect, reason and apply",items:["Christian beliefs and teachings","Ethical questions and responsible choices","Faith, relationships and society","Applying values to real-life situations"]}
+  ]
+ },
  "creative-arts-sports":{
   title:"Creative Arts & Sports", shortTitle:"Creative Arts & Sports", icon:Music2, levels:"PP1–JSS 3",
   intro:"Creative Arts and Sports give learners opportunities to create, perform, move, compete, cooperate and develop confidence, discipline and healthy habits.",
