@@ -69,7 +69,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     const root = document.getElementById("main-content");
     if (!root) return;
     const excluded = new Set(["A", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "SCRIPT", "STYLE"]);
-    const pattern = new RegExp(subjectRoutes.map(([name]) => name).join("|"), "g");
+    const pattern = new RegExp(`\\b(?:${subjectRoutes.map(([name]) => name).join("|")})\\b`, "gi");
     const routeFor = (label: string) => subjectRoutes.find(([name]) => name.toLowerCase() === label.toLowerCase())?.[1];
     const linkNode = (node: Text) => {
       const parent = node.parentElement;
