@@ -51,7 +51,10 @@ Deno.serve(async req => {
     };
     const action = payload.action ?? "invite";
     const recordType = payload.recordType;
-    if (!recordType || !["teacher", "parent", "student"].includes(recordType)) {
+
+    // Resending an existing invitation only needs the existing account email.
+    // It must not require the UI to resend a school record type.
+    if (action !== "resend" && (!recordType || !["teacher", "parent", "student"].includes(recordType))) {
       return response({ error: "Select a valid school record type." }, 400);
     }
 
