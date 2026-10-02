@@ -38,6 +38,24 @@ const milestones = [
   { year: "TODAY", title: "Connected school community", text: "The portal brings school operations, learner records, communication and family-facing services into one secure digital experience." },
 ];
 
+const academicAreaRoutes: Record<string, string> = {
+  "English": "/academics/languages",
+  "Kiswahili": "/academics/languages",
+  "Mathematics": "/academics/mathematics-financial-literacy",
+  "Integrated Science": "/academics/integrated-science-health",
+  "Pre-Technical": "/academics/pre-technical-studies-ict",
+  "Social Studies": "/academics/social-studies",
+  "Agriculture": "/academics/agriculture-nutrition",
+  "CRE": "/academics/cre",
+  "Creative Arts & Sports": "/academics/creative-arts-sports",
+};
+
+function AcademicAreaLink({ area }: { area: string }) {
+  const href = academicAreaRoutes[area];
+  if (!href) return <span>{area}</span>;
+  return <button type="button" onClick={() => { window.location.href = href; }} className="text-left font-semibold text-[#0B3A66] underline decoration-[#D89B28]/70 underline-offset-4 transition hover:text-[#061229] hover:decoration-[#D89B28] focus:outline-none focus:ring-2 focus:ring-[#D89B28] focus:ring-offset-2 rounded-sm">{area}</button>;
+}
+
 const principal = { name: "Mr. Simon Muriungi Muthemba", role: "Principal", initials: "SM", bio: "School leadership focused on learner welfare, academic progress, school operations and a supportive learning environment." };
 
 const facilities = [
@@ -94,7 +112,7 @@ export default function AboutPage() {
 
       <Reveal className="mt-24"><section><SectionHeading eyebrow="Our journey" title="A timeline of learning, growth and connection." /><div className="relative mt-10"><div className="absolute bottom-4 left-[19px] top-4 w-px bg-gradient-to-b from-[#D89B28] via-slate-200 to-transparent sm:left-1/2 sm:-translate-x-1/2" /><div className="space-y-7">{milestones.map((item, index) => <article key={item.year} className="relative grid gap-5 sm:grid-cols-2 sm:gap-12"><div className={index % 2 ? "sm:order-2" : ""}><div className="ml-12 rounded-2xl border border-gray-100 bg-white p-5 shadow-md sm:ml-0 sm:p-6"><span className="text-xs font-black uppercase tracking-[.18em] text-[#D89B28]">{item.year}</span><h3 className="mt-2 text-lg font-bold text-[#061229]">{item.title}</h3><p className="mt-2 text-sm leading-7 text-slate-600">{item.text}</p></div></div><div className="absolute left-[11px] top-5 h-[18px] w-[18px] rounded-full border-4 border-white bg-[#D89B28] shadow sm:left-1/2 sm:-translate-x-1/2" /><div className="hidden sm:block" /></article>)}</div></div></section></Reveal>
 
-      <Reveal className="mt-24"><section><SectionHeading eyebrow="Academic journey" title="From foundational learning to Junior School pathways." text="The current portal structure supports learners from PP1 through Grade 9. Subject lists below reflect the current school catalogue." /><div className="mt-8 grid gap-5 lg:grid-cols-3">{stages.map((stage) => <article key={stage.title} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl sm:p-7"><div className="flex items-center justify-between"><span className="rounded-full bg-[#D89B28]/10 px-3 py-1 text-xs font-extrabold uppercase text-[#D89B28]">{stage.label}</span><span className="text-xs font-black text-slate-300">{stage.number}</span></div><h3 className="mt-5 font-serif text-2xl font-semibold text-[#061229]">{stage.title}</h3><div className="mt-5 space-y-2">{stage.areas.map((area) => <div key={area} className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#D89B28]" />{area}</div>)}</div></article>)}</div></section></Reveal>
+      <Reveal className="mt-24"><section><SectionHeading eyebrow="Academic journey" title="From foundational learning to Junior School pathways." text="The current portal structure supports learners from PP1 through Grade 9. Subject lists below reflect the current school catalogue." /><div className="mt-8 grid gap-5 lg:grid-cols-3">{stages.map((stage) => <article key={stage.title} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl sm:p-7"><div className="flex items-center justify-between"><span className="rounded-full bg-[#D89B28]/10 px-3 py-1 text-xs font-extrabold uppercase text-[#D89B28]">{stage.label}</span><span className="text-xs font-black text-slate-300">{stage.number}</span></div><h3 className="mt-5 font-serif text-2xl font-semibold text-[#061229]">{stage.title}</h3><div className="mt-5 space-y-2">{stage.areas.map((area) => <div key={area} className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#D89B28]" /><AcademicAreaLink area={area} /></div>)}</div></article>)}</div></section></Reveal>
 
       <Reveal className="mt-24"><section className="overflow-hidden rounded-[2rem] bg-[#061229] text-white shadow-2xl"><div className="grid lg:grid-cols-[1.05fr_.95fr]"><div className="p-7 sm:p-10 lg:p-12"><p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#D89B28]">Junior School</p><h2 className="mt-3 font-serif text-3xl font-semibold sm:text-4xl">Menwe Junior School · Grades 7–9</h2><p className="mt-5 max-w-2xl text-sm leading-7 text-white/65">Junior School is a key transition toward greater independence. The current structure combines languages, mathematics, science, social learning, agriculture, pre-technical learning, religious education and creative and sporting development.</p><button onClick={() => go("/academics")} className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-extrabold text-white">Explore academics <ArrowRight size={16} /></button></div><div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-white/[.03] p-5 sm:grid-cols-3 sm:p-7 lg:grid-cols-2 lg:border-l lg:border-t-0">{stages[2].areas.map((area) => <span key={area} className="flex min-h-12 items-center rounded-xl bg-white/[.05] px-3 py-2 text-sm font-semibold text-white/75 ring-1 ring-white/10">{area}</span>)}</div></div></section></Reveal>
 
