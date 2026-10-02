@@ -260,10 +260,10 @@ export default function ExamPublishingWorkspace() {
     try {
       const term = termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? terms.find(t => String(t.academic_year_id) === yearId)?.id ?? "");
       if (!term) throw new Error("Select a term.");
+      const maximum = Number(maxScore);
       const targets = allGrades ? visibleClasses.filter(c => !isEcdeClass(c)) : visibleClasses.filter(c => String(c.id) === classId);
       if (!allGrades && targets.some(isEcdeClass) && maximum !== 4) throw new Error("ECDE assessments use the four competency levels EE, ME, AE and BE, so the maximum score must be 4.");
       if (!targets.length) throw new Error("No active class selected.");
-      const maximum = Number(maxScore);
       if (!Number.isFinite(maximum) || maximum <= 0) throw new Error("Maximum score must be greater than zero.");
       if (start > end) throw new Error("End date cannot be before start date.");
       const db = getSupabase();
