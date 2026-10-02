@@ -98,7 +98,65 @@ const DATA: Record<string, {
 };
 
 export default function SubjectDetailPage(){
- const [,go]=useLocation(); const [,params]=useRoute("/academics/:subjectSlug"); const s=params?.subjectSlug?DATA[params.subjectSlug]:undefined;
+ const [,go]=useLocation();
+ const [,params]=useRoute("/academics/:subjectSlug");
+ const s=params?.subjectSlug?DATA[params.subjectSlug]:undefined;
  if(!s)return <PublicLayout><main className="mx-auto max-w-4xl px-5 py-24 text-center"><h1 className="font-serif text-4xl font-semibold text-[#061229]">Learning area not found</h1><button onClick={()=>go("/academics")} className="mt-7 rounded-xl bg-[#D89B28] px-5 py-3 font-bold text-[#061229]">Back to academics</button></main></PublicLayout>;
- const Icon=s.icon; return <PublicLayout><section className="relative overflow-hidden bg-[#061229] text-white"><div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[#D89B28]/15 blur-3xl"/><div className="relative mx-auto max-w-7xl px-5 pb-16 pt-20 sm:px-6 lg:px-8"><button onClick={()=>go("/academics")} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold hover:bg-white/10"><ArrowLeft size={15}/> All academic areas</button><div className="mt-9 flex flex-wrap items-center gap-3"><span className="inline-flex items-center gap-2 rounded-full bg-[#D89B28]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#D89B28]"><Icon size={14}/>{s.title}</span><span className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-white/60">{s.levels}</span></div><h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">{s.title}</h1><p className="mt-6 max-w-3xl text-base leading-8 text-white/70 sm:text-lg">{s.intro}</p></div></section><main className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8 lg:py-20"><div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><p className="text-xs font-black uppercase tracking-wider text-[#D89B28]">Why it matters</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#061229]">Building skills learners can carry forward.</h2><p className="mt-5 text-base leading-8 text-slate-600">{s.why}</p></section><section className="rounded-3xl bg-slate-50 p-7 sm:p-9"><p className="text-xs font-black uppercase tracking-wider text-[#D89B28]">Core competencies</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{s.skills.map(x=><div key={x} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><CheckCircle2 size={17} className="shrink-0 text-[#D89B28]"/>{x}</div>)}</div></section></div><div className="mt-16 grid gap-6 md:grid-cols-2">{[["What learners develop",s.learning],["Learning in action",s.experiences]].map(([heading,items])=><section key={String(heading)} className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><p className="text-xs font-black uppercase tracking-wider text-[#D89B28]">{heading}</p><ul className="mt-6 space-y-4">{(items as string[]).map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></section>)}</div><section className="mt-16 rounded-[2rem] bg-gradient-to-r from-[#061229] to-[#0b1d3a] p-7 text-white sm:p-10"><div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"><div><Sparkles className="text-[#D89B28]" size={24}/><h2 className="mt-4 font-serif text-3xl font-semibold">Explore the wider learning pathway.</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-white/65">See the other academic areas at Menwe or contact the school for more information.</p></div><div className="flex flex-col gap-3 sm:flex-row"><button onClick={()=>go("/academics")} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-bold">Explore academics <ArrowRight size={16}/></button><button onClick={()=>go("/contact")} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 py-3 text-sm font-extrabold text-[#061229]">Contact Menwe <ArrowRight size={16}/></button></div></div></section></main></PublicLayout>;
+ const Icon=s.icon;
+ return <PublicLayout>
+  <section className="relative overflow-hidden bg-[#061229] text-white">
+   <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#D89B28]/15 blur-3xl"/>
+   <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
+    <button onClick={()=>go("/academics")} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold hover:bg-white/10"><ArrowLeft size={15}/> All academic areas</button>
+    <div className="mt-9 flex flex-wrap items-center gap-3">
+     <span className="inline-flex items-center gap-2 rounded-full bg-[#D89B28]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#D89B28]"><Icon size={14}/>{s.shortTitle}</span>
+     <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-white/60">{s.levels}</span>
+    </div>
+    <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">{s.title}</h1>
+    <p className="mt-6 max-w-3xl text-base leading-8 text-white/75 sm:text-lg">{s.intro}</p>
+   </div>
+  </section>
+
+  <main className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8 lg:py-20">
+   <section className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+    <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+     <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">For families</p>
+     <h2 className="mt-4 max-w-3xl font-serif text-3xl font-semibold leading-tight text-[#061229] sm:text-4xl">What does this learning area actually mean for my child?</h2>
+     <p className="mt-5 text-base leading-8 text-slate-600">{s.parentIntro}</p>
+    </div>
+    <div className="rounded-3xl bg-slate-50 p-7 sm:p-9">
+     <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">Why it matters</p>
+     <p className="mt-4 text-base leading-8 text-slate-600">{s.why}</p>
+    </div>
+   </section>
+
+   <section className="mt-14">
+    <div className="max-w-3xl"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">The learner experience</p><h2 className="mt-3 font-serif text-3xl font-semibold text-[#061229] sm:text-4xl">What your child learns and does</h2><p className="mt-4 text-base leading-7 text-slate-600">The emphasis changes as learners grow, but the aim is always understanding, application and growing independence.</p></div>
+    <div className="mt-7 grid gap-4 md:grid-cols-2">{s.whatLearnersDo.map(x=><div key={x} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#D89B28]/10 text-[#D89B28]"><CheckCircle2 size={17}/></span><p className="text-sm leading-6 text-slate-600">{x}</p></div>)}</div>
+   </section>
+
+   <section className="mt-14 grid gap-6 lg:grid-cols-2">
+    <div className="rounded-3xl bg-[#061229] p-7 text-white sm:p-9"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">What parents may notice</p><h2 className="mt-3 font-serif text-3xl font-semibold">Evidence of learning beyond a test score.</h2><ul className="mt-6 space-y-4">{s.parentSees.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-white/70"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></div>
+    <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">At home</p><h2 className="mt-3 font-serif text-3xl font-semibold text-[#061229]">Simple ways families can help.</h2><ul className="mt-6 space-y-4">{s.homeSupport.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#D89B28]/10 text-xs font-black text-[#D89B28]">✓</span>{x}</li>)}</ul></div>
+   </section>
+
+   <section className="mt-14" aria-labelledby="progression-title">
+    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">Progression</p>
+    <h2 id="progression-title" className="mt-3 font-serif text-3xl font-semibold text-[#061229] sm:text-4xl">How learning develops as your child grows</h2>
+    <div className="mt-7 grid gap-5 lg:grid-cols-2">{s.progression.map(p=><article key={p.stage} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-full bg-[#D89B28]/10 px-3 py-1.5 text-xs font-black text-[#061229]">{p.stage}</span><span className="text-xs font-bold text-slate-400">Learning focus</span></div><h3 className="mt-5 text-xl font-bold text-slate-900">{p.title}</h3><ul className="mt-5 space-y-3">{p.items.map(x=><li key={x} className="flex gap-3 text-sm leading-6 text-slate-600"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[#D89B28]"/>{x}</li>)}</ul></article>)}</div>
+   </section>
+
+   <section className="mt-14 rounded-3xl border border-slate-200 bg-slate-50 p-7 sm:p-9">
+    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D89B28]">Competencies developed</p>
+    <div className="mt-5 flex flex-wrap gap-3">{s.skills.map(x=><span key={x} className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">{x}</span>)}</div>
+   </section>
+
+   <section className="mt-14 rounded-[2rem] bg-gradient-to-r from-[#061229] to-[#0b1d3a] p-7 text-white sm:p-10">
+    <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+     <div><Sparkles className="text-[#D89B28]" size={24}/><h2 className="mt-4 font-serif text-3xl font-semibold">Want to understand your child's learning better?</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-white/65">Explore the other learning areas or contact Menwe if you would like help understanding grade placement, learning expectations or the school experience.</p></div>
+     <div className="flex flex-col gap-3 sm:flex-row"><button onClick={()=>go("/academics")} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-bold hover:bg-white/10">Explore academics <ArrowRight size={16}/></button><button onClick={()=>go("/contact")} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D89B28] px-5 py-3 text-sm font-extrabold text-[#061229]">Contact Menwe <ArrowRight size={16}/></button></div>
+    </div>
+   </section>
+  </main>
+ </PublicLayout>;
 }
