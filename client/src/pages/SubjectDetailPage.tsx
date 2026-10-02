@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Calculator, CheckCircle2, Cpu, FlaskConical, Globe2, Leaf, Music2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Calculator, CheckCircle2, Cpu, FlaskConical, Globe2, Leaf, Music2, Sparkles } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 
