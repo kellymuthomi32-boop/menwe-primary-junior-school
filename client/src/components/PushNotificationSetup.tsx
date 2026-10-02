@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
-const PUBLIC_KEY = "BIY4jW/2AxwPahknETo4tBdCRJvDhgN6VZ8fOAUYhg1d5lT/qbl16Zg2Y5kPgcr3Q1amIlh+KsVon2V3kYTy6K8=";
+const [publicKey, setPublicKey] = useState("");
 
 function base64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -22,9 +22,17 @@ export default function PushNotificationSetup() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setSupported("serviceWorker" in navigator && "PushManager" in window && "Notification" in window && Boolean(PUBLIC_KEY));
     if ("Notification" in window) setPermission(Notification.permission);
-  }, []);
+    if (user && profile?.role === "TEACHER") {
+      void getSupabase().functions.invoke("send-web-push", { body: { action: "config" } }).then(({ data, error }) => {
+        if (!error && data?.publicKey) setPublicKey(String(data.publicKey));
+      });
+    }
+  }, [profile, user]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setSupported("serviceWorker" in navigator && "PushManager" in window && "Notification" in window && Boolean(publicKey));
+  }, [publicKey]);
 
   if (!user || !profile || profile.role !== "TEACHER" || !supported || permission === "granted" || dismissed) return null;
 
@@ -41,7 +49,7 @@ export default function PushNotificationSetup() {
       const registration = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: base64ToUint8Array(PUBLIC_KEY!),
+        applicationServerKey: base64ToUint8Array(publicKey),
       });
       const json = subscription.toJSON();
       const { error } = await getSupabase().from("web_push_subscriptions").upsert({
