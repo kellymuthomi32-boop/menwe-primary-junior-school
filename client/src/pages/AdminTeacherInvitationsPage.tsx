@@ -18,6 +18,10 @@ export default function AdminTeacherInvitationsPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [resendingEmail, setResendingEmail] = useState("");
+  const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -51,6 +55,28 @@ export default function AdminTeacherInvitationsPage() {
   }, [selected]);
 
   const resetNew = () => { setSelectedId(""); setFullName(""); setEmail(""); };
+
+  const setTeacherPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!passwordTeacher?.email) return;
+    setSavingPassword(true); setMessage(""); setError("");
+    try {
+      if (newPassword.length < 8) throw new Error("Password must be at least 8 characters long.");
+      if (newPassword !== confirmPassword) throw new Error("The passwords do not match.");
+      const db = getSupabase();
+      const { data, error: invokeError } = await db.functions.invoke("school-invite", { body: { action: "set_password", email: passwordTeacher.email, password: newPassword } });
+      if (invokeError) {
+        const context = (invokeError as { context?: Response }).context;
+        let serverMessage = invokeError.message;
+        if (context) { try { const body = await context.clone().json() as { error?: string; message?: string }; serverMessage = body.error || body.message || serverMessage; } catch { /* keep SDK message */ } }
+        throw new Error(serverMessage);
+      }
+      if (data?.error) throw new Error(data.error);
+      setMessage("Teacher password updated successfully. The teacher can now sign in with the official email and the new password.");
+      setPasswordTeacher(null); setNewPassword(""); setConfirmPassword("");
+    } catch (e) { setError(e instanceof Error ? e.message : "The teacher password could not be updated."); }
+    finally { setSavingPassword(false); }
+  };
 
   const sendInvitation = async (event: React.FormEvent) => {
     event.preventDefault(); setSending(true); setMessage(""); setError("");
@@ -113,7 +139,9 @@ export default function AdminTeacherInvitationsPage() {
       </form>
     </section>
 
-    <section className="menwe-card rounded-[1.75rem] p-6 sm:p-8"><div><p className="menwe-premium-label">Existing teacher accounts</p><h2 className="menwe-premium-title mt-1">Invitation status</h2><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">Linked accounts remain associated with their teacher records. If an invited teacher needs another email, use the configured Supabase Auth email workflow rather than creating a second school account.</p></div><div className="mt-6 divide-y divide-[var(--ink)]/8">{linked.length === 0 && <p className="py-5 text-sm text-[var(--ink)]/55">No linked teacher accounts yet.</p>}{linked.map(t=><div key={t.id} className="flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold">{t.first_name} {t.last_name}</p><p className="mt-1 text-sm text-[var(--ink)]/55">Staff ID {t.employee_number} · {t.email || "No email on staff record"}</p></div><div className="flex flex-wrap items-center gap-2"><button type="button" disabled={resendingEmail === (t.email || "").trim().toLowerCase()} onClick={() => void resendInvitation(t)} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[var(--ink)]/10 px-3 text-xs font-bold hover:border-[var(--gold)]/40 disabled:opacity-50"><RefreshCw size={13} className={resendingEmail === (t.email || "").trim().toLowerCase() ? "animate-spin" : ""}/> Resend invite</button><span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800"><CheckCircle2 size={14}/> Linked</span></div></div>)}</div></section>
+    <section className="menwe-card rounded-[1.75rem] p-6 sm:p-8"><div><p className="menwe-premium-label">Existing teacher accounts</p><h2 className="menwe-premium-title mt-1">Invitation status</h2><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">Linked accounts remain associated with their teacher records. Administrators can resend an invitation or securely set a new teacher login password without exposing the service key.</p></div><div className="mt-6 divide-y divide-[var(--ink)]/8">{linked.length === 0 && <p className="py-5 text-sm text-[var(--ink)]/55">No linked teacher accounts yet.</p>}{linked.map(t=><div key={t.id} className="flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold">{t.first_name} {t.last_name}</p><p className="mt-1 text-sm text-[var(--ink)]/55">Staff ID {t.employee_number} · {t.email || "No email on staff record"}</p></div><div className="flex flex-wrap items-center gap-2"><button type="button" disabled={!t.email} onClick={() => { setPasswordTeacher(t); setNewPassword(""); setConfirmPassword(""); setMessage(""); setError(""); }} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[var(--gold)]/35 px-3 text-xs font-bold hover:border-[var(--gold)]/60 disabled:opacity-50"><ShieldCheck size={13}/> Set password</button><button type="button" disabled={resendingEmail === (t.email || "").trim().toLowerCase()} onClick={() => void resendInvitation(t)} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[var(--ink)]/10 px-3 text-xs font-bold hover:border-[var(--gold)]/40 disabled:opacity-50"><RefreshCw size={13} className={resendingEmail === (t.email || "").trim().toLowerCase() ? "animate-spin" : ""}/> Resend invite</button><span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800"><CheckCircle2 size={14}/> Linked</span></div></div>)}</div></section>
+
+    {passwordTeacher && <section className="menwe-card rounded-[1.75rem] border-2 border-[var(--gold)]/25 p-6 shadow-xl sm:p-8"><div className="flex items-start justify-between gap-4"><div><p className="menwe-premium-label">Administrator action</p><h2 className="menwe-premium-title mt-1">Set teacher password</h2><p className="mt-2 text-sm leading-6 text-[var(--ink)]/60">Set a new login password for {passwordTeacher.first_name} {passwordTeacher.last_name}. The password is sent only to the secure server and is never displayed after saving.</p><p className="mt-2 text-xs font-bold text-[var(--ink)]/50">{passwordTeacher.email}</p></div><button type="button" onClick={()=>{setPasswordTeacher(null);setNewPassword("");setConfirmPassword("");}} className="min-h-10 rounded-lg border border-[var(--ink)]/10 px-3 text-xs font-bold">Cancel</button></div><form onSubmit={setTeacherPassword} className="mt-6 grid gap-4 sm:max-w-xl"><label className="grid gap-1.5 text-xs font-black uppercase tracking-wide">New password<input required minLength={8} type="password" autoComplete="new-password" className={input} value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="At least 8 characters"/></label><label className="grid gap-1.5 text-xs font-black uppercase tracking-wide">Confirm password<input required minLength={8} type="password" autoComplete="new-password" className={input} value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Enter the same password again"/></label><button disabled={savingPassword} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-6 text-sm font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-50">{savingPassword?<Loader2 className="animate-spin" size={17}/>:<ShieldCheck size={17}/>} {savingPassword?"Saving password…":"Save teacher password"}</button></form></section>}
 
     <section className="rounded-[1.75rem] border border-[var(--gold)]/20 bg-[var(--gold)]/5 p-6"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-[var(--gold)]" size={20}/><div><h2 className="font-bold">What happens next?</h2><p className="mt-1 text-sm leading-6 text-[var(--ink)]/60">For a new teacher, the system creates a staff record with a generated staff ID, creates the secure Supabase account invitation, links the account to the teacher, and sends the email. After accepting, the teacher chooses a password and can then be assigned classes and subjects.</p></div></div></section>
     <div className="flex items-center gap-2 text-xs text-[var(--ink)]/50"><UserPlus size={14}/> {available.length} unlinked teacher record{available.length === 1 ? "" : "s"} · {linked.length} linked account{linked.length === 1 ? "" : "s"}.</div>
