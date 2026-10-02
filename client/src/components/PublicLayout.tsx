@@ -65,7 +65,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     const root = document.getElementById("main-content");
     if (!root) return;
     const excluded = new Set(["A", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "SCRIPT", "STYLE"]);
-    const escapeRegExp = (value: string) => value.replace(/[.*+?^$()|[\\]\\]/g, "\\  useEffect(() => { document.body.style.overflow = open ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [open]);
+    const escapeRegExp = (value: string) => value.replace(/[.*+?^$()|[\\]\\\\]/g, "\\$&");
 ");
     const pattern = new RegExp(subjectRoutes.map(([name]) => escapeRegExp(name)).join("|"), "g");
     const routeFor = (label: string) => subjectRoutes.find(([name]) => name.toLowerCase() === label.toLowerCase())?.[1];
