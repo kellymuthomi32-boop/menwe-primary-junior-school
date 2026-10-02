@@ -51,7 +51,6 @@ function bandFromClass(c?: Row): Band {
   if (/\b(ECDE|PP1|PP2|PRE PRIMARY|PRE-PRIMARY)\b/.test(raw)) return "ECDE";
   const g = gradeFromClass(c);
   if (g != null) return g <= 3 ? "LOWER_PRIMARY" : g <= 6 ? "UPPER_PRIMARY" : "JUNIOR_SCHOOL";
-  const raw = normalize(`${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`);
   if (/LOWER|PRIMARY 1|PRIMARY 2|PRIMARY 3/.test(raw)) return "LOWER_PRIMARY";
   if (/UPPER|PRIMARY 4|PRIMARY 5|PRIMARY 6/.test(raw)) return "UPPER_PRIMARY";
   return "JUNIOR_SCHOOL";
