@@ -7,17 +7,12 @@ import "./header-micro.css";
 import "./brand-alignment.css";
 import "./marksheet-print.css";
 
-// Application delivery no longer uses a service worker. Do not enumerate or
-// delete browser caches during startup: that defeats normal HTTP/CDN caching
-// and can make repeat visits much slower. Legacy workers should be removed
-// once, outside the critical render path, rather than on every navigation.
+// The school portal uses a service worker for teacher push notifications.
+// Do not unregister service workers on startup: doing so would disable
+// background push delivery on phones.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    window.setTimeout(() => {
-      void navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => void registration.unregister());
-      }).catch(() => undefined);
-    }, 5000);
+    void navigator.serviceWorker.getRegistrations().catch(() => undefined);
   }, { once: true });
 }
 
@@ -35,6 +30,4 @@ if (typeof indexedDB !== "undefined") {
   }
 }
 
-// Keep the marksheet print stylesheet in the production entrypoint so every
-// production build receives the latest A4 print rules.
 createRoot(document.getElementById("root")!).render(<App />);
