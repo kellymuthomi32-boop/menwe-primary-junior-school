@@ -195,10 +195,27 @@ function aggregate(rows: Row[], ids: string[]) {
 }
 function lineFor(subject: ReportSubject, results: Row[]): ReportLine {
   const ids = subject.componentIds?.length ? subject.componentIds : [subject.id];
-  const a = aggregate(results, ids);
-  const p = a?.percentage ?? null;
+  const combined = aggregate(results, ids);
+  const exam1 = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "EXAM 1"), ids);
+  const endTerm = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "ENDTERM"), ids);
+  const p = combined?.percentage ?? null;
   const ach = achievement(p, subject.code.startsWith("PP-"));
-  return {...subject,score:a?.score??null,max:a?.max??null,percentage:p,level:ach?.level??null,levelCode:ach?.code??"—",remark:ach?.remark??"No recorded result"};
+  const remark = p == null
+    ? (exam1 || endTerm ? "Incomplete assessment record" : "No recorded result")
+    : (ach?.remark ?? "No recorded result");
+  return {
+    ...subject,
+    score: combined?.score ?? null,
+    max: combined?.max ?? null,
+    percentage: p,
+    level: ach?.level ?? null,
+    levelCode: ach?.code ?? "—",
+    remark,
+    exam1Score: exam1?.score ?? null,
+    exam1Max: exam1?.max ?? null,
+    endTermScore: endTerm?.score ?? null,
+    endTermMax: endTerm?.max ?? null,
+  };
 }
 function attendancePercent(rows: Row[]) {
   const total=rows.length; if(!total)return null;
@@ -382,9 +399,9 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     y+=41;
 
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments.");
-    const cols=[M,M+62,M+89,M+115,M+143], widths=[60,25,25,25,47];
+    const cols=[M,M+50,M+76,M+102,M+128,M+153,M+169], widths=[48,24,24,24,21,16,31];
     doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
-    ["LEARNING AREA","SCORE","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
+    ["LEARNING AREA","EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
     ls.forEach((l,i)=>{
       const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[4]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
@@ -393,10 +410,13 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,CW,rowH,"F");}
       doc.setDrawColor(205,214,224);doc.rect(M,y,CW,rowH);
       doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(nameLines,cols[0]+3,y+5);
-      doc.setFont("helvetica","normal");doc.setFontSize(7.8);doc.text(`${fmt(l.score)} / ${fmt(l.max)}`,cols[1]+3,y+5);
-      doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[2]+3,y+5);
-      doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[3]+3,y+5);
-      doc.setFont("helvetica","normal");doc.text(remarkLines,cols[4]+3,y+5);y+=rowH;
+      doc.setFont("helvetica","normal");doc.setFontSize(7.2);
+      doc.text(l.exam1Score==null?"Not taken":`${fmt(l.exam1Score)} / ${fmt(l.exam1Max)}`,cols[1]+3,y+5);
+      doc.text(l.endTermScore==null?"Not taken":`${fmt(l.endTermScore)} / ${fmt(l.endTermMax)}`,cols[2]+3,y+5);
+      doc.text(l.score==null?"—":`${fmt(l.score)} / ${fmt(l.max)}`,cols[3]+3,y+5);
+      doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[4]+3,y+5);
+      doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[5]+3,y+5);
+      doc.setFont("helvetica","normal");doc.text(remarkLines,cols[6]+3,y+5);y+=rowH;
     });
     const totalH=14;
     if(y+totalH>bottom-35){doc.addPage();y=12;}
