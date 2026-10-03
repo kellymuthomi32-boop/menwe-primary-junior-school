@@ -195,9 +195,14 @@ function aggregate(rows: Row[], ids: string[]) {
 }
 function lineFor(subject: ReportSubject, results: Row[]): ReportLine {
   const ids = subject.componentIds?.length ? subject.componentIds : [subject.id];
-  const combined = aggregate(results, ids);
   const exam1 = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "EXAM 1"), ids);
   const endTerm = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "ENDTERM"), ids);
+  // A final term percentage is only valid when both official assessments exist.
+  // Never turn a one-assessment record into a fabricated combined result.
+  const complete = !!exam1 && !!endTerm && (exam1.max ?? 0) > 0 && (endTerm.max ?? 0) > 0;
+  const combined = complete
+    ? { score: (exam1!.score ?? 0) + (endTerm!.score ?? 0), max: (exam1!.max ?? 0) + (endTerm!.max ?? 0), percentage: ((exam1!.score ?? 0) + (endTerm!.score ?? 0)) / ((exam1!.max ?? 0) + (endTerm!.max ?? 0)) * 100 }
+    : null;
   const p = combined?.percentage ?? null;
   const ach = achievement(p, subject.code.startsWith("PP-"));
   const remark = p == null
