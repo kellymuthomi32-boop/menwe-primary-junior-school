@@ -242,11 +242,11 @@ export default function ExamPublishingWorkspace() {
 
   const publish = async () => {
     if (!admin || !selectedExam) return;
-    if (!completion.complete) {
-      setMessage(`Cannot publish: ${completion.done}/${completion.required} marks entered. Complete all learner and subject marks first.`);
-      return;
-    }
-    if (!window.confirm(`Publish ${selectedExam.name} for ${classes.find(c => String(c.id) === String(selectedExam.class_id))?.name ?? "this class"}? Published marks become official and locked.`)) return;
+    const incomplete = completion.required > completion.done;
+    const confirmation = incomplete
+      ? `Only ${completion.done}/${completion.required} learner-subject results are recorded. Blank entries will remain unrecorded (not converted to zero). Publish ${selectedExam.name} anyway for ${classes.find(c => String(c.id) === String(selectedExam.class_id))?.name ?? "this class"}?`
+      : `Publish ${selectedExam.name} for ${classes.find(c => String(c.id) === String(selectedExam.class_id))?.name ?? "this class"}? Published marks become official and locked.`;
+    if (!window.confirm(confirmation)) return;
     setBusy(true);
     try {
       const r = await getSupabase().from("exams").update({ status: "PUBLISHED" }).eq("id", selectedExam.id).eq("status", "DRAFT");
@@ -281,8 +281,12 @@ export default function ExamPublishingWorkspace() {
         const required = studentIds.length * subjectsForClass.length;
         if (required === 0 || done.size !== required) incomplete.push(`${cls?.name ?? "Class"} (${done.size}/${required})`);
       }
-      if (incomplete.length) throw new Error(`Cannot publish the school-wide assessment yet. Complete all marks in: ${incomplete.join(", ")}.`);
-      if (!window.confirm(`Publish ${selectedExam.name} for all ${group.exams.length} classes? Published marks become official and locked.`)) return;
+      if (incomplete.length) {
+        const proceed = window.confirm(
+          `Some learner-subject results are blank: ${incomplete.join(", ")}. Blank entries will remain unrecorded and will not become zero. Publish ${selectedExam.name} for all ${group.exams.length} classes anyway?`
+        );
+        if (!proceed) return;
+      } else if (!window.confirm(`Publish ${selectedExam.name} for all ${group.exams.length} classes? Published marks become official and locked.`)) return;
       const ids = group.exams.map(e => String(e.id));
       const update = await db.from("exams").update({ status: "PUBLISHED" }).in("id", ids).eq("status", "DRAFT");
       if (update.error) throw update.error;
