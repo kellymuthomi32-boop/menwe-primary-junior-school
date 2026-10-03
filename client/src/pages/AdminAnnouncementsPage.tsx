@@ -50,7 +50,7 @@ export default function AdminAnnouncementsPage() {
         if (rolesForNotification.length) {
           const { data: recipients, error: recipientError } = await getSupabase()
             .from("profiles")
-            .select("id")
+            .select("id,role")
             .in("role", rolesForNotification)
             .eq("status", "ACTIVE");
           if (recipientError) throw recipientError;
