@@ -49,7 +49,7 @@ export default function ClassMarksheetV2() {
   const { user, profile } = useSchoolAuth();
   const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
   const [years, setYears] = useState<Row[]>([]), [terms, setTerms] = useState<Row[]>([]), [classes, setClasses] = useState<Row[]>([]), [allSubjects, setAllSubjects] = useState<Subject[]>([]), [subjects, setSubjects] = useState<Subject[]>([]), [rows, setRows] = useState<Row[]>([]);
-  const [yearId, setYearId] = useState(""), [termId, setTermId] = useState(""), [classId, setClassId] = useState(""), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [yearId, setYearId] = useState(""), [termId, setTermId] = useState(""), [classId, setClassId] = useState(""), [assessmentType, setAssessmentType] = useState<"EXAM_1"|"ENDTERM">("ENDTERM"), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [selectionRestored, setSelectionRestored] = useState(false);
   const storageKey = user?.id ? `menwe:marksheet-workspace:${user.id}` : "";
 
@@ -59,10 +59,11 @@ export default function ClassMarksheetV2() {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
-        const saved = JSON.parse(raw) as { yearId?: string; termId?: string; classId?: string };
+        const saved = JSON.parse(raw) as { yearId?: string; termId?: string; classId?: string; assessmentType?: "EXAM_1"|"ENDTERM" };
         if (saved.yearId) setYearId(saved.yearId);
         if (saved.termId) setTermId(saved.termId);
         if (saved.classId) setClassId(saved.classId);
+        if (saved.assessmentType) setAssessmentType(saved.assessmentType);
       }
     } catch { /* Ignore invalid browser state. */ }
     setSelectionRestored(true);
@@ -70,12 +71,14 @@ export default function ClassMarksheetV2() {
 
   useEffect(() => {
     if (!storageKey || !selectionRestored) return;
-    try { localStorage.setItem(storageKey, JSON.stringify({ yearId, termId, classId })); } catch { /* Ignore storage failures. */ }
-  }, [storageKey, selectionRestored, yearId, termId, classId]);
+    try { localStorage.setItem(storageKey, JSON.stringify({ yearId, termId, classId, assessmentType })); } catch { /* Ignore storage failures. */ }
+  }, [storageKey, selectionRestored, yearId, termId, classId, assessmentType]);
 
   const visibleTerms = useMemo(() => terms.filter(t => !yearId || str(t.academic_year_id) === yearId), [terms, yearId]);
   const visibleClasses = useMemo(() => classes.filter(c => !yearId || str(c.academic_year_id) === yearId), [classes, yearId]);
   const selectedClass = classes.find(c => str(c.id) === classId), selectedTerm = terms.find(t => str(t.id) === termId);
+  const selectedGrade = getGrade(selectedClass);
+  const isGrade4or5 = selectedGrade === 4 || selectedGrade === 5;
   const band = getBand(selectedClass), grade = getGrade(selectedClass);
   const bandTitle = band === "ECDE" ? "ECDE CBC COMPETENCY ASSESSMENT MARKSHEET" : band === "LOWER_PRIMARY" ? "LOWER PRIMARY CBC ASSESSMENT MARKSHEET" : band === "UPPER_PRIMARY" ? "UPPER PRIMARY CBC ASSESSMENT MARKSHEET" : "JUNIOR SCHOOL PERFORMANCE MARKSHEET";
   const loadSubjects = async (cid: string) => { const q = await getSupabase().from("class_subjects").select("subject_id").eq("class_id", cid); if (q.error) { setSubjects(allSubjects); return; } const ids = [...new Set((q.data ?? []).map(x => str(x.subject_id)))]; setSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : allSubjects); };
@@ -86,7 +89,7 @@ export default function ClassMarksheetV2() {
     const reportSubjects = allSubjects.filter(s => mappedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name))); setSubjects(reportSubjects);
     const en = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("academic_year_id", yearId).eq("status", "ACTIVE"); if (en.error) throw en.error; let enrollmentRows = en.data ?? []; if (!enrollmentRows.length) { const fallback = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("status", "ACTIVE"); if (fallback.error) throw fallback.error; enrollmentRows = fallback.data ?? []; }
     const studentIds = [...new Set(enrollmentRows.map(x => str(x.student_id)))]; if (!studentIds.length) { setRows([]); setMessage("No active learners are enrolled in this class."); return; }
-    const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean); const [st, rr] = await Promise.all([db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id", studentIds).order("first_name").order("last_name"), subjectIds.length ? db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,subjects(id,code,name),exams!inner(id,term_id,class_id,name,exam_type)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", studentIds).in("subject_id", subjectIds) : Promise.resolve({ data: [], error: null } as any)]); if (st.error) throw st.error; if (rr.error) throw rr.error; const results = rr.data ?? []; const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id))); setSubjects(allSubjects.filter(s => enteredSubjectIds.has(str(s.id)))); setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) }))); if (!results.length) setMessage("Learners loaded. No persisted assessment results exist for this class and term yet.");
+    const subjectIds = reportSubjects.map(s => str(s.id)).filter(Boolean); const [st, rr] = await Promise.all([db.from("students").select("id,admission_number,first_name,middle_name,last_name,gender").in("id", studentIds).order("first_name").order("last_name"), subjectIds.length ? db.from("exam_results").select("student_id,subject_id,score,maximum_score,grade,subjects(id,code,name),exams!inner(id,term_id,class_id,name,exam_type)").eq("exams.term_id", termId).eq("exams.class_id", classId).in("student_id", studentIds).in("subject_id", subjectIds).eq("exams.exam_type", isGrade4or5 ? assessmentType : "ENDTERM") : Promise.resolve({ data: [], error: null } as any)]); if (st.error) throw st.error; if (rr.error) throw rr.error; const results = rr.data ?? []; const enteredSubjectIds = new Set(results.map((result: Row) => str(result.subject_id))); setSubjects(allSubjects.filter(s => enteredSubjectIds.has(str(s.id)))); setRows((st.data ?? []).map((s: Row) => ({ ...s, results: results.filter((r: Row) => str(r.student_id) === str(s.id)) }))); if (!results.length) setMessage("Learners loaded. No persisted assessment results exist for this class and term yet.");
   } catch (e) { setRows([]); setMessage(e instanceof Error ? e.message : "The marksheet could not be generated."); } finally { setBusy(false); } };
 
   useEffect(() => {
