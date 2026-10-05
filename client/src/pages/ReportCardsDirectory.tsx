@@ -253,6 +253,29 @@ function lineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLi
     endTermMax: endTerm?.max ?? null,
   };
 }
+function annualLineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLine {
+  const byTerm = new Map<string, Row[]>();
+  for (const row of results) {
+    const termId = String(row.exams?.term_id ?? "");
+    if (!termId) continue;
+    const bucket = byTerm.get(termId) ?? [];
+    bucket.push(row);
+    byTerm.set(termId, bucket);
+  }
+  const termLines = [...byTerm.values()]
+    .map(termRows => lineFor(subject, termRows, ecde))
+    .filter(line => line.percentage != null);
+  if (!termLines.length) {
+    return { ...subject, score: null, max: null, percentage: null, level: null, levelCode: "—",
+      remark: results.length ? "Incomplete annual assessment record" : "No recorded result",
+      exam1Score: null, exam1Max: null, endTermScore: null, endTermMax: null };
+  }
+  const percentage = termLines.reduce((sum, line) => sum + (line.percentage ?? 0), 0) / termLines.length;
+  const ach = achievement(percentage, subject.code.startsWith("PP-"));
+  return { ...subject, score: percentage, max: 100, percentage,
+    level: ach?.level ?? null, levelCode: ach?.code ?? "—", remark: ach?.remark ?? "Annual performance",
+    exam1Score: null, exam1Max: null, endTermScore: null, endTermMax: null };
+}
 function attendancePercent(rows: Row[]) {
   const total=rows.length; if(!total)return null;
   const present=rows.filter(r=>/PRESENT|LATE/.test(normalize(r.status))).length;
@@ -304,7 +327,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
   const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const includeUpperCRE=band==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(classRow??undefined) ?? 0); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band,includeUpperCRE),[allSubjects,band,includeUpperCRE]);
   const assessments=useMemo(()=>assessmentSummary(results,band==="ECDE"),[results,band]);
-  const lines=useMemo(()=>reportSubjects.map(s=>lineFor(s,results,band==="ECDE")),[reportSubjects,results,band]);
+  const lines=useMemo(()=>reportSubjects.map(s=>mode==="annual"?annualLineFor(s,results,band==="ECDE"):lineFor(s,results,band==="ECDE")),[reportSubjects,results,band,mode]);
   const totalMarks=useMemo(()=>lines.reduce((n,l)=>n+(l.score??0),0),[lines]); const totalMax=useMemo(()=>lines.reduce((n,l)=>n+(l.max??0),0),[lines]); const average=totalMax?totalMarks/totalMax*100:null; const totalPoints=lines.reduce((n,l)=>n+(l.level??0),0);
   const fullName=selected?learnerName(selected):""; const rankLabel=band==="ECDE"?"Overall Achievement":band==="JUNIOR_SCHOOL"?"Rank • Total Points":"Rank • Total Marks";
   const reset=()=>{setClassRow(null);setRank(null);setAllSubjects([]);setResults([]);setAttendance([]);setReport(null);setTeacherRemark("");setHeadRemark("");setMessage("");};
