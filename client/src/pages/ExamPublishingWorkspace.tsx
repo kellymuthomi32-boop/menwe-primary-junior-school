@@ -19,6 +19,14 @@ const ADMINS = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"];
 const input = "w-full min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
 const nameOf = (s: any) => [s?.first_name, s?.middle_name, s?.last_name].filter(Boolean).join(" ");
 const isEcdeClass = (c?: Row) => /\b(ECDE|PP1|PP2|PRE PRIMARY|PRE-PRIMARY)\b/i.test(`${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`);
+const gradeFromClass = (c?: Row) => {
+  const raw = `${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`.toUpperCase();
+  const m = raw.match(/(?:GRADE|CLASS|STD|STANDARD|G)\s*([1-9])\b/);
+  return m ? Number(m[1]) : null;
+};
+const isGrade4or5Class = (c?: Row) => [4, 5].includes(gradeFromClass(c) ?? 0);
+const examTypeLabel = (type: string, c?: Row) =>
+  type === "ENDTERM" ? "End-Term" : type === "EXAM_1" && isGrade4or5Class(c) ? "Opener" : "Exam 1";
 
 export default function ExamPublishingWorkspace() {
   const { user, profile } = useSchoolAuth();
@@ -316,7 +324,7 @@ export default function ExamPublishingWorkspace() {
       if (duplicate.error) throw duplicate.error;
       const duplicateClasses = new Set((duplicate.data ?? []).map((x: any) => String(x.class_id)));
       const remaining = targets.filter(c => !duplicateClasses.has(String(c.id)));
-      if (!remaining.length) throw new Error(`This ${examType === "ENDTERM" ? "End-Term" : "Exam 1"} already exists for the selected class scope. No duplicate examination was created.`);
+      if (!remaining.length) throw new Error(`This ${examTypeLabel(examType, allGrades ? undefined : visibleClasses.find(c => String(c.id) === classId))} already exists for the selected class scope. No duplicate examination was created.`);
       const r = await db.from("exams").insert(remaining.map(c => ({ term_id: term, class_id: c.id, name: examName.trim(), exam_type: examType, maximum_score: maximum, starts_on: start, ends_on: end, status: "DRAFT", created_by: user.id })));
       if (r.error) throw r.error;
       setExamName("");
@@ -341,7 +349,7 @@ export default function ExamPublishingWorkspace() {
         <select value={termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? "")} onChange={e => setTermId(e.target.value)} className={input}><option value="">Term</option>{terms.filter(t => String(t.academic_year_id) === yearId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All classes</label>
         {!allGrades && <select value={classId} onChange={e => { const value=e.target.value; setClassId(value); const cls=visibleClasses.find(c=>String(c.id)===value); setMaxScore(isEcdeClass(cls) ? "4" : "100"); }} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
-        <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option value="EXAM_1">Exam 1</option><option value="ENDTERM">End-Term</option></select>
+        <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option value="EXAM_1">{!allGrades && isGrade4or5Class(visibleClasses.find(c => String(c.id) === classId)) ? "Opener" : "Exam 1"}</option><option value="ENDTERM">End-Term</option></select>
         <input type="date" value={start} onChange={e => setStart(e.target.value)} className={input} />
         <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={input} />
         <input type="number" min="1" value={maxScore} onChange={e => setMaxScore(e.target.value)} className={input} />
