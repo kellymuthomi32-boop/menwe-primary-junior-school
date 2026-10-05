@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { PortalLayout } from "@/components/PortalLayout";
+import { JUNIOR_TOTAL_LESSONS, JUNIOR_WEEKLY_ALLOCATION, allocationForSubject, curriculumProgress } from "@/lib/curriculumTimetable";
 
 type Row = Record<string, unknown>;
 type Programme = "primary" | "junior";
@@ -28,15 +29,16 @@ const programmeSlots: Record<Programme, Slot[]> = {
   ],
   junior: [
     { label: "Lesson 1", start: "08:20", end: "09:00", kind: "lesson" },
-    { label: "Lesson 2", start: "09:00", end: "09:40", kind: "lesson" },
-    { label: "Lesson 3", start: "09:40", end: "10:20", kind: "lesson" },
-    { label: "Lesson 4", start: "10:20", end: "11:00", kind: "lesson" },
+    { label: "Flex / supervised learning", start: "09:00", end: "09:30", kind: "activity" },
+    { label: "Break", start: "09:30", end: "09:50", kind: "break" },
+    { label: "Lesson 2", start: "09:50", end: "10:30", kind: "lesson" },
+    { label: "Flex / supervised learning", start: "10:30", end: "11:00", kind: "activity" },
     { label: "Break", start: "11:00", end: "11:30", kind: "break" },
-    { label: "Lesson 5", start: "11:30", end: "12:10", kind: "lesson" },
-    { label: "Lesson 6", start: "12:10", end: "12:40", kind: "activity" },
+    { label: "Lesson 3", start: "11:30", end: "12:10", kind: "lesson" },
+    { label: "Flex / supervised learning", start: "12:10", end: "12:40", kind: "activity" },
     { label: "Lunch / long break", start: "12:40", end: "14:00", kind: "lunch" },
-    { label: "Lesson 7", start: "14:00", end: "14:40", kind: "lesson" },
-    { label: "Closing activity / PPI", start: "14:40", end: "15:10", kind: "activity" },
+    { label: "Lesson 4", start: "14:00", end: "14:40", kind: "lesson" },
+    { label: "Flex / supervised learning", start: "14:40", end: "15:10", kind: "activity" },
   ],
 };
 
@@ -75,7 +77,7 @@ function TimetableTemplate({ programme }: { programme: Programme }) {
           </div>
         ))}
       </div>
-      {programme === "junior" && <div className="mt-4 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-50 px-4 py-3 text-sm text-amber-950"><Info className="mt-0.5 shrink-0" size={17} /><p><strong>Capacity check:</strong> the 8:20–3:10 day, 12:40–2:00 lunch and 30-minute break provide 300 minutes for instruction. That is 7½ forty-minute periods, so 40 full weekly periods cannot fit across five days without changing the school-day structure.</p></div>}
+      {programme === "junior" && <div className="mt-4 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-50 px-4 py-3 text-sm text-amber-950"><Info className="mt-0.5 shrink-0" size={17} /><p><strong>Bell-rule check:</strong> Junior lessons are exactly 40 minutes, while the Primary break windows (9:30–9:50 and 11:00–11:30) and lunch (12:40–2:00) stay unchanged. This creates four full 40-minute teaching slots per day; the system therefore shows the KICD weekly allocation separately and flags any curriculum shortfall instead of pretending the timetable is compliant.</p></div>}
       {programme === "primary" && <div className="mt-4 flex gap-3 rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 px-4 py-3 text-sm text-[var(--ink)]/70"><Info className="mt-0.5 shrink-0 text-[var(--accent)]" size={17} /><p><strong>Shared-teacher transition:</strong> when a teacher moves between Junior and Primary, the system reserves a minimum 5-minute transition gap.</p></div>}
     </section>
   );
@@ -117,6 +119,13 @@ export default function TimetableDirectory() {
   const classOptions = useMemo(() => classes.filter((c) => programmeForLevel(c.level) === programme), [classes, programme]);
   const slots = programmeSlots[programme].filter((s) => s.kind === "lesson");
   const selectedTeacherRows = useMemo(() => teacherView === "all" ? rows : rows.filter((r) => String(r.teacher_id ?? "") === teacherView), [rows, teacherView]);
+  const juniorRows = useMemo(() => rows.filter((r) => programmeForLevel((r.classes as Row | null)?.level) === "junior"), [rows]);
+  const curriculumSummary = useMemo(() => JUNIOR_WEEKLY_ALLOCATION.map(item => {
+    const assigned = juniorRows.filter(r => allocationForSubject((r.subjects as Row | null)?.name)?.key === item.key).length;
+    return { ...item, ...curriculumProgress(item.label, assigned) };
+  }), [juniorRows]);
+  const curriculumAssigned = curriculumSummary.reduce((sum, item) => sum + item.assigned, 0);
+  const curriculumComplete = curriculumSummary.filter(item => item.status === "OK").length;
 
   const chooseProgramme = (next: Programme) => {
     setProgramme(next);
@@ -199,6 +208,24 @@ export default function TimetableDirectory() {
       </section>
 
       <TimetableTemplate programme={programme} />
+
+      {programme === "junior" && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--accent)]">KICD curriculum guard</p>
+            <h2 className="mt-1 font-serif text-2xl font-semibold">Junior School weekly lesson allocation</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink)]/60">The system uses the official Junior School allocation of ${JUNIOR_TOTAL_LESSONS} periods per week: Mathematics 5, English 5, Integrated Science 5, Creative Arts & Sports 5, and the other learning areas according to their prescribed allocations.</p>
+          </div>
+          <div className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white"><p className="text-xs font-bold uppercase tracking-[.12em] text-white/55">Configured entries</p><p className="mt-1 text-2xl font-black">{curriculumAssigned}/${JUNIOR_TOTAL_LESSONS}</p></div>
+        </div>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {curriculumSummary.map(item => <div key={item.key} className={`rounded-xl border p-3 ${item.status === "OK" ? "border-emerald-200 bg-emerald-50" : item.status === "OVER" ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+            <div className="flex items-start justify-between gap-2"><span className="text-sm font-bold">{item.label}</span><span className="text-xs font-black">{item.assigned}/{item.target}</span></div>
+            <p className="mt-1 text-[11px] font-semibold text-[var(--ink)]/55">{item.status === "OK" ? "On target" : item.status === "OVER" ? "Above target" : item.status === "UNMAPPED" ? "Needs subject mapping" : `${item.remaining} still required`}</p>
+          </div>)}
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-[var(--mist)]/45 px-4 py-3 text-xs font-semibold text-[var(--ink)]/65"><Info size={15} className="text-[var(--accent)]"/> {curriculumComplete}/{JUNIOR_WEEKLY_ALLOCATION.length} learning areas currently meet their weekly target. The system does not invent missing periods.</div>
+      </section>
 
       <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
         {admin && <form onSubmit={create} className="space-y-4 rounded-2xl border border-[var(--ink)]/10 p-4 sm:p-5">
