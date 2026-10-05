@@ -120,10 +120,13 @@ export default function TimetableDirectory() {
   const slots = programmeSlots[programme].filter((s) => s.kind === "lesson");
   const selectedTeacherRows = useMemo(() => teacherView === "all" ? rows : rows.filter((r) => String(r.teacher_id ?? "") === teacherView), [rows, teacherView]);
   const juniorRows = useMemo(() => rows.filter((r) => programmeForLevel((r.classes as Row | null)?.level) === "junior"), [rows]);
+  const [curriculumClassId, setCurriculumClassId] = useState("");
+  const curriculumClasses = useMemo(() => classes.filter(c => programmeForLevel(c.level) === "junior"), [classes]);
+  const curriculumRows = useMemo(() => curriculumClassId ? juniorRows.filter(r => String(r.class_id ?? "") === curriculumClassId) : [], [curriculumClassId, juniorRows]);
   const curriculumSummary = useMemo(() => JUNIOR_WEEKLY_ALLOCATION.map(item => {
-    const assigned = juniorRows.filter(r => allocationForSubject((r.subjects as Row | null)?.name)?.key === item.key).length;
+    const assigned = curriculumRows.filter(r => allocationForSubject((r.subjects as Row | null)?.name)?.key === item.key).length;
     return { ...item, ...curriculumProgress(item.label, assigned) };
-  }), [juniorRows]);
+  }), [curriculumRows]);
   const curriculumAssigned = curriculumSummary.reduce((sum, item) => sum + item.assigned, 0);
   const curriculumComplete = curriculumSummary.filter(item => item.status === "OK").length;
 
@@ -214,9 +217,15 @@ export default function TimetableDirectory() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--accent)]">KICD curriculum guard</p>
             <h2 className="mt-1 font-serif text-2xl font-semibold">Junior School weekly lesson allocation</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink)]/60">The system uses the official Junior School allocation of ${JUNIOR_TOTAL_LESSONS} periods per week: Mathematics 5, English 5, Integrated Science 5, Creative Arts & Sports 5, and the other learning areas according to their prescribed allocations.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink)]/60">The system checks each Junior class against the official weekly allocation. Mathematics is 5 lessons, English 5, Integrated Science 5, Creative Arts & Sports 5, and the remaining learning areas are checked individually.</p>
           </div>
-          <div className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white"><p className="text-xs font-bold uppercase tracking-[.12em] text-white/55">Configured entries</p><p className="mt-1 text-2xl font-black">{curriculumAssigned}/${JUNIOR_TOTAL_LESSONS}</p></div>
+          <div className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white"><p className="text-xs font-bold uppercase tracking-[.12em] text-white/55">Class target</p><p className="mt-1 text-2xl font-black">{curriculumAssigned}/{JUNIOR_TOTAL_LESSONS}</p></div>
+        </div>
+        <div className="mt-4">
+          <select value={curriculumClassId} onChange={e => setCurriculumClassId(e.target.value)} className={input}>
+            <option value="">Select a Junior class to check its weekly allocation</option>
+            {curriculumClasses.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)} · {text(c.level)}</option>)}
+          </select>
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           {curriculumSummary.map(item => <div key={item.key} className={`rounded-xl border p-3 ${item.status === "OK" ? "border-emerald-200 bg-emerald-50" : item.status === "OVER" ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
@@ -224,7 +233,7 @@ export default function TimetableDirectory() {
             <p className="mt-1 text-[11px] font-semibold text-[var(--ink)]/55">{item.status === "OK" ? "On target" : item.status === "OVER" ? "Above target" : item.status === "UNMAPPED" ? "Needs subject mapping" : `${item.remaining} still required`}</p>
           </div>)}
         </div>
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-[var(--mist)]/45 px-4 py-3 text-xs font-semibold text-[var(--ink)]/65"><Info size={15} className="text-[var(--accent)]"/> {curriculumComplete}/{JUNIOR_WEEKLY_ALLOCATION.length} learning areas currently meet their weekly target. The system does not invent missing periods.</div>
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-[var(--mist)]/45 px-4 py-3 text-xs font-semibold text-[var(--ink)]/65"><Info size={15} className="text-[var(--accent)]"/> {curriculumClassId ? `${curriculumComplete}/${JUNIOR_WEEKLY_ALLOCATION.length} learning areas meet target for this class.` : "Select a class above to run the curriculum check."} The system never invents missing periods.</div>
       </section>
 
       <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
