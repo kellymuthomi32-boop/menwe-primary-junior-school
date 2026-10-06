@@ -116,14 +116,6 @@ export default function ClassMarksheetV2() {
       if (tr.error) throw tr.error;
       if (!admin && !tr.data?.id) throw new Error("Your active teacher record is not linked to this login.");
       const teacherId = tr.data?.id ? str(tr.data.id) : null;
-      // Teachers may only save subjects they are assigned to. Admins can save all subjects.
-      const assignedSubjectIds = new Set<string>();
-      if (!admin && teacherId) {
-        const assignments = await db.from("teacher_assignments").select("subject_id").eq("teacher_id", teacherId).eq("class_id", classId);
-        if (assignments.error) throw assignments.error;
-        for (const assignment of assignments.data ?? []) assignedSubjectIds.add(str(assignment.subject_id));
-        if (!assignedSubjectIds.size) throw new Error("You are not assigned to any subject in this class.");
-      }
       const examType = isGrade4or5 ? assessmentType : "ENDTERM";
       const examQ = await db.from("exams").select("id,maximum_score,status").eq("class_id", classId).eq("term_id", termId).eq("exam_type", examType).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (examQ.error) throw examQ.error;
@@ -133,7 +125,6 @@ export default function ClassMarksheetV2() {
       if (!Number.isFinite(examMax) || examMax <= 0) throw new Error("The examination maximum score is invalid.");
       for (const subject of displaySubjects) {
         if (subject.synthetic) continue;
-        if (!admin && !assignedSubjectIds.has(str(subject.id))) continue;
         const raw = draftMarks[draftKey(str(row.id), str(subject.id))] ?? "";
         if (!raw.trim()) continue;
         const score = Number(raw);
