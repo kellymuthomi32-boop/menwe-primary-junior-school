@@ -234,7 +234,7 @@ export default function TimetableDirectory() {
           </div>)}
         </div>
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-[var(--mist)]/45 px-4 py-3 text-xs font-semibold text-[var(--ink)]/65"><Info size={15} className="text-[var(--accent)]"/> {curriculumClassId ? `${curriculumComplete}/${JUNIOR_WEEKLY_ALLOCATION.length} learning areas meet target for this class.` : "Select a class above to run the curriculum check."} The system never invents missing periods.</div>
-      </section>
+      </section>}
 
       <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
         {admin && <form onSubmit={create} className="space-y-4 rounded-2xl border border-[var(--ink)]/10 p-4 sm:p-5">
