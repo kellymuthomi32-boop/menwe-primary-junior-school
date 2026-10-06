@@ -8,7 +8,7 @@ header .menwe-utility-bar .menwe-social-icon:hover{color:#D89B28;background:rgba
 header .menwe-utility-bar .flex.items-center.gap-1\.5{gap:6px!important}
 header>div.mx-auto{height:72px!important;min-height:72px!important;padding-top:9px!important;padding-bottom:9px!important}
 header .menwe-focus-ring.group>div{gap:11px}
-header .menwe-focus-ring.group>div>div:first-child{width:48px!important;height:48px!important;min-width:48px!important;border-radius:14px!important;background:#fff url('/menwe-crest.svg') center/contain no-repeat!important;box-shadow:0 7px 20px rgba(6,18,41,.12);border:1px solid rgba(6,18,41,.08);ring:0!important}
+header .menwe-focus-ring.group>div>div:first-child{width:48px!important;height:48px!important;min-width:48px!important;border-radius:14px!important;background:#fff url('/menwe-logo.svg') center/contain no-repeat!important;box-shadow:0 7px 20px rgba(6,18,41,.12);border:1px solid rgba(6,18,41,.08);ring:0!important}
 header .menwe-focus-ring.group>div>div:first-child::after{content:"";position:absolute;inset:3px;border-radius:11px;border:1px solid rgba(216,155,40,.24);pointer-events:none}
 header .menwe-focus-ring.group>div>div:first-child span{display:none!important}
 header .menwe-focus-ring.group>div>div:first-child+div p:first-child{font-size:15px!important;line-height:17px!important;font-family:Inter,Plus Jakarta Sans,ui-sans-serif,system-ui,sans-serif;font-weight:800!important;letter-spacing:-.025em!important;color:#061229!important}
