@@ -1,7 +1,7 @@
 /* Public-site header: fixed so it remains visible throughout scroll on mobile and desktop. */
 header:has(nav[aria-label="Public navigation"]) { position: fixed !important; inset: 0 0 auto 0 !important; width: 100% !important; z-index: 1000 !important; }
 header:has(nav[aria-label="Public navigation"]) + main { padding-top: 108px; }
-button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { background-color: #fff !important; background-image: url('/menwe-crest.svg'); background-position: center; background-repeat: no-repeat; background-size: 100% 100%; box-shadow: 0 8px 22px rgba(6,18,41,.14) !important; border: 2px solid rgba(216,155,40,.65); }
+button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { background-color: #fff !important; background-image: url('/menwe-logo.svg'); background-position: center; background-repeat: no-repeat; background-size: 100% 100%; box-shadow: 0 8px 22px rgba(6,18,41,.14) !important; border: 2px solid rgba(216,155,40,.65); }
 button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > div, button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child > span { display: none !important; }
 button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !important; }
 @media (min-width: 1024px) { button[aria-label="Menwe Primary & Junior School home"] > div > div:first-child { width: 58px !important; height: 58px !important; border-radius: 15px !important; } }
@@ -27,7 +27,7 @@ button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !impo
   height: 48px;
   flex: 0 0 48px;
   border-radius: 13px;
-  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat;
+  background: #fff url('/menwe-logo.svg') center / 100% 100% no-repeat;
   border: 1px solid rgba(216,155,40,.65);
   box-shadow: 0 7px 20px rgba(0,0,0,.20);
 }
@@ -46,7 +46,7 @@ button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !impo
 .menwe-footer-mark {
   position: relative !important;
   overflow: hidden !important;
-  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat !important;
+  background: #fff url('/menwe-logo.svg') center / 100% 100% no-repeat !important;
   border: 2px solid #D89B28 !important;
   box-shadow: 0 10px 24px rgba(6,18,41,.16) !important;
 }
@@ -57,7 +57,7 @@ button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !impo
   position: relative !important;
   overflow: hidden !important;
   border: 2px solid rgba(216,155,40,.72) !important;
-  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat !important;
+  background: #fff url('/menwe-logo.svg') center / 100% 100% no-repeat !important;
   color: transparent !important;
   font-size: 0 !important;
   box-shadow: 0 7px 18px rgba(6,18,41,.12) !important;
@@ -81,7 +81,7 @@ button[aria-label="Menwe Primary & Junior School home"] > div { gap: .7rem !impo
   height: 62px;
   transform: translateY(-50%);
   border-radius: 14px;
-  background: #fff url('/menwe-crest.svg') center / 100% 100% no-repeat;
+  background: #fff url('/menwe-logo.svg') center / 100% 100% no-repeat;
   border: 2px solid #D89B28;
   box-shadow: 0 8px 22px rgba(0,0,0,.18);
   z-index: 1;
