@@ -86,7 +86,14 @@ export default function ClassMarksheetV2() {
   const loadSubjects = async (cid: string) => { const q = await getSupabase().from("class_subjects").select("subject_id").eq("class_id", cid); if (q.error) { setSubjects(allSubjects); return; } const ids = [...new Set((q.data ?? []).map(x => str(x.subject_id)))]; setSubjects(ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : allSubjects); };
   useEffect(() => { setRows([]); setSubjects([]); setMessage(""); if (classId && allSubjects.length) void loadSubjects(classId); }, [classId, allSubjects]);
 
-  const generate = async () => { if (!classId || !yearId || !termId) { setMessage("Select academic year, term and class first."); return; } setBusy(true); setMessage(""); try { const db = getSupabase(); if (!admin) { const tr = await db.from("teachers").select("id").eq("profile_id", user?.id ?? "").maybeSingle(); if (tr.error) throw tr.error; if (!tr.data) throw new Error("Your teacher record is not linked yet."); const ta = await db.from("teacher_assignments").select("class_id").eq("teacher_id", tr.data.id).eq("class_id", classId); if (ta.error) throw ta.error; if (!(ta.data ?? []).length) throw new Error("You are not assigned to this class."); }
+  const generate = async () => { if (!classId || !yearId || !termId) { setMessage("Select academic year, term and class first."); return; } setBusy(true); setMessage(""); try { const db = getSupabase(); if (!admin) { const tr = await db.from("teachers").select("id").eq("profile_id", user?.id ?? "").maybeSingle(); if (tr.error) throw tr.error; if (!tr.data) throw new Error("Your teacher record is not linked yet."); const [ta, ct] = await Promise.all([
+        db.from("teacher_assignments").select("class_id").eq("teacher_id", tr.data.id).eq("class_id", classId),
+        db.from("classes").select("class_teacher_id").eq("id", classId).maybeSingle()
+      ]);
+      if (ta.error) throw ta.error;
+      if (ct.error) throw ct.error;
+      const isClassTeacher = str(ct.data?.class_teacher_id) === str(tr.data.id);
+      if (!(ta.data ?? []).length && !isClassTeacher) throw new Error("You are not assigned to this class."); }
     const mapping = await db.from("class_subjects").select("subject_id").eq("class_id", classId); if (mapping.error) throw mapping.error; const ids = [...new Set((mapping.data ?? []).map(x => str(x.subject_id)))]; const mappedSubjects = ids.length ? allSubjects.filter(s => ids.includes(str(s.id))) : subjects;
     const reportSubjects = allSubjects.filter(s => mappedSubjects.some(x => str(x.id) === str(s.id)) || /^(Creative Arts and Sports|Integrated Science)$/i.test(str(s.name))); setSubjects(reportSubjects);
     const en = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("academic_year_id", yearId).eq("status", "ACTIVE"); if (en.error) throw en.error; let enrollmentRows = en.data ?? []; if (!enrollmentRows.length) { const fallback = await db.from("enrollments").select("student_id").eq("class_id", classId).eq("status", "ACTIVE"); if (fallback.error) throw fallback.error; enrollmentRows = fallback.data ?? []; }
