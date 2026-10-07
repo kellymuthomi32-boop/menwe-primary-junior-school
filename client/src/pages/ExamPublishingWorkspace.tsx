@@ -294,6 +294,54 @@ export default function ExamPublishingWorkspace() {
     if (students.length === 0 && loadRequestRef.current !== requestKey) void load(String(saved.id), savedSubject || undefined);
   }, [draftRestored, selected, exams, subjectId, visibleExams, students.length]);
 
+  const saveLearner = async (student: Row) => {
+    if (!selectedExam || !subjectId || selectedExam.status === "PUBLISHED") return;
+    const raw = (scores[String(student.id)] ?? "").trim();
+    if (!raw) {
+      setMessage(`Enter a mark for ${nameOf(student)} before saving.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      const db = getSupabase();
+      const score = Number(raw);
+      const maximum = Number(selectedExam.maximum_score);
+      if (!Number.isFinite(score) || score < 0 || score > maximum) throw new Error(`Invalid mark for ${nameOf(student)}. Enter 0-${maximum}.`);
+      let enteredBy: string | null = null;
+      if (teacher) {
+        const tr = await db.from("teachers").select("id").eq("profile_id", user?.id ?? "").maybeSingle();
+        if (tr.error) throw tr.error;
+        enteredBy = tr.data?.id ?? null;
+      }
+      const live = await db.from("exams").select("id,maximum_score,status").eq("id", selectedExam.id).maybeSingle();
+      if (live.error) throw live.error;
+      if (!live.data) throw new Error("No current examination is available for this class.");
+      if (live.data.status === "PUBLISHED") throw new Error("This examination is published and locked.");
+      const liveMaximum = Number(live.data.maximum_score);
+      const result = {
+        exam_id: String(live.data.id),
+        student_id: String(student.id),
+        subject_id: String(subjectId),
+        score,
+        maximum_score: liveMaximum,
+        grade: levelFromScore(score, liveMaximum),
+        entered_by: enteredBy,
+      };
+      const r = await db.from("exam_results").upsert(result, { onConflict: "exam_id,student_id,subject_id" });
+      if (r.error) throw r.error;
+      setRows(prev => {
+        const key = `${result.student_id}:${result.subject_id}`;
+        const next = prev.filter(x => `${x.student_id}:${x.subject_id}` !== key);
+        return [...next, result];
+      });
+      setMessage(`${nameOf(student)}'s mark saved successfully. You can continue with the next learner.`);
+    } catch (e) {
+      setMessage(errorMessage(e, `Mark for ${nameOf(student)} could not be saved. Please retry.`));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const save = async () => {
     if (!selectedExam || !subjectId || selectedExam.status === "PUBLISHED") return;
     setBusy(true);
