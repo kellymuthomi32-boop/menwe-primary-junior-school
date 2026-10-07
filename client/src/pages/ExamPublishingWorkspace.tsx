@@ -148,10 +148,26 @@ export default function ExamPublishingWorkspace() {
   }, [storageKey, draftRestored, selected, subjectId, yearId, termId, examName, maxScore, examType, start, end, allGrades, classId, scores]);
 
   useEffect(() => {
-    if (!draftRestored || !selected || !exams.some(e => String(e.id) === String(selected))) return;
+    if (!draftRestored || !exams.length) return;
+    const saved = selected ? exams.find(e => String(e.id) === String(selected)) : null;
+    if (!saved) {
+      const fallback = visibleExams[0];
+      if (fallback) {
+        setSelected(String(fallback.id));
+        setSubjectId("");
+        setScores({});
+        setRows([]);
+        setStudents([]);
+      } else if (selected) {
+        setSelected("");
+        setSubjectId("");
+        setScores({});
+      }
+      return;
+    }
     const savedSubject = subjectId;
-    if (students.length === 0) void load(String(selected), savedSubject || undefined);
-  }, [draftRestored, selected, exams, subjectId]);
+    if (students.length === 0) void load(String(saved.id), savedSubject || undefined);
+  }, [draftRestored, selected, exams, subjectId, visibleExams, students.length]);
 
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
