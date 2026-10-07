@@ -307,13 +307,26 @@ export default function ExamPublishingWorkspace() {
           .maybeSingle();
         if (replacement.error) throw replacement.error;
         if (!replacement.data) {
-          setSelected("");
-          setSubjectId("");
-          setRows([]);
-          setStudents([]);
-          throw new Error("The examination was replaced or removed. The marks screen has been reset; select the current End-Term examination and continue.");
+          // If the assessment truly no longer exists, recover the teacher's
+          // workspace to the newest matching End-Term/assessment rather than
+          // surfacing a stale-ID warning during normal marks entry.
+          const current = await db.from("exams")
+            .select("id,term_id,class_id,name,exam_type,maximum_score,status,created_at")
+            .eq("term_id", selectedExam.term_id)
+            .eq("class_id", selectedExam.class_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (current.error) throw current.error;
+          if (!current.data) {
+            throw new Error("No current examination is available for this class.");
+          }
+          exam = current.data;
+        } else {
+          exam = replacement.data;
         }
-        exam = replacement.data;
+        // Seamlessly switch the draft to the live examination ID. The teacher
+        // stays on the same class/subject and can save without reselecting it.
         setSelected(String(exam.id));
         setSubjectId(String(subjectId));
       }
@@ -343,9 +356,7 @@ export default function ExamPublishingWorkspace() {
       setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
       const msg = errorMessage(e, "Marks could not be saved. Check your assignment and exam permissions, then retry.");
-      setMessage(/Exam does not exist|examination.*replaced|examination.*removed/i.test(msg)
-        ? "The examination changed while this screen was open. Refreshing the current examination list—please select End-Term again if needed."
-        : msg);
+      setMessage(msg);
     } finally {
       setBusy(false);
     }
