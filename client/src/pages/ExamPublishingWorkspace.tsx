@@ -175,16 +175,18 @@ export default function ExamPublishingWorkspace() {
   useEffect(() => {
     if (!selectedExam || !subjectId) return;
     const examClassId = String(selectedExam.class_id);
-    const validForExam = assignments.some(
-      a => String(a.class_id) === examClassId && String(a.subject_id) === String(subjectId)
-    );
+    // Admins are not represented in teacher_assignments. For them, validate
+    // against the class_subjects mapping; teachers must have an assignment.
+    const validForExam = admin
+      ? classSubjects.some(a => String(a.class_id) === examClassId && String(a.subject_id) === String(subjectId))
+      : assignments.some(a => String(a.class_id) === examClassId && String(a.subject_id) === String(subjectId));
     if (!validForExam) {
       setSubjectId("");
       setScores({});
       setRows([]);
       setStudents([]);
     }
-  }, [selectedExam?.id, selectedExam?.class_id, subjectId, assignments]);
+  }, [selectedExam?.id, selectedExam?.class_id, subjectId, assignments, classSubjects, admin]);
   const selectedExamClass = classes.find(c => String(c.id) === String(selectedExam?.class_id));
   const selectedExamIsEcde = isEcdeClass(selectedExamClass);
   const mappedSubjectIds = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
