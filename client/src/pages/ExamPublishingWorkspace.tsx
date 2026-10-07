@@ -177,7 +177,8 @@ export default function ExamPublishingWorkspace() {
   const assignedSubjectIds = teacher ? assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)) : [];
   // A valid teacher assignment must remain usable even if the class-subject mapping is stale.
   const requiredSubjects = [...new Set([...mappedSubjectIds, ...assignedSubjectIds])];
-  const availableSubjectIds = new Set(assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)));\n  const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || availableSubjectIds.has(String(s.id))));
+  const availableSubjectIds = new Set(assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)));
+  const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || availableSubjectIds.has(String(s.id))));
 
   const completion = useMemo(() => {
     const required = learnerCount * requiredSubjects.length;
