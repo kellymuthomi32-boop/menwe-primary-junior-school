@@ -168,6 +168,22 @@ export default function ExamPublishingWorkspace() {
     }));
   }, [visibleExams, classes]);
   const selectedExam = exams.find(e => String(e.id) === selected);
+
+  // Marks workspace invariant: the selected exam owns the class context.
+  // A subject restored from another class must never survive an exam switch.
+  useEffect(() => {
+    if (!selectedExam || !subjectId) return;
+    const examClassId = String(selectedExam.class_id);
+    const validForExam = assignments.some(
+      a => String(a.class_id) === examClassId && String(a.subject_id) === String(subjectId)
+    );
+    if (!validForExam) {
+      setSubjectId("");
+      setScores({});
+      setRows([]);
+      setStudents([]);
+    }
+  }, [selectedExam?.id, selectedExam?.class_id, subjectId, assignments]);
   const selectedExamClass = classes.find(c => String(c.id) === String(selectedExam?.class_id));
   const selectedExamIsEcde = isEcdeClass(selectedExamClass);
   const mappedSubjectIds = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
