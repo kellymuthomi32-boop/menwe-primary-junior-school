@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, GraduationCap, Layers, Loader2, Lock, Save } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { levelFromScore } from "@/lib/grading";
@@ -63,6 +63,7 @@ export default function ExamPublishingWorkspace() {
   const [allGrades, setAllGrades] = useState(true);
   const [classId, setClassId] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
+  const loadRequestRef = useRef("");
   const storageKey = user?.id ? `menwe:marks-workspace:${user.id}` : "";
   // Keep render-time derived values above effects that reference them.
   // A later const referenced in a hook dependency array triggers a TDZ
@@ -212,6 +213,7 @@ export default function ExamPublishingWorkspace() {
   };
 
   const load = async (id: string, override?: string) => {
+    loadRequestRef.current = `${id}:${override ?? ""}`;
     setSelected(id);
     setSubjectId(override ?? "");
     setScores({});
@@ -286,7 +288,8 @@ export default function ExamPublishingWorkspace() {
       return;
     }
     const savedSubject = subjectId;
-    if (students.length === 0) void load(String(saved.id), savedSubject || undefined);
+    const requestKey = `${saved.id}:${savedSubject || ""}`;
+    if (students.length === 0 && loadRequestRef.current !== requestKey) void load(String(saved.id), savedSubject || undefined);
   }, [draftRestored, selected, exams, subjectId, visibleExams, students.length]);
 
   const save = async () => {
