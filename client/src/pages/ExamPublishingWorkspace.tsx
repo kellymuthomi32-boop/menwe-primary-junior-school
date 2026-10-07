@@ -203,8 +203,29 @@ export default function ExamPublishingWorkspace() {
     setStudents([]);
     setMessage(null);
     const db = getSupabase();
-    const exam = exams.find(e => String(e.id) === id);
-    if (!exam) return;
+    let exam = exams.find(e => String(e.id) === id);
+    if (!exam) {
+      // A browser may retain an exam id from before an administrator recreated
+      // the assessment. Re-read the current exam list before showing a false
+      // "exam does not exist" state.
+      const liveList = await db.from("exams")
+        .select("id,term_id,class_id,name,exam_type,maximum_score,starts_on,ends_on,status,created_at")
+        .order("created_at", { ascending: false });
+      if (liveList.error) {
+        setMessage(errorMessage(liveList.error, "The current examinations could not be refreshed."));
+        return;
+      }
+      setExams(liveList.data ?? []);
+      exam = (liveList.data ?? []).find((e: any) => String(e.id) === id);
+      if (!exam) {
+        setSelected("");
+        setSubjectId("");
+        setRows([]);
+        setStudents([]);
+        setMessage("That examination is no longer available. The current examination list has been refreshed; please select the current End-Term examination.");
+        return;
+      }
+    }
     try {
       const cls = classes.find(c => String(c.id) === String(exam.class_id));
       if (!cls) throw new Error("Exam class not found.");
@@ -274,6 +295,8 @@ export default function ExamPublishingWorkspace() {
         .maybeSingle();
       if (live.error) throw live.error;
       if (!live.data) {
+        // Re-read the list and recover automatically if an administrator has
+        // replaced the exam since the teacher opened the workspace.
         const replacement = await db.from("exams")
           .select("id,term_id,class_id,name,exam_type,maximum_score,status,created_at")
           .eq("term_id", selectedExam.term_id)
@@ -284,7 +307,11 @@ export default function ExamPublishingWorkspace() {
           .maybeSingle();
         if (replacement.error) throw replacement.error;
         if (!replacement.data) {
-          throw new Error("The selected examination no longer exists. Refresh the marks workspace and select the current examination.");
+          setSelected("");
+          setSubjectId("");
+          setRows([]);
+          setStudents([]);
+          throw new Error("The examination was replaced or removed. The marks screen has been reset; select the current End-Term examination and continue.");
         }
         exam = replacement.data;
         setSelected(String(exam.id));
@@ -315,7 +342,10 @@ export default function ExamPublishingWorkspace() {
       } catch { /* Ignore storage cleanup failure. */ }
       setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
-      setMessage(errorMessage(e, "Marks could not be saved. Check your assignment and exam permissions, then retry."));
+      const msg = errorMessage(e, "Marks could not be saved. Check your assignment and exam permissions, then retry.");
+      setMessage(/Exam does not exist|examination.*replaced|examination.*removed/i.test(msg)
+        ? "The examination changed while this screen was open. Refreshing the current examination list—please select End-Term again if needed."
+        : msg);
     } finally {
       setBusy(false);
     }
