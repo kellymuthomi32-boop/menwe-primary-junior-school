@@ -38,6 +38,18 @@ describe("school platform canonical architecture", () => {
     expect(layout).toContain('profile?.display_name'); expect(layout).not.toContain('profile?.full_name');
   });
 
+  it("declares exam workspace values before hooks that capture them", async () => {
+    const workspace = await read("../client/src/pages/ExamPublishingWorkspace.tsx");
+    const visibleExams = workspace.indexOf("const visibleExams =");
+    const groupedExams = workspace.indexOf("const examGroups = useMemo");
+    const load = workspace.indexOf("const load = async");
+    const restoreEffect = workspace.indexOf("if (!draftRestored || !exams.length) return;");
+    expect(visibleExams).toBeGreaterThan(-1);
+    expect(groupedExams).toBeGreaterThan(visibleExams);
+    expect(load).toBeGreaterThan(groupedExams);
+    expect(restoreEffect).toBeGreaterThan(load);
+  });
+
   it("ships public-content and deployment security basics", async () => {
     const [vercel, html, robots, publicPages] = await Promise.all([read("../vercel.json"), read("../client/index.html"), read("../client/public/robots.txt"), read("../client/src/pages/PublicPages.tsx")]);
     expect(vercel).toContain('Content-Security-Policy'); expect(vercel).toContain('X-Content-Type-Options');

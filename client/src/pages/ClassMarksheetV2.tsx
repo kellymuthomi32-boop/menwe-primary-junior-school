@@ -126,9 +126,10 @@ export default function ClassMarksheetV2() {
       const examType = isGrade4or5 ? assessmentType : "ENDTERM";
       const examQ = await db.from("exams").select("id,maximum_score,status").eq("class_id", classId).eq("term_id", termId).eq("exam_type", examType).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (examQ.error) throw examQ.error;
-      if (!examQ.data?.id) throw new Error("No " + (examType === "ENDTERM" ? "End Term" : "Exam 1") + " examination exists for this class and term.");
-      if (examQ.data.status === "PUBLISHED") throw new Error("This examination is published and locked.");
-      const examMax = Number(examQ.data.maximum_score);
+      const exam = examQ.data;
+      if (!exam?.id) throw new Error("No " + (examType === "ENDTERM" ? "End Term" : "Exam 1") + " examination exists for this class and term.");
+      if (exam.status === "PUBLISHED") throw new Error("This examination is published and locked.");
+      const examMax = Number(exam.maximum_score);
       if (!Number.isFinite(examMax) || examMax <= 0) throw new Error("The examination maximum score is invalid.");
       for (const subject of displaySubjects) {
         if (subject.synthetic) continue;
@@ -136,9 +137,9 @@ export default function ClassMarksheetV2() {
         if (!raw.trim()) continue;
         const score = Number(raw);
         if (!Number.isFinite(score) || score < 0 || score > examMax) throw new Error(subject.name + ": enter a score from 0 to " + examMax + ".");
-        const existing = resultsFor(row, str(subject.id)).find((r: Row) => str(r.exam_id ?? r.exams?.id) === str(examQ.data.id));
+        const existing = resultsFor(row, str(subject.id)).find((r: Row) => str(r.exam_id ?? r.exams?.id) === str(exam.id));
         const values = { score, maximum_score: examMax, entered_by: teacherId };
-        const q = existing?.id ? await db.from("exam_results").update(values).eq("id", existing.id) : await db.from("exam_results").insert({ exam_id: examQ.data.id, student_id: row.id, subject_id: subject.id, ...values });
+        const q = existing?.id ? await db.from("exam_results").update(values).eq("id", existing.id) : await db.from("exam_results").insert({ exam_id: exam.id, student_id: row.id, subject_id: subject.id, ...values });
         if (q.error) throw q.error;
       }
       setMessage(learnerName(row) + "'s marks saved successfully.");

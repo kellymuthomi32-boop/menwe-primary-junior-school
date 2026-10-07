@@ -454,13 +454,13 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     });
     doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text("ASSESSMENTS",M+5,y+32);
     doc.setTextColor(16,42,67);doc.setFont("helvetica","normal");doc.setFontSize(7.5);
-    addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${assessmentLabel(a,classRow)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
+    addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${assessmentLabel(a,classRow ?? undefined)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
     y+=41;
 
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments, with Grade 4–5 using Opener and End-Term as distinct assessment slots.");
     const cols=[M,M+50,M+76,M+102,M+128,M+153,M+169], widths=[48,24,24,24,21,16,31];
     doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
-    [gradeFromClass(classRow)===4||gradeFromClass(classRow)===5?"LEARNING AREA":"LEARNING AREA",gradeFromClass(classRow)===4||gradeFromClass(classRow)===5?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
+    [gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"LEARNING AREA":"LEARNING AREA",gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
     ls.forEach((l,i)=>{
       const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[4]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
