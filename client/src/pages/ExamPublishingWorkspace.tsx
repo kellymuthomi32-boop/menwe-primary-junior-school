@@ -66,10 +66,12 @@ export default function ExamPublishingWorkspace() {
     try {
       const db = getSupabase();
       let a: Row[] = [];
+      let currentTeacherId: string | null = null;
       if (teacher) {
         const tr = await db.from("teachers").select("id").eq("profile_id", user.id).maybeSingle();
         if (tr.error) throw tr.error;
         if (!tr.data) throw new Error("Your teacher record is not linked yet.");
+        currentTeacherId = String(tr.data.id);
         const ar = await db.from("teacher_assignments").select("id,class_id,subject_id").eq("teacher_id", tr.data.id);
         if (ar.error) throw ar.error;
         a = ar.data ?? [];
@@ -77,7 +79,7 @@ export default function ExamPublishingWorkspace() {
       const [y, t, c, s, cs, e] = await Promise.all([
         db.from("academic_years").select("id,name,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
         db.from("terms").select("id,academic_year_id,name,is_current,status").eq("status", "ACTIVE").order("starts_on", { ascending: false }),
-        db.from("classes").select("id,academic_year_id,name,status").eq("status", "ACTIVE").order("name"),
+        db.from("classes").select("id,academic_year_id,name,status,class_teacher_id").eq("status", "ACTIVE").order("name"),
         db.from("subjects").select("id,code,name,status").eq("status", "ACTIVE").order("name"),
         db.from("class_subjects").select("class_id,subject_id"),
         db.from("exams").select("id,term_id,class_id,name,exam_type,maximum_score,starts_on,ends_on,status,created_at").order("created_at", { ascending: false })
@@ -89,7 +91,19 @@ export default function ExamPublishingWorkspace() {
       setSubjects(s.data ?? []);
       setClassSubjects(cs.data ?? []);
       setExams(e.data ?? []);
-      setAssignments(a);
+      // Class teachers can enter marks for every subject in their own class even
+      // if subject-specific assignment rows have not been duplicated for them.
+      const classTeacherAssignments = teacher && currentTeacherId
+        ? (c.data ?? [])
+            .filter((cls: any) => String(cls.class_teacher_id ?? "") === currentTeacherId)
+            .flatMap((cls: any) => (cs.data ?? [])
+              .filter((subject: any) => String(subject.class_id) === String(cls.id))
+              .map((subject: any) => ({ class_id: cls.id, subject_id: subject.subject_id })))
+        : [];
+      const mergedAssignments = [...a, ...classTeacherAssignments].filter((item: any, index: number, all: any[]) =>
+        all.findIndex((other: any) => String(other.class_id) === String(item.class_id) && String(other.subject_id) === String(item.subject_id)) === index
+      );
+      setAssignments(mergedAssignments);
       if (!yearId) setYearId(String(y.data?.find((x: any) => x.is_current)?.id ?? y.data?.[0]?.id ?? ""));
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Examination workspace could not be loaded.");
