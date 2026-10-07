@@ -221,24 +221,55 @@ export default function ExamPublishingWorkspace() {
         if (tr.error) throw tr.error;
         enteredBy = tr.data?.id ?? null;
       }
-      const maximum = Number(selectedExam.maximum_score);
+
+      // The browser can retain an old exam id in localStorage after an admin recreates
+      // an examination. Resolve the id against the live database immediately before
+      // writing so marks can never be posted against a deleted/replaced exam.
+      let exam = selectedExam;
+      const live = await db.from("exams")
+        .select("id,term_id,class_id,name,exam_type,maximum_score,status,created_at")
+        .eq("id", selectedExam.id)
+        .maybeSingle();
+      if (live.error) throw live.error;
+      if (!live.data) {
+        const replacement = await db.from("exams")
+          .select("id,term_id,class_id,name,exam_type,maximum_score,status,created_at")
+          .eq("term_id", selectedExam.term_id)
+          .eq("class_id", selectedExam.class_id)
+          .eq("exam_type", selectedExam.exam_type)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (replacement.error) throw replacement.error;
+        if (!replacement.data) {
+          throw new Error("The selected examination no longer exists. Refresh the marks workspace and select the current examination.");
+        }
+        exam = replacement.data;
+        setSelected(String(exam.id));
+        setSubjectId(String(subjectId));
+      }
+
+      if (exam.status === "PUBLISHED") throw new Error("This examination is published and locked.");
+      const maximum = Number(exam.maximum_score);
+      if (!Number.isFinite(maximum) || maximum <= 0) throw new Error("The examination maximum score is invalid.");
       const data: MarkRow[] = students.map(s => {
         const raw = (scores[String(s.id)] ?? "").trim();
         if (!raw) return null;
         const score = Number(raw);
         if (!Number.isFinite(score) || score < 0 || score > maximum) throw new Error(`Invalid mark for ${nameOf(s)}. Enter 0-${maximum}.`);
-        return { exam_id: String(selectedExam.id), student_id: String(s.id), subject_id: String(subjectId), score, maximum_score: maximum, grade: levelFromScore(score, maximum), entered_by: enteredBy };
+        return { exam_id: String(exam.id), student_id: String(s.id), subject_id: String(subjectId), score, maximum_score: maximum, grade: levelFromScore(score, maximum), entered_by: enteredBy };
       }).filter((row): row is MarkRow => row !== null);
       if (!data.length) throw new Error("Enter at least one learner mark.");
+
       const r = await db.from("exam_results").upsert(data, { onConflict: "exam_id,student_id,subject_id" });
       if (r.error) throw r.error;
-      const fresh = await db.from("exam_results").select("exam_id,student_id,subject_id,score,maximum_score,grade").eq("exam_id", selectedExam.id);
+      const fresh = await db.from("exam_results").select("exam_id,student_id,subject_id,score,maximum_score,grade").eq("exam_id", exam.id);
       if (fresh.error) throw fresh.error;
       setRows(fresh.data ?? []);
       setScores(Object.fromEntries((fresh.data ?? []).filter((r: any) => String(r.subject_id) === String(subjectId)).map((r: any) => [String(r.student_id), r.score == null ? "" : String(r.score)])));
       try {
         const raw = storageKey ? localStorage.getItem(storageKey) : null;
-        if (raw) { const draft = JSON.parse(raw); draft.scores = {}; localStorage.setItem(storageKey, JSON.stringify(draft)); }
+        if (raw) { const draft = JSON.parse(raw); draft.selected = String(exam.id); draft.scores = {}; localStorage.setItem(storageKey, JSON.stringify(draft)); }
       } catch { /* Ignore storage cleanup failure. */ }
       setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
