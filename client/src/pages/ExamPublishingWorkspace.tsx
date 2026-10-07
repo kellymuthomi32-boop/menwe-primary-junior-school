@@ -64,6 +64,9 @@ export default function ExamPublishingWorkspace() {
   const [classId, setClassId] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
   const storageKey = user?.id ? `menwe:marks-workspace:${user.id}` : "";
+  // Keep render-time derived values above effects that reference them.
+  // A later const referenced in a hook dependency array triggers a TDZ
+  // ReferenceError during render ("Cannot access 'Z' before initialization").
 
   const refresh = useCallback(async () => {
     if (!user || (!admin && !teacher)) return;
