@@ -18,6 +18,11 @@ type MarkRow = {
 const ADMINS = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"];
 const input = "w-full min-h-11 rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]";
 const nameOf = (s: any) => [s?.first_name, s?.middle_name, s?.last_name].filter(Boolean).join(" ");
+const errorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
+  return fallback;
+};
 const isEcdeClass = (c?: Row) => /\b(ECDE|PP1|PP2|PRE PRIMARY|PRE-PRIMARY)\b/i.test(`${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`);
 const gradeFromClass = (c?: Row) => {
   const raw = `${c?.name ?? ""} ${c?.code ?? ""} ${c?.level ?? ""}`.toUpperCase();
@@ -168,8 +173,11 @@ export default function ExamPublishingWorkspace() {
   const selectedExam = exams.find(e => String(e.id) === selected);
   const selectedExamClass = classes.find(c => String(c.id) === String(selectedExam?.class_id));
   const selectedExamIsEcde = isEcdeClass(selectedExamClass);
-  const requiredSubjects = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
-  const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || assignments.some(a => String(a.class_id) === String(selectedExam?.class_id) && String(a.subject_id) === String(s.id))));
+  const mappedSubjectIds = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
+  const assignedSubjectIds = teacher ? assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)) : [];
+  // A valid teacher assignment must remain usable even if the class-subject mapping is stale.
+  const requiredSubjects = [...new Set([...mappedSubjectIds, ...assignedSubjectIds])];
+  const availableSubjects = subjects.filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || assignedSubjectIds.includes(String(s.id))));
 
   const completion = useMemo(() => {
     const required = learnerCount * requiredSubjects.length;
@@ -287,7 +295,7 @@ export default function ExamPublishingWorkspace() {
       } catch { /* Ignore storage cleanup failure. */ }
       setMessage("Marks saved successfully! Complete all required marks before publishing.");
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Marks could not be saved.");
+      setMessage(errorMessage(e, "Marks could not be saved. Check your assignment and exam permissions, then retry."));
     } finally {
       setBusy(false);
     }
