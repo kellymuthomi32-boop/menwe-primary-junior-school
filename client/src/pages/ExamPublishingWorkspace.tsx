@@ -343,7 +343,33 @@ export default function ExamPublishingWorkspace() {
       }).filter((row): row is MarkRow => row !== null);
       if (!data.length) throw new Error("Enter at least one learner mark.");
 
-      const r = await db.from("exam_results").upsert(data, { onConflict: "exam_id,student_id,subject_id" });
+      let r = await db.from("exam_results").upsert(data, { onConflict: "exam_id,student_id,subject_id" });
+      if (r.error && /Exam does not exist/i.test(r.error.message ?? "")) {
+        // A short replacement race can occur after the pre-save lookup. Resolve
+        // the live exam once more and retry so teachers are not shown the
+        // database trigger's internal "Exam does not exist" message.
+        const current = await db.from("exams")
+          .select("id,term_id,class_id,name,exam_type,maximum_score,status,created_at")
+          .eq("term_id", exam.term_id)
+          .eq("class_id", exam.class_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (current.error) throw current.error;
+        if (!current.data) throw new Error("No current examination is available for this class.");
+        if (current.data.status === "PUBLISHED") throw new Error("This examination is published and locked.");
+        const retryMaximum = Number(current.data.maximum_score);
+        const retryData = data.map(row => ({
+          ...row,
+          exam_id: String(current.data.id),
+          maximum_score: retryMaximum,
+          grade: levelFromScore(row.score, retryMaximum),
+        }));
+        r = await db.from("exam_results").upsert(retryData, { onConflict: "exam_id,student_id,subject_id" });
+        if (r.error) throw r.error;
+        exam = current.data;
+        setSelected(String(exam.id));
+      }
       if (r.error) throw r.error;
       const fresh = await db.from("exam_results").select("exam_id,student_id,subject_id,score,maximum_score,grade").eq("exam_id", exam.id);
       if (fresh.error) throw fresh.error;
