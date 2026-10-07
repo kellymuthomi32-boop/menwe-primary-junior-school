@@ -53,6 +53,11 @@ export default function ExamPublishingWorkspace() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
   const [yearId, setYearId] = useState("");
   const [termId, setTermId] = useState("");
   const [examName, setExamName] = useState("");
