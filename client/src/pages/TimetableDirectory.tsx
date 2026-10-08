@@ -111,7 +111,7 @@ export default function TimetableDirectory() {
     if (!user || !profile) return;
     setLoading(true); setMessage(null);
     try {
-      if (coordinatorScope === "PRIMARY" && expectedProgramme !== "primary") throw new Error("Frankline Maugu can manage the Primary timetable only.");\n      if (coordinatorScope === "JUNIOR" && expectedProgramme !== "junior") throw new Error("Naomi Kirimi can manage the Junior School timetable only.");\n      const db = getSupabase();
+      const db = getSupabase();
       const [c, s, t, r] = await Promise.all([
         db.from("classes").select("id,name,level").eq("status", "ACTIVE").order("name"),
         db.from("subjects").select("id,name,code").eq("status", "ACTIVE").order("name"),
