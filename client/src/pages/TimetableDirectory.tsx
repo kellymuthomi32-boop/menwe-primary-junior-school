@@ -7,9 +7,10 @@ import { JUNIOR_TOTAL_LESSONS, JUNIOR_WEEKLY_ALLOCATION, allocationForSubject, c
 
 type Row = Record<string, unknown>;
 type Programme = "primary" | "junior";
+type TimetableType = "REGULAR" | "EVENING" | "SATURDAY";
 type Slot = { label: string; start: string; end: string; kind: "lesson" | "break" | "lunch" | "activity" };
 
-const days = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const days = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const input = "min-h-11 w-full rounded-xl border border-[var(--ink)]/15 bg-white px-3 py-2.5 text-sm";
 const text = (v: unknown, fallback = "—") => v == null || v === "" ? fallback : String(v);
 
@@ -52,7 +53,7 @@ function teacherFullName(row: Row | null | undefined) {
   return [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(" ") || text(row.employee_number);
 }
 
-function timeToMinutes(value: unknown) {
+const sessionSlots: Record<TimetableType, Slot[]> = {\n  REGULAR: [],\n  EVENING: [{ label: "Evening class", start: "16:00", end: "17:00", kind: "lesson" }],\n  SATURDAY: [{ label: "Saturday morning class", start: "07:00", end: "08:00", kind: "lesson" }],\n};\n\nfunction timeToMinutes(value: unknown) {
   const [hours, minutes] = String(value ?? "00:00").slice(0, 5).split(":").map(Number);
   return hours * 60 + minutes;
 }
@@ -94,8 +95,8 @@ export default function TimetableDirectory() {
   const [message, setMessage] = useState<string | null>(null);
   const [programme, setProgramme] = useState<Programme>("primary");
   const [teacherView, setTeacherView] = useState("all");
-  const [form, setForm] = useState({ class_id: "", stream_id: "", subject_id: "", teacher_id: "", day_of_week: "1", starts_at: "08:20", ends_at: "08:55", room: "" });
-  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
+  const [form, setForm] = useState({ class_id: "", stream_id: "", subject_id: "", teacher_id: "", day_of_week: "1", starts_at: "08:20", ends_at: "08:55", room: "", timetable_type: "REGULAR" as TimetableType });
+  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");\n  const activeSessionSlots = form.timetable_type === "REGULAR" ? programmeSlots[programme].filter((s) => s.kind === "lesson") : sessionSlots[form.timetable_type];
 
   const load = useCallback(async () => {
     if (!user || !profile) return;
@@ -106,7 +107,7 @@ export default function TimetableDirectory() {
         db.from("classes").select("id,name,level").eq("status", "ACTIVE").order("name"),
         db.from("subjects").select("id,name,code").eq("status", "ACTIVE").order("name"),
         db.from("teachers").select("id,profile_id,first_name,middle_name,last_name,employee_number").eq("status", "ACTIVE").order("first_name"),
-        db.from("timetable_entries").select("id,class_id,stream_id,subject_id,teacher_id,day_of_week,starts_at,ends_at,room,classes(name,level),subjects(name,code),teachers(first_name,middle_name,last_name,employee_number)").order("day_of_week").order("starts_at"),
+        db.from("timetable_entries").select("id,class_id,stream_id,subject_id,teacher_id,day_of_week,starts_at,ends_at,room,timetable_type,classes(name,level),subjects(name,code),teachers(first_name,middle_name,last_name,employee_number)").order("day_of_week").order("starts_at"),
       ]);
       for (const x of [c, s, t, r]) if (x.error) throw x.error;
       setClasses(c.data ?? []); setSubjects(s.data ?? []); setTeachers(t.data ?? []); setRows(r.data ?? []);
@@ -130,7 +131,7 @@ export default function TimetableDirectory() {
   const curriculumAssigned = curriculumSummary.reduce((sum, item) => sum + item.assigned, 0);
   const curriculumComplete = curriculumSummary.filter(item => item.status === "OK").length;
 
-  const chooseProgramme = (next: Programme) => {
+  const chooseTimetableType = (next: TimetableType) => {\n    const slot = next === "REGULAR" ? programmeSlots[programme].find((s) => s.kind === "lesson") : sessionSlots[next][0];\n    setForm((current) => ({ ...current, timetable_type: next, day_of_week: next === "SATURDAY" ? "6" : current.day_of_week === "6" ? "1" : current.day_of_week, starts_at: slot?.start ?? current.starts_at, ends_at: slot?.end ?? current.ends_at }));\n  };\n\n  const chooseProgramme = (next: Programme) => {
     setProgramme(next);
     const first = programmeSlots[next].find((s) => s.kind === "lesson");
     setForm((current) => ({ ...current, class_id: "", starts_at: first?.start ?? current.starts_at, ends_at: first?.end ?? current.ends_at }));
@@ -158,7 +159,7 @@ export default function TimetableDirectory() {
       if (duration !== expectedMinutes) throw new Error(`${expectedProgramme === "primary" ? "Primary" : "Junior School"} lessons must be exactly ${expectedMinutes} minutes.`);
       if (form.ends_at <= form.starts_at) throw new Error("End time must be after start time.");
       const db = getSupabase();
-      const clash = await db.from("timetable_entries").select("id").eq("class_id", form.class_id).eq("day_of_week", Number(form.day_of_week)).lt("starts_at", form.ends_at).gt("ends_at", form.starts_at).limit(1);
+      const clash = await db.from("timetable_entries").select("id").eq("class_id", form.class_id).eq("day_of_week", Number(form.day_of_week)).eq("timetable_type", form.timetable_type).lt("starts_at", form.ends_at).gt("ends_at", form.starts_at).limit(1);
       if (clash.error) throw clash.error;
       if ((clash.data ?? []).length) throw new Error("This class already has a timetable entry in that time window.");
 
@@ -188,7 +189,7 @@ export default function TimetableDirectory() {
         }
       }
 
-      const r = await db.from("timetable_entries").insert({ class_id: form.class_id, stream_id: form.stream_id || null, subject_id: form.subject_id, teacher_id: form.teacher_id || null, day_of_week: Number(form.day_of_week), starts_at: form.starts_at, ends_at: form.ends_at, room: form.room.trim() || null });
+      if (form.timetable_type === "EVENING" && (form.day_of_week === "6")) throw new Error("Evening classes are for Monday–Friday. Use Saturday Morning for weekend classes.");\n      if (form.timetable_type === "SATURDAY" && form.day_of_week !== "6") throw new Error("Saturday Morning timetable entries must use Saturday.");\n      const r = await db.from("timetable_entries").insert({ class_id: form.class_id, stream_id: form.stream_id || null, subject_id: form.subject_id, teacher_id: form.teacher_id || null, day_of_week: Number(form.day_of_week), starts_at: form.starts_at, ends_at: form.ends_at, timetable_type: form.timetable_type, room: form.room.trim() || null });
       if (r.error) throw r.error;
       setMessage("Timetable entry saved. Teacher availability and the 5-minute cross-division transition rule were checked.");
       await load();
@@ -203,10 +204,10 @@ export default function TimetableDirectory() {
       <header className="menwe-portal-hero rounded-[2rem] p-6 text-white sm:p-8">
         <span className="menwe-portal-kicker"><CalendarDays size={14} /> Scheduling</span>
         <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Timetable System</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">One timetable engine for Primary and Junior School. Teachers are shared staff records, so one teacher cannot be scheduled in two divisions at the same time, and teachers moving between divisions receive a 5-minute transition window.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">One timetable engine for Primary and Junior School, including regular lessons, weekday evening classes from 4:00–5:00 p.m., and Saturday morning classes from 7:00–8:00 a.m. Teacher clashes and cross-division transitions are checked automatically.</p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(["primary", "junior"] as Programme[]).map((item) => <button key={item} type="button" onClick={() => chooseProgramme(item)} className={`rounded-2xl border p-5 text-left transition ${programme === item ? "border-[var(--accent)] bg-[var(--accent)]/10 shadow-sm" : "border-[var(--ink)]/10 bg-white hover:border-[var(--accent)]/30"}`}><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--ink)]/45">{item === "primary" ? "Primary" : "Junior School"}</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[var(--ink)]">{item === "primary" ? "35-minute lessons" : "40-minute lessons"}</h2></div><Clock3 className="text-[var(--accent)]" /></div><p className="mt-2 text-sm text-[var(--ink)]/60">8:20 a.m. start · 12:40–2:00 p.m. lunch · 3:10 p.m. close</p></button>)}
       </section>
 
@@ -240,11 +241,11 @@ export default function TimetableDirectory() {
         {admin && <form onSubmit={create} className="space-y-4 rounded-2xl border border-[var(--ink)]/10 p-4 sm:p-5">
           <div className="flex items-center gap-2"><Save size={17} className="text-[var(--accent)]" /><h2 className="font-serif text-2xl font-semibold">Add timetable entry</h2></div>
           <div className="grid gap-3 md:grid-cols-3">
-            <select required value={form.class_id} onChange={e => chooseClass(e.target.value)} className={input}><option value="">Class — {programme === "primary" ? "Primary" : "Junior"}</option>{classOptions.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)} · {text(c.level)}</option>)}</select>
+            <select required value={form.timetable_type} onChange={e => chooseTimetableType(e.target.value as TimetableType)} className={input}>\n              <option value="REGULAR">Regular school timetable</option><option value="EVENING">Evening class · 4:00–5:00 p.m.</option><option value="SATURDAY">Saturday morning · 7:00–8:00 a.m.</option>\n            </select>\n            <select required value={form.class_id} onChange={e => chooseClass(e.target.value)} className={input}><option value="">Class — {programme === "primary" ? "Primary" : "Junior"}</option>{classOptions.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)} · {text(c.level)}</option>)}</select>
             <select required value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })} className={input}><option value="">Subject</option>{subjects.map(s => <option key={text(s.id)} value={text(s.id)}>{text(s.name)} ({text(s.code)})</option>)}</select>
             <select value={form.teacher_id} onChange={e => setForm({ ...form, teacher_id: e.target.value })} className={input}><option value="">No teacher</option>{teachers.map(t => <option key={text(t.id)} value={text(t.id)}>{teacherFullName(t)}</option>)}</select>
-            <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className={input}>{days.slice(1).map((d, i) => <option key={d} value={i + 1}>{d}</option>)}</select>
-            <select value={`${form.starts_at}-${form.ends_at}`} onChange={e => { const [start, end] = e.target.value.split("-"); applySlot(start, end); }} className={input}><option value="">Lesson period</option>{slots.map(s => <option key={s.start} value={`${s.start}-${s.end}`}>{s.label} · {s.start}–{s.end}</option>)}</select>
+            <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className={input}>{days.slice(1).filter((d) => form.timetable_type === "SATURDAY" ? d === "Saturday" : d !== "Saturday").map((d) => <option key={d} value={days.indexOf(d)}>{d}</option>)}</select>
+            <select value={`${form.starts_at}-${form.ends_at}`} onChange={e => { const [start, end] = e.target.value.split("-"); applySlot(start, end); }} className={input}><option value="">Lesson period</option>{activeSessionSlots.map(s => <option key={s.start} value={`${s.start}-${s.end}`}>{s.label} · {s.start}–{s.end}</option>)}</select>
             <input required type="time" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} className={input} aria-label="Start time" />
             <input required type="time" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} className={input} aria-label="End time" />
             <input placeholder="Room (optional)" value={form.room} onChange={e => setForm({ ...form, room: e.target.value })} className={input} />
@@ -258,7 +259,7 @@ export default function TimetableDirectory() {
           <select value={teacherView} onChange={e => setTeacherView(e.target.value)} className={`${input} sm:max-w-xs`}><option value="all">All teachers</option>{teachers.map(t => <option key={text(t.id)} value={text(t.id)}>{teacherFullName(t)}</option>)}</select>
         </div>
 
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[var(--accent)]" /></div> : selectedTeacherRows.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="p-3">Day</th><th className="p-3">Division</th><th className="p-3">Class</th><th className="p-3">Subject</th><th className="p-3">Teacher</th><th className="p-3">Time</th><th className="p-3">Room</th></tr></thead><tbody>{selectedTeacherRows.map(r => { const cls = r.classes as Row | null; const division = programmeForLevel(cls?.level); return <tr key={text(r.id)} className="border-b border-[var(--ink)]/7"><td className="p-3">{days[Number(r.day_of_week)] ?? "—"}</td><td className="p-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${division === "junior" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--ink)]/5 text-[var(--ink)]/65"}`}>{division === "junior" ? "Junior" : "Primary"}</span></td><td className="p-3 font-semibold">{text(cls?.name)}</td><td className="p-3">{text((r.subjects as Row | null)?.name)}</td><td className="p-3">{teacherFullName(r.teachers as Row | null)}</td><td className="p-3">{text(r.starts_at)}–{text(r.ends_at)}</td><td className="p-3">{text(r.room)}</td></tr>; })}</tbody></table></div> : <p className="mt-4 rounded-2xl border border-dashed border-[var(--ink)]/15 px-5 py-10 text-center text-sm text-[var(--ink)]/55">No timetable entries match this teacher filter.</p>}
+        {loading ? <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[var(--accent)]" /></div> : selectedTeacherRows.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="p-3">Type</th><th className="p-3">Day</th><th className="p-3">Division</th><th className="p-3">Class</th><th className="p-3">Subject</th><th className="p-3">Teacher</th><th className="p-3">Time</th><th className="p-3">Room</th></tr></thead><tbody>{selectedTeacherRows.map(r => { const cls = r.classes as Row | null; const division = programmeForLevel(cls?.level); return <tr key={text(r.id)} className="border-b border-[var(--ink)]/7"><td className="p-3">{r.timetable_type === "EVENING" ? "Evening 4–5" : r.timetable_type === "SATURDAY" ? "Saturday 7–8" : "Regular"}</td><td className="p-3">{days[Number(r.day_of_week)] ?? "—"}</td><td className="p-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${division === "junior" ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--ink)]/5 text-[var(--ink)]/65"}`}>{division === "junior" ? "Junior" : "Primary"}</span></td><td className="p-3 font-semibold">{text(cls?.name)}</td><td className="p-3">{text((r.subjects as Row | null)?.name)}</td><td className="p-3">{teacherFullName(r.teachers as Row | null)}</td><td className="p-3">{text(r.starts_at)}–{text(r.ends_at)}</td><td className="p-3">{text(r.room)}</td></tr>; })}</tbody></table></div> : <p className="mt-4 rounded-2xl border border-dashed border-[var(--ink)]/15 px-5 py-10 text-center text-sm text-[var(--ink)]/55">No timetable entries match this teacher filter.</p>}
         {message && <p role="status" className="mt-5 rounded-xl border border-[var(--gold)]/20 bg-[var(--gold)]/10 px-4 py-3 text-sm">{message}</p>}
       </section>
     </main>
