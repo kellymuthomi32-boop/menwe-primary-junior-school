@@ -11,7 +11,8 @@ const programmeForLevel = (level: unknown): Programme => /grade\s*[789]|junior|j
 const teacherName = (row: Row | null) => row ? [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(" ") || row.employee_number || "Teacher" : "Teacher";
 const toMinutes = (value: unknown) => { const [h, m] = String(value ?? "00:00").slice(0, 5).split(":").map(Number); return h * 60 + m; };
 const formatTime = (value: unknown) => { const [h, m] = String(value ?? "00:00").slice(0, 5).split(":").map(Number); const suffix = h >= 12 ? "p.m." : "a.m."; const hour = h % 12 || 12; return `${hour}:${String(m).padStart(2, "0")} ${suffix}`; };
-const todayIndex = () => { const day = new Date().getDay(); return day >= 1 && day <= 6 ? day - 1 : -1; };\nconst sessionLabel = (type: unknown) => type === "EVENING" ? "Evening 4–5 p.m." : type === "SATURDAY" ? "Saturday 7–8 a.m." : "Regular school";
+const todayIndex = () => { const day = new Date().getDay(); return day >= 1 && day <= 6 ? day - 1 : -1; };
+const sessionLabel = (type: unknown) => type === "EVENING" ? "Evening 4–5 p.m." : type === "SATURDAY" ? "Saturday 7–8 a.m." : "Regular school";
 
 export default function TeacherTimetablePage() {
   const { user } = useSchoolAuth();
