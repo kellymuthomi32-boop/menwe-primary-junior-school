@@ -103,7 +103,8 @@ export default function TimetableDirectory() {
   const [teacherView, setTeacherView] = useState("all");
   const [form, setForm] = useState({ class_id: "", stream_id: "", subject_id: "", teacher_id: "", day_of_week: "1", starts_at: "08:20", ends_at: "08:55", room: "", timetable_type: "REGULAR" as TimetableType });
   const [coordinatorScope, setCoordinatorScope] = useState<"PRIMARY" | "JUNIOR" | null>(null);
-  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");\n  const canManageTimetable = admin || coordinatorScope !== null;
+  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
+  const canManageTimetable = admin || coordinatorScope !== null;
   const activeSessionSlots = form.timetable_type === "REGULAR" ? programmeSlots[programme].filter((s) => s.kind === "lesson") : sessionSlots[form.timetable_type];
 
   const load = useCallback(async () => {
