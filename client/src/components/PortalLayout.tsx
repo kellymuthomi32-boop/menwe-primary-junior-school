@@ -48,6 +48,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0,coordinatorScope:strin
    {label:"Prefects body",key:"prefects",icon:Users,href:"/portal/prefects"},
   );
   communication.push({label:"Messages",key:"messages",icon:MessageSquare,href:"/portal/messages"});
+  if(coordinatorScope){ academics.push({label:"Curriculum coordination",key:"curriculum-coordinator",icon:GraduationCap,href:"/portal/curriculum-coordinator"}); }
  } else if(role==="PARENT"||role==="STUDENT"){
   school.push(
    {label:"Timetable",key:"timetable",icon:CalendarDays,href:"/portal/timetable"},
@@ -123,8 +124,23 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
  const[mobileOpen,setMobileOpen]=useState(false);
  const[pendingAdmissions,setPendingAdmissions]=useState(0);
  const[currentTerm,setCurrentTerm]=useState("Current term");
+ const[coordinatorScope,setCoordinatorScope]=useState<string|null>(null);
  const{profile,signOut}=useSchoolAuth();
- const{primary,teaching,school,academics,people,operations,resources,content,communication,system}=buildItems(safe,pendingAdmissions);
+ const{primary,teaching,school,academics,people,operations,resources,content,communication,system}=buildItems(safe,pendingAdmissions,coordinatorScope);
+
+ useEffect(()=>{
+  let cancelled=false;
+  const loadCoordinator=async()=>{
+   if(!profile?.email || safe!=="TEACHER"){setCoordinatorScope(null);return;}
+   const {data:teacher}=await getSupabase().from("teachers").select("id").eq("email",profile.email).maybeSingle();
+   if(cancelled)return;
+   if(!teacher){setCoordinatorScope(null);return;}
+   const {data:assignment}=await getSupabase().from("curriculum_coordinators").select("scope").eq("teacher_id",teacher.id).eq("active",true).maybeSingle();
+   if(!cancelled)setCoordinatorScope(assignment?.scope??null);
+  };
+  void loadCoordinator();
+  return()=>{cancelled=true};
+ },[profile?.email,safe]);
 
  useEffect(()=>{
   if(!isAdministrator(safe))return;
