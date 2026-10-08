@@ -124,7 +124,16 @@ export default function TimetableDirectory() {
     finally { setLoading(false); }
   }, [profile, user]);
 
-  useEffect(() => { void load(); }, [load]);\n\n  useEffect(() => {\n    if (!user || !profile || !["TEACHER", "ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return;\n    (async () => {\n      const db = getSupabase();\n      const teacher = await db.from("teachers").select("id").eq("profile_id", profile.id).maybeSingle();\n      if (teacher.error || !teacher.data) return;\n      const assignment = await db.from("curriculum_coordinators").select("scope").eq("teacher_id", teacher.data.id).eq("active", true).maybeSingle();\n      if (!assignment.error && assignment.data?.scope) setCoordinatorScope(assignment.data.scope as "PRIMARY" | "JUNIOR");
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!user || !profile || !["TEACHER", "ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return;
+    (async () => {
+      const db = getSupabase();
+      const teacher = await db.from("teachers").select("id").eq("profile_id", profile.id).maybeSingle();
+      if (teacher.error || !teacher.data) return;
+      const assignment = await db.from("curriculum_coordinators").select("scope").eq("teacher_id", teacher.data.id).eq("active", true).maybeSingle();
+      if (!assignment.error && assignment.data?.scope) setCoordinatorScope(assignment.data.scope as "PRIMARY" | "JUNIOR");
     })();
   }, [profile, user]);
 
