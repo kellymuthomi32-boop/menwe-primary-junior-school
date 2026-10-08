@@ -102,14 +102,14 @@ export default function TimetableDirectory() {
   const [programme, setProgramme] = useState<Programme>("primary");
   const [teacherView, setTeacherView] = useState("all");
   const [form, setForm] = useState({ class_id: "", stream_id: "", subject_id: "", teacher_id: "", day_of_week: "1", starts_at: "08:20", ends_at: "08:55", room: "", timetable_type: "REGULAR" as TimetableType });
-  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
+  const [coordinatorScope, setCoordinatorScope] = useState<"PRIMARY" | "JUNIOR" | null>(null);\n  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");\n  const canManageTimetable = admin || coordinatorScope !== null;
   const activeSessionSlots = form.timetable_type === "REGULAR" ? programmeSlots[programme].filter((s) => s.kind === "lesson") : sessionSlots[form.timetable_type];
 
   const load = useCallback(async () => {
     if (!user || !profile) return;
     setLoading(true); setMessage(null);
     try {
-      const db = getSupabase();
+      if (coordinatorScope === "PRIMARY" && expectedProgramme !== "primary") throw new Error("Frankline Maugu can manage the Primary timetable only.");\n      if (coordinatorScope === "JUNIOR" && expectedProgramme !== "junior") throw new Error("Naomi Kirimi can manage the Junior School timetable only.");\n      const db = getSupabase();
       const [c, s, t, r] = await Promise.all([
         db.from("classes").select("id,name,level").eq("status", "ACTIVE").order("name"),
         db.from("subjects").select("id,name,code").eq("status", "ACTIVE").order("name"),
@@ -122,7 +122,7 @@ export default function TimetableDirectory() {
     finally { setLoading(false); }
   }, [profile, user]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);\n\n  useEffect(() => {\n    if (!user || !profile || !["TEACHER", "ADMIN", "SUPER_ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile.role)) return;\n    (async () => {\n      const db = getSupabase();\n      const teacher = await db.from("teachers").select("id").eq("profile_id", profile.id).maybeSingle();\n      if (teacher.error || !teacher.data) return;\n      const assignment = await db.from("curriculum_coordinators").select("scope").eq("teacher_id", teacher.data.id).eq("active", true).maybeSingle();\n      if (!assignment.error && assignment.data?.scope) setCoordinatorScope(assignment.data.scope as "PRIMARY" | "JUNIOR");\n    })();\n  }, [profile, user]);
 
   const classOptions = useMemo(() => classes.filter((c) => programmeForLevel(c.level) === programme), [classes, programme]);
   const slots = programmeSlots[programme].filter((s) => s.kind === "lesson");
@@ -160,12 +160,12 @@ export default function TimetableDirectory() {
   const applySlot = (start: string, end: string) => setForm((current) => ({ ...current, starts_at: start, ends_at: end }));
 
   const create = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!admin) return;
+    e.preventDefault(); if (!canManageTimetable) return;
     setBusy(true); setMessage(null);
     try {
       const selectedClass = classes.find((c) => String(c.id) === form.class_id);
       const expectedProgramme = programmeForLevel(selectedClass?.level);
-      const expectedMinutes = expectedProgramme === "primary" ? 35 : 40;
+      const expectedMinutes = form.timetable_type === "REGULAR" ? (expectedProgramme === "primary" ? 35 : 40) : 60;
       const [sh, sm] = form.starts_at.split(":").map(Number); const [eh, em] = form.ends_at.split(":").map(Number);
       const duration = (eh * 60 + em) - (sh * 60 + sm);
       if (duration !== expectedMinutes) throw new Error(`${expectedProgramme === "primary" ? "Primary" : "Junior School"} lessons must be exactly ${expectedMinutes} minutes.`);
@@ -225,7 +225,7 @@ export default function TimetableDirectory() {
         {(["primary", "junior"] as Programme[]).map((item) => <button key={item} type="button" onClick={() => chooseProgramme(item)} className={`rounded-2xl border p-5 text-left transition ${programme === item ? "border-[var(--accent)] bg-[var(--accent)]/10 shadow-sm" : "border-[var(--ink)]/10 bg-white hover:border-[var(--accent)]/30"}`}><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--ink)]/45">{item === "primary" ? "Primary" : "Junior School"}</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[var(--ink)]">{item === "primary" ? "35-minute lessons" : "40-minute lessons"}</h2></div><Clock3 className="text-[var(--accent)]" /></div><p className="mt-2 text-sm text-[var(--ink)]/60">8:20 a.m. start · 12:40–2:00 p.m. lunch · 3:10 p.m. close</p></button>)}
       </section>
 
-      <TimetableTemplate programme={programme} />
+      <div className="flex items-center justify-between rounded-2xl border border-[var(--ink)]/10 bg-white px-4 py-3 text-sm"><span className="font-semibold">Timetable management</span><span className="text-[var(--ink)]/60">{coordinatorScope === "PRIMARY" ? "Frankline Maugu · Primary School" : coordinatorScope === "JUNIOR" ? "Naomi Kirimi · Junior School" : "School administration"}</span></div>\n\n      <TimetableTemplate programme={programme} />
 
       {programme === "junior" && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
