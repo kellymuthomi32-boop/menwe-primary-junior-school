@@ -158,10 +158,16 @@ export default function ExamPublishingWorkspace() {
 
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
-  // Marks entry is currently End-Term only. Opener/Exam 1 remains in the database for historical reporting, but it must not appear in the active marks-entry picker.\n  const visibleExams = exams.filter(e => String(e.exam_type ?? "").toUpperCase() === "ENDTERM" && (admin || assigned.has(String(e.class_id))));
   const examGroups = useMemo(() => {
     const groups = new Map<string, Row[]>();
-    for (const exam of visibleExams) {
+    // Active marks entry is End-Term only. Opener/Exam 1 stays in the
+    // database for historical reporting but is hidden from this picker.
+    const endTermExams = exams.filter(
+      (exam) =>
+        String(exam.exam_type ?? "").toUpperCase() === "ENDTERM" &&
+        (admin || assigned.has(String(exam.class_id))),
+    );
+    for (const exam of endTermExams) {
       const key = [exam.term_id, String(exam.name ?? "").trim().toLowerCase(), String(exam.exam_type ?? "").trim().toLowerCase(), String(exam.maximum_score ?? ""), exam.starts_on ?? "", exam.ends_on ?? ""].join("|");
       const list = groups.get(key) ?? [];
       list.push(exam);
@@ -172,7 +178,7 @@ export default function ExamPublishingWorkspace() {
       exams: list.sort((a,b) => String(classes.find(c => String(c.id) === String(a.class_id))?.name ?? "").localeCompare(String(classes.find(c => String(c.id) === String(b.class_id))?.name ?? ""))),
       representative: list[0]
     }));
-  }, [visibleExams, classes]);
+  }, [exams, admin, assigned, classes]);
   const selectedExam = exams.find(e => String(e.id) === selected);
 
   // Marks workspace invariant: the selected exam owns the class context.
