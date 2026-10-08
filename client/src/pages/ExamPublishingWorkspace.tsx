@@ -535,7 +535,7 @@ export default function ExamPublishingWorkspace() {
       if (!term) throw new Error("Select a term.");
       const maximum = Number(maxScore);
       const targets = allGrades ? visibleClasses.filter(c => !isEcdeClass(c)) : visibleClasses.filter(c => String(c.id) === classId);
-      if (!allGrades && targets.some(isEcdeClass) && maximum !== 4) throw new Error("ECDE assessments use the four competency levels EE, ME, AE and BE, so the maximum score must be 4.");
+      if (!allGrades && targets.some(isEcdeClass) && maximum !== 100) throw new Error("PP1/PP2 assessments use marks out of 100.");
       if (!targets.length) throw new Error("No active class selected.");
       if (!Number.isFinite(maximum) || maximum <= 0) throw new Error("Maximum score must be greater than zero.");
       if (start > end) throw new Error("End date cannot be before start date.");
@@ -568,7 +568,7 @@ export default function ExamPublishingWorkspace() {
         <select value={yearId} onChange={e => { setYearId(e.target.value); setTermId(""); }} className={input}><option value="">Academic year</option>{years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}</select>
         <select value={termId || String(terms.find(t => t.is_current && String(t.academic_year_id) === yearId)?.id ?? "")} onChange={e => setTermId(e.target.value)} className={input}><option value="">Term</option>{terms.filter(t => String(t.academic_year_id) === yearId).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <label className="flex items-center gap-2 rounded-xl border px-3 text-sm"><input type="checkbox" checked={allGrades} onChange={e => setAllGrades(e.target.checked)} />All classes</label>
-        {!allGrades && <select value={classId} onChange={e => { const value=e.target.value; setClassId(value); const cls=visibleClasses.find(c=>String(c.id)===value); setMaxScore(isEcdeClass(cls) ? "4" : "100"); }} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+        {!allGrades && <select value={classId} onChange={e => { const value=e.target.value; setClassId(value); const cls=visibleClasses.find(c=>String(c.id)===value); setMaxScore(isEcdeClass(cls) ? "100" : "100"); }} className={input}><option value="">Class</option>{visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
         <select value={examType} onChange={e => setExamType(e.target.value)} className={input}><option value="EXAM_1">{!allGrades && isGrade4or5Class(visibleClasses.find(c => String(c.id) === classId)) ? "Opener" : "Exam 1"}</option><option value="ENDTERM">End-Term</option></select>
         <input type="date" value={start} onChange={e => setStart(e.target.value)} className={input} />
         <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={input} />
