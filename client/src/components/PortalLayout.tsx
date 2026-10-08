@@ -70,6 +70,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
    {label:"Teachers",key:"teachers",icon:Users,href:"/portal/admin/teachers"},
    {label:"Invite teacher",key:"teacher-invitations",icon:UserPlus,href:"/portal/admin/teacher-invitations"},
    {label:"Learner enrollment",key:"people",icon:Users,href:"/portal/people",badge:pendingAdmissions},
+   {label:"ECDE",key:"ecde",icon:GraduationCap,href:"/portal/people?level=ECDE"},
   );
   academics.push(
    {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
