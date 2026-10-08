@@ -13,7 +13,7 @@ const safeRole=(role:unknown):AppRole=>typeof role==="string"&&role.trim()?role 
 const roleLabel=(role:unknown)=>safeRole(role).replaceAll("_"," ").toLowerCase().replace(/(^|\s)\S/g,v=>v.toUpperCase());
 const overviewPath=(role:unknown)=>safeRole(role)==="DEPUTY_HOI"?"/portal/deputy":isAdministrator(safeRole(role)?safeRole(role):"STUDENT")?"/portal/admin":safeRole(role)==="TEACHER"?"/portal/teacher":"/portal/parent";
 
-function buildItems(roleInput:unknown,pendingAdmissions=0){
+function buildItems(roleInput:unknown,pendingAdmissions=0,coordinatorScope:string|null=null){
  const role=safeRole(roleInput);
  const primary:PortalNavItem[]=[
   {label:"Overview",key:"overview",icon:LayoutDashboard,href:overviewPath(role)},
