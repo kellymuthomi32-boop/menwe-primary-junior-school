@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, BookOpenCheck, CalendarDays, ChevronDown, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, Image, LayoutDashboard, LibraryBig, LogOut, Menu, MessageSquare, Settings, ShieldCheck, Users, X, Bell, Megaphone, Clock3, Utensils, ClipboardList, UserPlus, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, BookOpenCheck, CalendarDays, ChevronDown, ChevronLeft, ClipboardCheck, CreditCard, FileText, GraduationCap, Image, LayoutDashboard, LibraryBig, LogOut, Menu, MessageSquare, Settings, ShieldCheck, Users, X, Bell, Megaphone, Clock3, Utensils, ClipboardList, UserPlus, Boxes, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { isAdministrator, type AppRole, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -67,7 +67,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0){
 
  if(role==="DEPUTY_HOI"){
   teaching.push({label:"Attendance",key:"attendance",icon:ClipboardCheck,href:"/portal/attendance"},{label:"Marks & exams",key:"exams",icon:GraduationCap,href:"/portal/exams"},{label:"Learner reports",key:"reports",icon:FileText,href:"/portal/reports"},{label:"Class marksheets",key:"marksheet",icon:FileText,href:"/portal/class-marksheet"});
-  operations.push({label:"Food & feeding",key:"food",icon:Utensils,href:"/portal/food"},{label:"Duty roster",key:"duty-roster",icon:ClipboardList,href:"/portal/duty-roster"});
+  operations.push({label:"Food & feeding",key:"food",icon:Utensils,href:"/portal/food"},{label:"Duty roster",key:"duty-roster",icon:ClipboardList,href:"/portal/duty-roster"},{label:"Inventory & materials",key:"inventory",icon:Boxes,href:"/portal/inventory"});
   resources.push({label:"Resources",key:"resources",icon:FileText,href:"/portal/resources"},{label:"Learning materials",key:"learning",icon:BookOpen,href:"/portal/learning"},{label:"Library",key:"library",icon:LibraryBig,href:"/portal/library"},{label:"Past papers",key:"past-papers",icon:FileText,href:"/portal/past-papers"},{label:"Timetable",key:"timetable",icon:CalendarDays,href:"/portal/timetable"},{label:"Prefects body",key:"prefects",icon:Users,href:"/portal/prefects"});
   communication.push({label:"Notifications",key:"notifications",icon:Bell,href:"/portal/notifications"},{label:"Messages",key:"messages",icon:MessageSquare,href:"/portal/messages"});
  } else if(isAdministrator(role)){
