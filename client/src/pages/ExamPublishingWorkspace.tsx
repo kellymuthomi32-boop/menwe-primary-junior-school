@@ -286,7 +286,7 @@ export default function ExamPublishingWorkspace() {
     if (!draftRestored || !exams.length) return;
     const saved = selected ? exams.find(e => String(e.id) === String(selected)) : null;
     if (!saved) {
-      const fallback = visibleExams[0];
+      const fallback = examGroups.flatMap(g => g.exams)[0];
       if (fallback) {
         setSelected(String(fallback.id));
         setSubjectId("");
@@ -303,7 +303,7 @@ export default function ExamPublishingWorkspace() {
     const savedSubject = subjectId;
     const requestKey = `${saved.id}:${savedSubject || ""}`;
     if (students.length === 0 && loadRequestRef.current !== requestKey) void load(String(saved.id), savedSubject || undefined);
-  }, [draftRestored, selected, exams, subjectId, visibleExams, students.length]);
+  }, [draftRestored, selected, exams, examGroups, subjectId, students.length]);
 
   const saveLearner = async (student: Row) => {
     if (!selectedExam || !subjectId || selectedExam.status === "PUBLISHED") return;
