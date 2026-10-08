@@ -53,7 +53,13 @@ function teacherFullName(row: Row | null | undefined) {
   return [row.first_name, row.middle_name, row.last_name].filter(Boolean).join(" ") || text(row.employee_number);
 }
 
-const sessionSlots: Record<TimetableType, Slot[]> = {\n  REGULAR: [],\n  EVENING: [{ label: "Evening class", start: "16:00", end: "17:00", kind: "lesson" }],\n  SATURDAY: [{ label: "Saturday morning class", start: "07:00", end: "08:00", kind: "lesson" }],\n};\n\nfunction timeToMinutes(value: unknown) {
+const sessionSlots: Record<TimetableType, Slot[]> = {
+  REGULAR: [],
+  EVENING: [{ label: "Evening class", start: "16:00", end: "17:00", kind: "lesson" }],
+  SATURDAY: [{ label: "Saturday morning class", start: "07:00", end: "08:00", kind: "lesson" }],
+};
+
+function timeToMinutes(value: unknown) {
   const [hours, minutes] = String(value ?? "00:00").slice(0, 5).split(":").map(Number);
   return hours * 60 + minutes;
 }
@@ -96,7 +102,8 @@ export default function TimetableDirectory() {
   const [programme, setProgramme] = useState<Programme>("primary");
   const [teacherView, setTeacherView] = useState("all");
   const [form, setForm] = useState({ class_id: "", stream_id: "", subject_id: "", teacher_id: "", day_of_week: "1", starts_at: "08:20", ends_at: "08:55", room: "", timetable_type: "REGULAR" as TimetableType });
-  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");\n  const activeSessionSlots = form.timetable_type === "REGULAR" ? programmeSlots[programme].filter((s) => s.kind === "lesson") : sessionSlots[form.timetable_type];
+  const admin = ["SUPER_ADMIN", "ADMIN", "HEAD_OF_INSTITUTION", "DEPUTY_HOI"].includes(profile?.role ?? "");
+  const activeSessionSlots = form.timetable_type === "REGULAR" ? programmeSlots[programme].filter((s) => s.kind === "lesson") : sessionSlots[form.timetable_type];
 
   const load = useCallback(async () => {
     if (!user || !profile) return;
@@ -131,7 +138,12 @@ export default function TimetableDirectory() {
   const curriculumAssigned = curriculumSummary.reduce((sum, item) => sum + item.assigned, 0);
   const curriculumComplete = curriculumSummary.filter(item => item.status === "OK").length;
 
-  const chooseTimetableType = (next: TimetableType) => {\n    const slot = next === "REGULAR" ? programmeSlots[programme].find((s) => s.kind === "lesson") : sessionSlots[next][0];\n    setForm((current) => ({ ...current, timetable_type: next, day_of_week: next === "SATURDAY" ? "6" : current.day_of_week === "6" ? "1" : current.day_of_week, starts_at: slot?.start ?? current.starts_at, ends_at: slot?.end ?? current.ends_at }));\n  };\n\n  const chooseProgramme = (next: Programme) => {
+  const chooseTimetableType = (next: TimetableType) => {
+    const slot = next === "REGULAR" ? programmeSlots[programme].find((s) => s.kind === "lesson") : sessionSlots[next][0];
+    setForm((current) => ({ ...current, timetable_type: next, day_of_week: next === "SATURDAY" ? "6" : current.day_of_week === "6" ? "1" : current.day_of_week, starts_at: slot?.start ?? current.starts_at, ends_at: slot?.end ?? current.ends_at }));
+  };
+
+  const chooseProgramme = (next: Programme) => {
     setProgramme(next);
     const first = programmeSlots[next].find((s) => s.kind === "lesson");
     setForm((current) => ({ ...current, class_id: "", starts_at: first?.start ?? current.starts_at, ends_at: first?.end ?? current.ends_at }));
@@ -189,7 +201,9 @@ export default function TimetableDirectory() {
         }
       }
 
-      if (form.timetable_type === "EVENING" && (form.day_of_week === "6")) throw new Error("Evening classes are for Monday–Friday. Use Saturday Morning for weekend classes.");\n      if (form.timetable_type === "SATURDAY" && form.day_of_week !== "6") throw new Error("Saturday Morning timetable entries must use Saturday.");\n      const r = await db.from("timetable_entries").insert({ class_id: form.class_id, stream_id: form.stream_id || null, subject_id: form.subject_id, teacher_id: form.teacher_id || null, day_of_week: Number(form.day_of_week), starts_at: form.starts_at, ends_at: form.ends_at, timetable_type: form.timetable_type, room: form.room.trim() || null });
+      if (form.timetable_type === "EVENING" && (form.day_of_week === "6")) throw new Error("Evening classes are for Monday–Friday. Use Saturday Morning for weekend classes.");
+      if (form.timetable_type === "SATURDAY" && form.day_of_week !== "6") throw new Error("Saturday Morning timetable entries must use Saturday.");
+      const r = await db.from("timetable_entries").insert({ class_id: form.class_id, stream_id: form.stream_id || null, subject_id: form.subject_id, teacher_id: form.teacher_id || null, day_of_week: Number(form.day_of_week), starts_at: form.starts_at, ends_at: form.ends_at, timetable_type: form.timetable_type, room: form.room.trim() || null });
       if (r.error) throw r.error;
       setMessage("Timetable entry saved. Teacher availability and the 5-minute cross-division transition rule were checked.");
       await load();
@@ -241,7 +255,10 @@ export default function TimetableDirectory() {
         {admin && <form onSubmit={create} className="space-y-4 rounded-2xl border border-[var(--ink)]/10 p-4 sm:p-5">
           <div className="flex items-center gap-2"><Save size={17} className="text-[var(--accent)]" /><h2 className="font-serif text-2xl font-semibold">Add timetable entry</h2></div>
           <div className="grid gap-3 md:grid-cols-3">
-            <select required value={form.timetable_type} onChange={e => chooseTimetableType(e.target.value as TimetableType)} className={input}>\n              <option value="REGULAR">Regular school timetable</option><option value="EVENING">Evening class · 4:00–5:00 p.m.</option><option value="SATURDAY">Saturday morning · 7:00–8:00 a.m.</option>\n            </select>\n            <select required value={form.class_id} onChange={e => chooseClass(e.target.value)} className={input}><option value="">Class — {programme === "primary" ? "Primary" : "Junior"}</option>{classOptions.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)} · {text(c.level)}</option>)}</select>
+            <select required value={form.timetable_type} onChange={e => chooseTimetableType(e.target.value as TimetableType)} className={input}>
+              <option value="REGULAR">Regular school timetable</option><option value="EVENING">Evening class · 4:00–5:00 p.m.</option><option value="SATURDAY">Saturday morning · 7:00–8:00 a.m.</option>
+            </select>
+            <select required value={form.class_id} onChange={e => chooseClass(e.target.value)} className={input}><option value="">Class — {programme === "primary" ? "Primary" : "Junior"}</option>{classOptions.map(c => <option key={text(c.id)} value={text(c.id)}>{text(c.name)} · {text(c.level)}</option>)}</select>
             <select required value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })} className={input}><option value="">Subject</option>{subjects.map(s => <option key={text(s.id)} value={text(s.id)}>{text(s.name)} ({text(s.code)})</option>)}</select>
             <select value={form.teacher_id} onChange={e => setForm({ ...form, teacher_id: e.target.value })} className={input}><option value="">No teacher</option>{teachers.map(t => <option key={text(t.id)} value={text(t.id)}>{teacherFullName(t)}</option>)}</select>
             <select value={form.day_of_week} onChange={e => setForm({ ...form, day_of_week: e.target.value })} className={input}>{days.slice(1).filter((d) => form.timetable_type === "SATURDAY" ? d === "Saturday" : d !== "Saturday").map((d) => <option key={d} value={days.indexOf(d)}>{d}</option>)}</select>
