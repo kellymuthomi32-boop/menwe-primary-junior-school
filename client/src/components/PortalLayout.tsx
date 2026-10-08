@@ -129,7 +129,7 @@ export function PortalLayout({role,children}:{role?:AppRole;children:ReactNode})
     getSupabase().from("terms").select("name").eq("is_current",true).eq("status","ACTIVE").maybeSingle(),
    ]);
    if(cancelled)return;
-   if(!admissionsRes.error)setPendingAdmissions((admissionsRes.data??[]).filter(r=>["submitted","pending","under_review"].includes(String(r.status).toLowerCase())).length);
+   if(!admissionsRes.error)setPendingAdmissions((admissionsRes.data??[]).filter(r=>["submitted","under_review"].includes(String(r.status).toLowerCase())).length);
    if(!termRes.error)setCurrentTerm(termRes.data?.name??"Current term");
   };
   void load();
