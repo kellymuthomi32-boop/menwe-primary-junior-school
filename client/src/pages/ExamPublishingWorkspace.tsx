@@ -158,7 +158,7 @@ export default function ExamPublishingWorkspace() {
 
   const assigned = new Set(assignments.map(x => String(x.class_id)));
   const visibleClasses = classes.filter(c => !teacher || assigned.has(String(c.id)));
-  const visibleExams = exams.filter(e => admin || assigned.has(String(e.class_id)));
+  // Marks entry is currently End-Term only. Opener/Exam 1 remains in the database for historical reporting, but it must not appear in the active marks-entry picker.\n  const visibleExams = exams.filter(e => String(e.exam_type ?? "").toUpperCase() === "ENDTERM" && (admin || assigned.has(String(e.class_id))));
   const examGroups = useMemo(() => {
     const groups = new Map<string, Row[]>();
     for (const exam of visibleExams) {
