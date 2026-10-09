@@ -473,7 +473,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   const drawPdfPage=async(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
     // PDF is laid out independently from the browser preview so downloaded files
     // contain the same information without clipped, crowded or overlapping text.
-    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0),String(cls.name ?? cls.code ?? "")), ls=areas.map(x=>lineFor(x,studentResults,b==="ECDE"));
+    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0),String(cls.name ?? cls.code ?? "")), ls=areas.map(x=>mode==="annual"?annualLineFor(x,studentResults,b==="ECDE"):lineFor(x,studentResults,b==="ECDE"));
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), reportComplete=ls.length>0&&ls.every(l=>l.percentage!=null), avg=reportComplete&&mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     const W=210, M=10, CW=W-M*2, bottom=287;
     let y=10;
