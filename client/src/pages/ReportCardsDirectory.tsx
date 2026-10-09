@@ -21,6 +21,8 @@ const normalize = (v: unknown) => String(v ?? "").toUpperCase().replace(/[^A-Z0-
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const fmt = (v: number | null) => v == null || !Number.isFinite(v) ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(1).replace(/\.0$/, "");
 const learnerName = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
+// Normalize PostgREST many-to-one relations whether the client returns an object or an array.
+const examOf = (row: Row): Row => Array.isArray(row?.exams) ? (row.exams[0] ?? {}) : (row?.exams ?? {});
 
 function achievement(value: number | null, ecde = false) {
   if (value == null) return null;
@@ -49,9 +51,9 @@ function gradeFromClass(c?: Row) {
 function assessmentSlot(row: Row): "EXAM 1" | "ENDTERM" | null {
   // PostgREST normally returns the many-to-one exam relation as an object;
   // tolerate an array too so assessment detection is stable across query shapes.
-  const related = Array.isArray(row.exams) ? row.exams[0] : row.exams;
-  const type = normalize(related?.exam_type);
-  const name = normalize(related?.name);
+  const related = examOf(row);
+  const type = normalize(related.exam_type);
+  const name = normalize(related.name);
   const matches = (value: string, terms: string[]) =>
     terms.some(term => value === term || value.startsWith(`${term} `) || value.endsWith(` ${term}`));
   if (matches(type, ["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"]) ||
@@ -63,7 +65,7 @@ function assessmentSlot(row: Row): "EXAM 1" | "ENDTERM" | null {
 function assessmentLabel(row: Row, c?: Row) {
   const slot = assessmentSlot(row);
   if (slot === "EXAM 1" && (gradeFromClass(c) ?? 99) >= 1 && (gradeFromClass(c) ?? 99) <= 6) return "Opener";
-  return slot === "ENDTERM" ? "End-Term" : slot === "EXAM 1" ? "Exam 1" : String(row.exams?.name ?? "Assessment");
+  return slot === "ENDTERM" ? "End-Term" : slot === "EXAM 1" ? "Exam 1" : String(examOf(row).name ?? "Assessment");
 }
 
 function bandFromClass(c?: Row): Band {
@@ -183,15 +185,17 @@ function canonicalTermResults(rows: Row[]) {
   for (const row of rows) {
     const type = assessmentSlot(row);
     if (!type) continue;
-    const id = String(row.exams?.id ?? row.exam_id ?? "");
+    const exam = examOf(row);
+    const id = String(exam.id ?? row.exam_id ?? "");
     if (!id) continue;
     const previous = byType.get(type);
-    const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
-    const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
+    const currentDate = String(exam.ends_on ?? exam.starts_on ?? "");
+    const previousExam = previous ? examOf(previous) : {};
+    const previousDate = String(previousExam.ends_on ?? previousExam.starts_on ?? "");
     if (!previous || currentDate >= previousDate) byType.set(type, row);
   }
-  const ids = new Set([...byType.values()].map(row => String(row.exams?.id ?? row.exam_id ?? "")));
-  return rows.filter(row => ids.has(String(row.exams?.id ?? row.exam_id ?? "")));
+  const ids = new Set([...byType.values()].map(row => String(examOf(row).id ?? row.exam_id ?? "")));
+  return rows.filter(row => ids.has(String(examOf(row).id ?? row.exam_id ?? "")));
 }
 
 function assessmentSummary(rows: Row[], ecde = false) {
@@ -201,18 +205,20 @@ function assessmentSummary(rows: Row[], ecde = false) {
     // learning areas from PP1/PP2 report cards.
     const examById = new Map<string, Row>();
     for (const row of rows) {
-      const id = String(row.exams?.id ?? row.exam_id ?? "");
+      const exam = examOf(row);
+      const id = String(exam.id ?? row.exam_id ?? "");
       if (!id) continue;
       const previous = examById.get(id);
-      const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
-      const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
+      const currentDate = String(exam.ends_on ?? exam.starts_on ?? "");
+      const previousExam = previous ? examOf(previous) : {};
+      const previousDate = String(previousExam.ends_on ?? previousExam.starts_on ?? "");
       if (!previous || currentDate >= previousDate) examById.set(id, row);
     }
     const latest = [...examById.values()].sort((a,b) =>
-      String(b.exams?.ends_on ?? b.exams?.starts_on ?? "").localeCompare(String(a.exams?.ends_on ?? a.exams?.starts_on ?? ""))
+      String(examOf(b).ends_on ?? examOf(b).starts_on ?? "").localeCompare(String(examOf(a).ends_on ?? examOf(a).starts_on ?? ""))
     )[0];
-    const latestId = latest ? String(latest.exams?.id ?? latest.exam_id ?? "") : "";
-    return latestId ? rows.filter(row => String(row.exams?.id ?? row.exam_id ?? "") === latestId) : [];
+    const latestId = latest ? String(examOf(latest).id ?? latest.exam_id ?? "") : "";
+    return latestId ? rows.filter(row => String(examOf(row).id ?? row.exam_id ?? "") === latestId) : [];
   }
   const byType = new Map<string, Row>();
   for (const row of rows) {
@@ -225,7 +231,7 @@ function assessmentSummary(rows: Row[], ecde = false) {
     const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
     if (!previous || currentDate >= previousDate) byType.set(type, row);
   }
-  return [...byType.values()].sort((a,b) => examTypeRank(a.exams?.exam_type) - examTypeRank(b.exams?.exam_type));
+  return [...byType.values()].sort((a,b) => examTypeRank(examOf(a).exam_type) - examTypeRank(examOf(b).exam_type));
 }
 
 function aggregate(rows: Row[], ids: string[]) {
@@ -278,7 +284,7 @@ function lineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLi
 function annualLineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLine {
   const byTerm = new Map<string, Row[]>();
   for (const row of results) {
-    const termId = String(row.exams?.term_id ?? "");
+    const termId = String(examOf(row).term_id ?? "");
     if (!termId) continue;
     const bucket = byTerm.get(termId) ?? [];
     bucket.push(row);
