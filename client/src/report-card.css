@@ -137,3 +137,18 @@
 @media print{
   .report-hero .report-eyebrow,.report-hero h2,.report-hero p{display:block!important;visibility:visible!important;color:#fff!important;opacity:1!important;-webkit-text-fill-color:#fff!important}
 }
+
+
+/* Assessment column headings: keep Opener/Exam 1, End-Term and Combined
+   visible in screen preview and printed/PDF report cards. */
+.report-card-print .report-table-wrap thead{display:table-header-group!important;visibility:visible!important}
+.report-card-print .report-table-wrap thead tr{display:table-row!important;visibility:visible!important}
+.report-card-print .report-table-wrap thead th{display:table-cell!important;visibility:visible!important;opacity:1!important;color:#fff!important;background:#061229!important;-webkit-text-fill-color:#fff!important;font-weight:900!important;text-transform:uppercase!important;line-height:1.25!important;white-space:normal!important;overflow:visible!important}
+.report-card-print .report-table-wrap table{border-collapse:collapse!important}
+.report-card-print .report-table-wrap th{position:static!important}
+@media print{
+  .report-card-print .report-table-wrap thead,
+  .report-card-print .report-table-wrap thead tr,
+  .report-card-print .report-table-wrap thead th{display:table-header-group!important;visibility:visible!important;opacity:1!important}
+  .report-card-print .report-table-wrap thead th{display:table-cell!important;color:#fff!important;background:#061229!important;-webkit-text-fill-color:#fff!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+}
