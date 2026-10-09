@@ -416,8 +416,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   const drawPdfPage=async(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
     // PDF is laid out independently from the browser preview so downloaded files
     // contain the same information without clipped, crowded or overlapping text.
-    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0)), ls=areas.map(x=>lineFor(x,studentResults));
-    const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), avg=mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
+    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0)), ls=areas.map(x=>lineFor(x,studentResults,b==="ECDE"));
+    const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), reportComplete=ls.length>0&&ls.every(l=>l.percentage!=null), avg=reportComplete&&mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     const W=210, M=10, CW=W-M*2, bottom=287;
     let y=10;
     const logoDataUrl=await getPdfLogoDataUrl();
@@ -462,14 +462,14 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     y+=41;
 
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments, with Grade 4–5 using Opener and End-Term as distinct assessment slots.");
-    const cols=[M,M+50,M+76,M+102,M+128,M+153,M+169], widths=[48,24,24,24,21,16,31];
+    const cols=[M,M+43,M+68,M+93,M+118,M+135,M+152], widths=[43,25,25,25,17,17,38];
     doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
     [gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"LEARNING AREA":"LEARNING AREA",gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
     ls.forEach((l,i)=>{
-      const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[4]-6);
+      const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[6]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
       const rowH=Math.max(9,Math.max(nameLines.length,remarkLines.length)*4+4);
-      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);["LEARNING AREA","SCORE","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,j)=>doc.text(h,cols[j]+3,y+5.3));y+=8;}
+      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(6.7);["LEARNING AREA",b==="UPPER_PRIMARY"&&[4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,j)=>doc.text(h,cols[j]+2,y+5.3));y+=8;}
       if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,CW,rowH,"F");}
       doc.setDrawColor(205,214,224);doc.rect(M,y,CW,rowH);
       doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(nameLines,cols[0]+3,y+5);
@@ -481,6 +481,12 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[5]+3,y+5);
       doc.setFont("helvetica","normal");doc.text(remarkLines,cols[6]+3,y+5);y+=rowH;
     });
+    if(!reportComplete){
+      const warning="INCOMPLETE REPORT — Required marks are missing for: "+ls.filter(l=>l.percentage==null).map(l=>l.name).join(", ")+". Overall average is withheld; complete and verify marks before issuing this report.";
+      const warningLines=doc.splitTextToSize(warning,CW-10), warningH=Math.max(12,warningLines.length*3.5+6);
+      if(y+warningH>bottom-25){doc.addPage();y=12;}
+      doc.setFillColor(255,244,214);doc.setDrawColor(216,155,40);doc.roundedRect(M,y,CW,warningH,1.5,1.5,"FD");doc.setTextColor(115,72,0);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(warningLines,M+5,y+5);y+=warningH+3;
+    }
     const totalH=14;
     if(y+totalH>bottom-35){doc.addPage();y=12;}
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
