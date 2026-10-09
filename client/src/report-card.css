@@ -126,3 +126,14 @@
   .level-pill{min-width:0!important;padding:2px 3px!important;font-size:6.5px!important}
   .report-table-wrap td:nth-child(4){text-align:right}
 }
+
+
+/* Ensure the school name, report-card title and term/year remain clearly visible
+   in browser preview, browser print and html2canvas/jsPDF rendering. */
+.report-hero > div:not(.report-logo-slot):not(.report-badge){display:block!important;flex:1 1 auto;min-width:0;position:relative;z-index:1}
+.report-hero .report-eyebrow{display:block!important;visibility:visible!important;color:#fff!important;opacity:1!important;font-size:16px!important;line-height:1.25!important;font-weight:900!important}
+.report-hero h2{display:block!important;visibility:visible!important;color:#fff!important;opacity:1!important;font-size:20px!important;line-height:1.25!important;font-weight:900!important;margin:7px 0 3px!important;text-transform:uppercase!important;letter-spacing:.035em!important;white-space:normal!important;overflow:visible!important}
+.report-hero p{display:block!important;visibility:visible!important;color:#fff!important;opacity:1!important;font-size:11px!important;line-height:1.3!important;margin:0!important}
+@media print{
+  .report-hero .report-eyebrow,.report-hero h2,.report-hero p{display:block!important;visibility:visible!important;color:#fff!important;opacity:1!important;-webkit-text-fill-color:#fff!important}
+}
