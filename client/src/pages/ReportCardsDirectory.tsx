@@ -224,11 +224,13 @@ function assessmentSummary(rows: Row[], ecde = false) {
   for (const row of rows) {
     const type = assessmentSlot(row);
     if (!type) continue;
-    const id = String(row.exams?.id ?? row.exam_id ?? "");
+    const exam = examOf(row);
+    const id = String(exam.id ?? row.exam_id ?? "");
     if (!id) continue;
     const previous = byType.get(type);
-    const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
-    const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
+    const currentDate = String(exam.ends_on ?? exam.starts_on ?? "");
+    const previousExam = previous ? examOf(previous) : {};
+    const previousDate = String(previousExam.ends_on ?? previousExam.starts_on ?? "");
     if (!previous || currentDate >= previousDate) byType.set(type, row);
   }
   return [...byType.values()].sort((a,b) => examTypeRank(examOf(a).exam_type) - examTypeRank(examOf(b).exam_type));
