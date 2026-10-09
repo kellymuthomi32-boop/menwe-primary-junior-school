@@ -113,7 +113,22 @@ const upperScienceComponent = (s: Row) =>
 function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false): ReportSubject[] {
   const canonical = canonicalSubjects(subjects, band);
 
-  if (band === "ECDE") return sortSubjects(canonical.filter(s => /^PP-/.test(String(s.code))));
+  if (band === "ECDE") {
+    const isPP1 = subjects.some(s => /\\bPP1\\b/i.test(`${s.class_name ?? ""} ${s.class_code ?? ""}`));
+    const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)));
+    if (!isPP1) return sortSubjects(ppAreas);
+    const env = ppAreas.find(s => s.code === "PP-ENV");
+    const cre = ppAreas.find(s => s.code === "PP-CRE");
+    const merged: ReportSubject[] = ppAreas.filter(s => s.code !== "PP-CRE");
+    if (env && cre) {
+      const index = merged.findIndex(s => s.id === env.id);
+      if (index >= 0) merged[index] = { ...env, name: "Environmental and Religious Activities", code: "PP-ENV-CRE", synthetic: true, componentIds: [env.id, cre.id] };
+    } else if (env) {
+      const index = merged.findIndex(s => s.id === env.id);
+      if (index >= 0) merged[index] = { ...env, name: "Environmental and Religious Activities", code: "PP-ENV-CRE", synthetic: true };
+    }
+    return sortSubjects(merged);
+  }
 
   if (band === "LOWER_PRIMARY") {
     // Menwe Lower Primary report cards use exactly four learning areas:
