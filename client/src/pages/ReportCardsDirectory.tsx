@@ -4,6 +4,7 @@
 import { FileDown, Loader2, Printer, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { getSupabase } from "@/lib/supabase";
 import { persistReportCardWithItems } from "@/lib/reportCardPersistence";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -567,30 +568,14 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   };
   const print=()=>window.print();
 
-  const ensureHtml2Canvas=async()=>{
-    const existing=(window as any).html2canvas;
-    if(existing)return existing;
-    await new Promise<void>((resolve,reject)=>{
-      const script=document.createElement("script");
-      script.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      script.async=true;
-      script.onload=()=>resolve();
-      script.onerror=()=>reject(new Error("The PDF rendering engine could not be loaded. Please check your internet connection and try again."));
-      document.head.appendChild(script);
-    });
-    const renderer=(window as any).html2canvas;
-    if(!renderer)throw new Error("The PDF rendering engine loaded without exposing html2canvas.");
-    return renderer;
-  };
-
   const downloadPdf=async()=>{
     if(!selected||!classRow)return;
     const source=document.querySelector(".report-card-print") as HTMLElement|null;
     if(!source){setMessage("Generate the learner report first, then download the PDF.");return;}
     setBusy(true);setMessage("");
     let clone:HTMLElement|null=null;
+    const previousHtml2Canvas=(window as any).html2canvas;
     try{
-      await ensureHtml2Canvas();
       clone=source.cloneNode(true) as HTMLElement;
       clone.querySelectorAll(".no-print").forEach(el=>el.remove());
       clone.style.width="794px";
@@ -610,6 +595,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       });
       document.body.appendChild(clone);
 
+      // Use the bundled renderer instead of loading executable code from a third-party CDN.
+      (window as any).html2canvas=html2canvas;
       const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
       await new Promise<void>((resolve,reject)=>{
         doc.html(clone!,{
@@ -625,6 +612,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     }catch(e){
       setMessage(e instanceof Error?e.message:"PDF generation failed. Use Print → Save as PDF while the renderer is retried.");
     }finally{
+      if(previousHtml2Canvas===undefined) delete (window as any).html2canvas;
+      else (window as any).html2canvas=previousHtml2Canvas;
       if(clone?.parentNode)clone.parentNode.removeChild(clone);
       setBusy(false);
     }
