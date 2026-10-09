@@ -458,13 +458,13 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     });
     doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text("ASSESSMENTS",M+5,y+32);
     doc.setTextColor(16,42,67);doc.setFont("helvetica","normal");doc.setFontSize(7.5);
-    addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${assessmentLabel(a,classRow ?? undefined)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
+    addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${b==="ECDE"?"Assessment":assessmentLabel(a,cls)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
     y+=41;
 
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments, with Grade 4–5 using Opener and End-Term as distinct assessment slots.");
     const cols=[M,M+43,M+68,M+93,M+118,M+135,M+152], widths=[43,25,25,25,17,17,38];
     doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
-    [gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"LEARNING AREA":"LEARNING AREA",gradeFromClass(classRow ?? undefined)===4||gradeFromClass(classRow ?? undefined)===5?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
+    [ "LEARNING AREA",b==="ECDE"?"ASSESSMENT":([4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1"),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
     ls.forEach((l,i)=>{
       const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[6]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
@@ -490,7 +490,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const totalH=14;
     if(y+totalH>bottom-35){doc.addPage();y=12;}
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
-    const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],["MEAN AVERAGE",avg==null?"—":avg.toFixed(1)+"%"],["CLASS RANK",studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
+    const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],[b==="ECDE"?"AVERAGE ACHIEVEMENT":"MEAN AVERAGE",b==="ECDE"?(ls.length?`${(pts/ls.length).toFixed(1)} / 4`:"—"):(avg==null?"—":avg.toFixed(1)+"%")],["CLASS RANK",b==="ECDE"?"Not ranked":studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
     metrics.forEach((m,i)=>{const x=M+4+i*47;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text(m[0],x,y+5);doc.setTextColor(6,18,41);doc.setFontSize(10.5);doc.text(m[1],x,y+11);});y+=20;
 
     sectionTitle("02","Comments & Guidance","For the learner and parent/guardian.");
