@@ -51,6 +51,9 @@
 .signature-line{height:20px;border-bottom:1px solid var(--rc-navy);margin-top:7px}
 .report-footer small{display:block;margin-top:3px;color:#738294;font-size:7px}.footer-note{text-align:center}.footer-note strong{display:block;color:var(--rc-navy);font-size:9px}.footer-note small{line-height:1.35}
 @media print{
+  body *{visibility:hidden!important}
+  .report-card-print,.report-card-print *{visibility:visible!important}
+  .report-card-print{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important}
   html,body{background:#fff!important;height:auto!important;min-height:0!important}
   body{margin:0!important}
   .no-print{display:none!important}
