@@ -110,11 +110,11 @@ const upperCreativeComponent = (s: Row) =>
 const upperScienceComponent = (s: Row) =>
   is(s, /\b(AGRICULTURE|HOME SCIENCE|HSC|INFORMATION COMMUNICATION TECHNOLOGY|ICT|COMPUTER)\b/);
 
-function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false): ReportSubject[] {
+function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false, className = ""): ReportSubject[] {
   const canonical = canonicalSubjects(subjects, band);
 
   if (band === "ECDE") {
-    const isPP1 = subjects.some(s => /\\bPP1\\b/i.test(`${s.class_name ?? ""} ${s.class_code ?? ""}`));
+    const isPP1 = /\\bPP1\\b/i.test(className);
     const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)));
     if (!isPP1) return sortSubjects(ppAreas);
     const env = ppAreas.find(s => s.code === "PP-ENV");
@@ -370,7 +370,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   },[storageKey,selectionRestored,studentId,yearId,termId,mode,batchClassId]);
 
   const visibleTerms=useMemo(()=>terms.filter(t=>!yearId||String(t.academic_year_id)===yearId),[terms,yearId]);
-  const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const includeUpperCRE=band==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(classRow??undefined) ?? 0); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band,includeUpperCRE),[allSubjects,band,includeUpperCRE]);
+  const selected=students.find(s=>String(s.id)===studentId); const selectedYear=years.find(y=>String(y.id)===yearId); const selectedTerm=terms.find(t=>String(t.id)===termId); const band=bandFromClass(classRow??undefined); const includeUpperCRE=band==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(classRow??undefined) ?? 0); const reportSubjects=useMemo(()=>reportAreasForBand(allSubjects,band,includeUpperCRE,String(classRow?.name ?? classRow?.code ?? "")),[allSubjects,band,includeUpperCRE,classRow?.name,classRow?.code]);
   const assessments=useMemo(()=>assessmentSummary(results,band==="ECDE"),[results,band]);
   const lines=useMemo(()=>reportSubjects.map(s=>mode==="annual"?annualLineFor(s,results,band==="ECDE"):lineFor(s,results,band==="ECDE")),[reportSubjects,results,band,mode]);
   const totalMarks=useMemo(()=>lines.reduce((n,l)=>n+(l.score??0),0),[lines]); const totalMax=useMemo(()=>lines.reduce((n,l)=>n+(l.max??0),0),[lines]); const reportComplete=lines.length>0&&lines.every(l=>l.percentage!=null); const incompleteAreas=lines.filter(l=>l.percentage==null).map(l=>l.name); const average=reportComplete&&totalMax?totalMarks/totalMax*100:null; const totalPoints=lines.reduce((n,l)=>n+(l.level??0),0);
@@ -392,7 +392,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(q.error)throw q.error;
       const normalizedResults = mode === "term" ? (bandFromClass(cls.data ?? undefined) === "ECDE" ? (q.data ?? []) : canonicalTermResults(q.data ?? [])) : (q.data ?? []);
       setResults(normalizedResults);
-      const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined),bandFromClass(cls.data??undefined)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0));
+      const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined),bandFromClass(cls.data??undefined)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
       if(mode==="term"){const rc=await db.from("report_cards").select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").eq("student_id",studentId).eq("term_id",termId).maybeSingle();if(rc.error)throw rc.error;if(rc.data){setReport(rc.data);setTeacherRemark(rc.data.teacher_remark??"");setHeadRemark(rc.data.headteacher_remark??"");}}
@@ -457,7 +457,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   const drawPdfPage=async(doc:any,student:Row,cls:Row,subjectRows:Row[],studentResults:Row[],studentAttendance:Row[],studentRank:number|null,teacher:string,head:string)=>{
     // PDF is laid out independently from the browser preview so downloaded files
     // contain the same information without clipped, crowded or overlapping text.
-    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0)), ls=areas.map(x=>lineFor(x,studentResults,b==="ECDE"));
+    const b=bandFromClass(cls), areas=reportAreasForBand(subjectRows,b,b==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls) ?? 0),String(cls.name ?? cls.code ?? "")), ls=areas.map(x=>lineFor(x,studentResults,b==="ECDE"));
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), reportComplete=ls.length>0&&ls.every(l=>l.percentage!=null), avg=reportComplete&&mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     const W=210, M=10, CW=W-M*2, bottom=287;
     let y=10;
@@ -656,7 +656,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}
 
       const subjects=batchSubjects;
-      const reportAreas=reportAreasForBand(subjects,bandFromClass(selectedBatchClass),bandFromClass(selectedBatchClass)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(selectedBatchClass) ?? 0));
+      const reportAreas=reportAreasForBand(subjects,bandFromClass(selectedBatchClass),bandFromClass(selectedBatchClass)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(selectedBatchClass) ?? 0),String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
       const standings=ids.map(id=>{
         const ls=reportAreas.map(x=>lineFor(x,groups.get(id)??[],bandFromClass(selectedBatchClass)==="ECDE"));
         return{id,marks:ls.reduce((n,l)=>n+(l.score??0),0),points:ls.reduce((n,l)=>n+(l.level??0),0)};
