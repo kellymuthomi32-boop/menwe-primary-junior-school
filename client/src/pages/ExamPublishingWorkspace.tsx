@@ -444,11 +444,12 @@ export default function ExamPublishingWorkspace() {
           .maybeSingle();
         if (current.error) throw current.error;
         if (!current.data) throw new Error("No current examination is available for this class.");
-        if (current.data.status === "PUBLISHED") throw new Error("This examination is published and locked.");
-        const retryMaximum = Number(current.data.maximum_score);
+        const currentExam = current.data;
+        if (currentExam.status === "PUBLISHED") throw new Error("This examination is published and locked.");
+        const retryMaximum = Number(currentExam.maximum_score);
         const retryData = data.map(row => ({
           ...row,
-          exam_id: String(current.data.id),
+          exam_id: String(currentExam.id),
           maximum_score: retryMaximum,
           grade: levelFromScore(row.score, retryMaximum),
         }));

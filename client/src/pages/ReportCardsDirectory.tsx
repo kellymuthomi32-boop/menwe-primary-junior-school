@@ -317,9 +317,15 @@ function annualLineFor(subject: ReportSubject, results: Row[], ecde = false): Re
   }
   const percentage = termLines.reduce((sum, line) => sum + (line.percentage ?? 0), 0) / termLines.length;
   const ach = achievement(percentage, subject.code.startsWith("PP-"));
+  // Annual reports still show the underlying assessment columns. When the
+  // year contains multiple terms, aggregate each assessment slot across the
+  // year rather than discarding the values and rendering "Not taken".
+  const annualExam1 = aggregate(results.filter(r => assessmentSlot(r) === "EXAM 1"), subject.componentIds?.length ? subject.componentIds : [subject.id]);
+  const annualEndTerm = aggregate(results.filter(r => assessmentSlot(r) === "ENDTERM"), subject.componentIds?.length ? subject.componentIds : [subject.id]);
   return { ...subject, score: percentage, max: 100, percentage,
     level: ach?.level ?? null, levelCode: ach?.code ?? "—", remark: ach?.remark ?? "Annual performance",
-    exam1Score: null, exam1Max: null, endTermScore: null, endTermMax: null };
+    exam1Score: annualExam1?.score ?? null, exam1Max: annualExam1?.max ?? null,
+    endTermScore: annualEndTerm?.score ?? null, endTermMax: annualEndTerm?.max ?? null };
 }
 function attendancePercent(rows: Row[]) {
   const total=rows.length; if(!total)return null;
