@@ -511,7 +511,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments, with Grades 1–6 using Opener and End-Term as distinct assessment slots.");
     const cols=b==="ECDE"?[M,M+65,M+90,M+108,M+128]:[M,M+43,M+68,M+93,M+118,M+135,M+152];
     const widths=b==="ECDE"?[65,25,18,20,62]:[43,25,25,25,17,17,38];
-    const tableHeaders=b==="ECDE"?["LEARNING AREA","END-TERM","%","LEVEL","TEACHER INTERPRETATION"]:["LEARNING AREA",([4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1"),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"];
+    const tableHeaders=b==="ECDE"?["LEARNING AREA","END-TERM","%","LEVEL","TEACHER INTERPRETATION"]:["LEARNING AREA",((gradeFromClass(cls)??99)>=1&&(gradeFromClass(cls)??99)<=6?"OPENER":"EXAM 1"),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"];
     const drawTableHeader=()=>{doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(b==="ECDE"?7.2:6.7);tableHeaders.forEach((h,i)=>doc.text(h,cols[i]+2,y+5.3));y+=8;};
     drawTableHeader();
     ls.forEach((l,i)=>{
