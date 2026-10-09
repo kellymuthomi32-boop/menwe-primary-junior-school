@@ -114,7 +114,7 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
   const canonical = canonicalSubjects(subjects, band);
 
   if (band === "ECDE") {
-    const isPP1 = /\\bPP1\\b/i.test(className);
+    const isPP1 = /\bPP1\b/i.test(className);
     const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)));
     if (!isPP1) return sortSubjects(ppAreas);
     const env = ppAreas.find(s => s.code === "PP-ENV");
