@@ -200,14 +200,17 @@ export default function ExamPublishingWorkspace() {
   }, [selectedExam?.id, selectedExam?.class_id, subjectId, assignments, classSubjects, admin]);
   const selectedExamClass = classes.find(c => String(c.id) === String(selectedExam?.class_id));
   const selectedExamIsEcde = isEcdeClass(selectedExamClass);
+  const selectedIsPP1 = selectedExamIsEcde && /\bPP1\b/i.test(`${selectedExamClass?.name ?? ""} ${selectedExamClass?.code ?? ""}`);
   const mappedSubjectIds = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
   const assignedSubjectIds = teacher ? assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)) : [];
-  // A valid teacher assignment must remain usable even if the class-subject mapping is stale.
-  const requiredSubjects = [...new Set([...mappedSubjectIds, ...assignedSubjectIds])];
+  // PP1 enters one mark for the merged Environmental + CRE learning area.
+  // Keep CRE mapped for reports to read legacy marks, but do not require a separate mark.
+  const mergedCREIds = new Set(subjects.filter(s => selectedIsPP1 && s.code === "PP-CRE").map(s => String(s.id)));
+  const requiredSubjects = [...new Set([...mappedSubjectIds, ...assignedSubjectIds])].filter(id => !mergedCREIds.has(id));
   const availableSubjectIds = new Set(assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)));
   const availableSubjects = subjects
     .filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || availableSubjectIds.has(String(s.id))))
-    .map(s => selectedExamIsEcde && /\bPP1\b/i.test(`${selectedExamClass?.name ?? ""} ${selectedExamClass?.code ?? ""}`) && s.code === "PP-ENV"
+    .map(s => selectedIsPP1 && s.code === "PP-ENV"
       ? { ...s, name: "Environmental and Religious Activities" }
       : s);
 
