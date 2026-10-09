@@ -46,10 +46,19 @@ function gradeFromClass(c?: Row) {
   const m = raw.match(/(?:GRADE|CLASS|STD|STANDARD|G)\s*([1-9])/);
   return m ? Number(m[1]) : null;
 }
-function assessmentLabel(row: Row, c?: Row) {
+function assessmentSlot(row: Row): "EXAM 1" | "ENDTERM" | null {
   const type = normalize(row.exams?.exam_type);
-  if (type === "EXAM 1" && (gradeFromClass(c) ?? 99) >= 1 && (gradeFromClass(c) ?? 99) <= 6) return "Opener";
-  return type === "ENDTERM" ? "End-Term" : type === "EXAM 1" ? "Exam 1" : String(row.exams?.name ?? "Assessment");
+  const name = normalize(row.exams?.name);
+  if (["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"].includes(type) ||
+      ["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"].includes(name)) return "EXAM 1";
+  if (["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"].includes(type) ||
+      ["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"].includes(name)) return "ENDTERM";
+  return null;
+}
+function assessmentLabel(row: Row, c?: Row) {
+  const slot = assessmentSlot(row);
+  if (slot === "EXAM 1" && (gradeFromClass(c) ?? 99) >= 1 && (gradeFromClass(c) ?? 99) <= 6) return "Opener";
+  return slot === "ENDTERM" ? "End-Term" : slot === "EXAM 1" ? "Exam 1" : String(row.exams?.name ?? "Assessment");
 }
 
 function bandFromClass(c?: Row): Band {
