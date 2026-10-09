@@ -558,8 +558,12 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const totalH=14;
     if(y+totalH>bottom-35){doc.addPage();y=12;}
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
-    const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],[b==="ECDE"?"AVERAGE ACHIEVEMENT":"MEAN AVERAGE",b==="ECDE"?(ls.length?`${(pts/ls.length).toFixed(1)} / 4`:"—"):(avg==null?"—":avg.toFixed(1)+"%")],["CLASS RANK",b==="ECDE"?"Not ranked":studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
-    metrics.forEach((m,i)=>{const x=M+4+i*47;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.text(m[0],x,y+5);doc.setTextColor(6,18,41);doc.setFontSize(10.5);doc.text(m[1],x,y+11);});y+=20;
+    const overallAchievement=avg==null?null:achievement(avg,b==="ECDE");
+    const overallBand=b==="ECDE"
+      ? (overallAchievement?.code==="EE"?"Exceeding Expectations":overallAchievement?.code==="ME"?"Meeting Expectations":overallAchievement?.code==="AE"?"Approaching Expectations":overallAchievement?.code==="BE"?"Below Expectations":"—")
+      : (overallAchievement?.level!=null?(overallAchievement.level>=7?"Above Average":overallAchievement.level>=5?"Average":"Below Average"):"—");
+    const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],[b==="ECDE"?"AVERAGE ACHIEVEMENT":"MEAN AVERAGE",b==="ECDE"?(ls.length?`${(pts/ls.length).toFixed(1)} / 4`:"—"):(avg==null?"—":avg.toFixed(1)+"%")],["OVERALL LEVEL",overallAchievement?(b==="ECDE"?`${overallAchievement.code} • ${overallBand}`:`${overallAchievement.code} / Level ${overallAchievement.level} • ${overallBand}`):"—"],["CLASS RANK",b==="ECDE"?"Not ranked":studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
+    metrics.forEach((m,i)=>{const x=M+3+i*(CW/metrics.length);const cellW=CW/metrics.length-5;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.2);addText(m[0],x,y+5,cellW,6.2);doc.setTextColor(6,18,41);doc.setFontSize(i===2?7.2:9);addText(m[1],x,y+11,cellW,i===2?7.2:9);});y+=20;
 
     sectionTitle("02","Comments & Guidance","For the learner and parent/guardian.");
     const boxes=[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]];
@@ -579,51 +583,17 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
 
   const downloadPdf=async()=>{
     if(!selected||!classRow)return;
-    const source=document.querySelector(".report-card-print") as HTMLElement|null;
-    if(!source){setMessage("Generate the learner report first, then download the PDF.");return;}
     setBusy(true);setMessage("");
-    let clone:HTMLElement|null=null;
-    const previousHtml2Canvas=(window as any).html2canvas;
     try{
-      clone=source.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll(".no-print").forEach(el=>el.remove());
-      clone.style.width="794px";
-      clone.style.maxWidth="794px";
-      clone.style.margin="0";
-      clone.style.overflow="visible";
-      clone.style.boxShadow="none";
-      clone.style.borderRadius="0";
-      clone.style.background="#ffffff";
-      clone.style.position="absolute";
-      clone.style.left="-100000px";
-      clone.style.top="0";
-      clone.style.visibility="visible";
-      clone.querySelectorAll("*").forEach((el:any)=>{
-        el.style.breakInside="auto";
-        el.style.pageBreakInside="auto";
-      });
-      document.body.appendChild(clone);
-
-      // Use the bundled renderer instead of loading executable code from a third-party CDN.
-      (window as any).html2canvas=html2canvas;
+      // Use the same explicit PDF layout as class-batch reports. This avoids
+      // browser HTML-to-canvas scaling that can clip columns or hide level badges.
       const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
-      await new Promise<void>((resolve,reject)=>{
-        doc.html(clone!,{
-          x:8,y:8,width:194,windowWidth:794,
-          margin:[8,8,8,8],
-          autoPaging:"text",
-          html2canvas:{scale:2,useCORS:true,allowTaint:false,backgroundColor:"#ffffff",logging:false,scrollX:0,scrollY:0},
-          callback:(pdf:any)=>{pdf.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));resolve();}
-        });
-        setTimeout(()=>reject(new Error("PDF generation timed out. The report is still available through Print → Save as PDF.")),30000);
-      });
-      setMessage("PDF downloaded using the same complete report-card content shown on screen and in Print.");
+      await drawPdfPage(doc,selected,classRow,allSubjects,results,attendance,rank,teacherRemark,headRemark);
+      doc.save(reportFilename(selected,classRow.name,mode==="term"?selectedTerm?.name:"Annual"));
+      setMessage("PDF downloaded with the full learning-area table, achievement levels and overall performance interpretation.");
     }catch(e){
-      setMessage(e instanceof Error?e.message:"PDF generation failed. Use Print → Save as PDF while the renderer is retried.");
+      setMessage(e instanceof Error?e.message:"PDF generation failed. Please use Print → Save as PDF.");
     }finally{
-      if(previousHtml2Canvas===undefined) delete (window as any).html2canvas;
-      else (window as any).html2canvas=previousHtml2Canvas;
-      if(clone?.parentNode)clone.parentNode.removeChild(clone);
       setBusy(false);
     }
   };
@@ -722,7 +692,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       <div className="report-identity"><div><span>Learner</span><strong>{fullName}</strong></div><div><span>Admission No.</span><strong>{selected.admission_number??"—"}</strong></div><div><span>Class</span><strong>{classRow.name??classRow.code??"—"}</strong></div><div><span>Year</span><strong>{selectedYear?.name??"—"}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div>
       {!reportComplete?<div className="mx-3 mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900" role="alert">INCOMPLETE REPORT — Missing or incomplete results for: {incompleteAreas.join(", ")||"required learning areas"}. The overall average is withheld. Enter and verify the missing marks before printing or issuing this report.</div>:null}
       <div className="report-body"><section className="report-section"><div className="report-section-head"><span>01</span><div><h3>Assessments Included</h3><p>{band === "ECDE" ? "This ECDE report card uses End-Term results only. Achievement is reported using EE, ME, AE and BE rather than conventional examination grades." : (gradeFromClass(classRow) ?? 99) >= 1 && (gradeFromClass(classRow) ?? 99) <= 6 ? "This primary-school term report contains exactly two assessment slots: Opener and End-Term. Opener and End-Term scores are shown separately; Combined is their average percentage on a 0–100 scale." : "This term report contains exactly two official assessment slots: Exam 1 and End-Term. Both assessment scores are shown separately; Combined is their average percentage on a 0–100 scale."}</p></div></div><div className="summary-grid">{assessments.map((a,i)=><div key={String(examOf(a).id??a.exam_id)}><span>{band==="ECDE"?"End-Term":assessmentLabel(a,classRow)}</span><strong>{band==="ECDE"?"End-Term":assessmentLabel(a,classRow)}</strong><small className="block mt-1 text-xs text-[#718178]">{String(examOf(a).starts_on??"")} {examOf(a).ends_on&&examOf(a).ends_on!==examOf(a).starts_on?`– ${examOf(a).ends_on}`:""}</small></div>)}</div></section><section className="report-section"><div className="report-section-head"><span>02</span><div><h3>Learning Area Performance</h3><p>{band === "ECDE" ? "Learning areas follow the assessment areas configured for Menwe. End-Term results only. Each recorded level is interpreted as EE, ME, AE or BE." : (gradeFromClass(classRow) ?? 99) >= 1 && (gradeFromClass(classRow) ?? 99) <= 6 ? "Learning areas mirror the class marksheet. The combined score averages Opener and End-Term percentages on a 0–100 scale; both assessment scores remain visible." : "Learning areas mirror the class marksheet. The combined score averages Exam 1 and End-Term percentages on a 0–100 scale; both assessment scores remain visible."}</p></div></div><div className="report-table-wrap"><table><thead><tr><th>Learning Area</th>{band==="ECDE"?<th>End-Term</th>:<><th>{assessmentColumnLabel(classRow)}</th><th>End-Term</th><th>Combined</th></>}<th>%</th><th>Level</th><th>Teacher Interpretation</th></tr></thead><tbody>{lines.map(l=><tr key={l.id}><td><strong>{l.name}</strong><small>{l.code}{l.synthetic?" • Combined report area":""}</small></td>{band==="ECDE"?<td className="score">{l.endTermScore==null?"Not taken":`${fmt(l.endTermScore)} / ${fmt(l.endTermMax)}`}</td>:<><td className="score">{l.exam1Score==null?"Not taken":`${fmt(l.exam1Score)} / ${fmt(l.exam1Max)}`}</td><td className="score">{l.endTermScore==null?"Not taken":`${fmt(l.endTermScore)} / ${fmt(l.endTermMax)}`}</td><td className="score">{fmt(l.score)} / {fmt(l.max)}</td></>}<td className="score">{l.percentage==null?"—":`${l.percentage.toFixed(1)}%`}</td><td className="score"><span className={`level-pill level-${l.levelCode.slice(0,2).toLowerCase()}`}>{l.levelCode}{l.level!=null?` • ${l.level}`:""}</span></td><td>{l.remark}</td></tr>)}</tbody><tfoot><tr><td>Total / Overall</td>{band==="ECDE"?<td>{fmt(lines.reduce((n,l)=>n+(l.endTermScore??0),0))} / {fmt(lines.reduce((n,l)=>n+(l.endTermMax??0),0)||null)}</td>:<><td>{fmt(lines.reduce((n,l)=>n+(l.exam1Score??0),0))} / {fmt(lines.reduce((n,l)=>n+(l.exam1Max??0),0)||null)}</td><td>{fmt(lines.reduce((n,l)=>n+(l.endTermScore??0),0))} / {fmt(lines.reduce((n,l)=>n+(l.endTermMax??0),0)||null)}</td><td>{fmt(totalMarks)} / {fmt(totalMax||null)}</td></>}<td>{average==null?"—":`${average.toFixed(1)}%`}</td><td>{band==="JUNIOR_SCHOOL"?`${totalPoints} points`:band==="ECDE"?`${totalPoints} / ${lines.length*4} points`:`Rank ${rank??"—"}`}</td><td>{band==="JUNIOR_SCHOOL"?`Rank ${rank??"—"} • Junior School ranks by Total Points.`:band==="ECDE"?"ECDE learners are not ranked; the report focuses on competency achievement.":"Ranks by Total Marks. Missing assessments are not treated as zero."}</td></tr></tfoot></table></div></section>
-        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and parent/guardian.</p></div></div><div className="summary-grid"><div><span>Combined Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>{band==="ECDE"?"Average Achievement":"Average"}</span><strong>{band==="ECDE"?(lines.length?`${(totalPoints/lines.length).toFixed(1)} / 4`:(average==null?"—":`${average.toFixed(1)}%`)):average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"||band==="ECDE"?totalPoints:"Not used"}</strong></div><div><span>{rankLabel}</span><strong>{band==="ECDE"?"Not ranked":rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
+        <section className="report-section"><div className="report-section-head"><span>03</span><div><h3>Performance Summary</h3><p>Key information for the learner and parent/guardian.</p></div></div><div className="summary-grid"><div><span>Combined Marks</span><strong>{fmt(totalMarks)} / {fmt(totalMax||null)}</strong></div><div><span>{band==="ECDE"?"Average Achievement":"Average"}</span><strong>{band==="ECDE"?(lines.length?`${(totalPoints/lines.length).toFixed(1)} / 4`:(average==null?"—":`${average.toFixed(1)}%`)):average==null?"—":`${average.toFixed(1)}%`}</strong></div><div><span>Total Points</span><strong>{band==="JUNIOR_SCHOOL"||band==="ECDE"?totalPoints:"Not used"}</strong></div><div><span>Overall Level</span><strong>{average==null?"—":band==="ECDE"?`${achievement(average,true)?.code??"—"} • ${achievement(average,true)?.remark??"Incomplete"}`:`${achievement(average)?.code??"—"} • Level ${achievement(average)?.level??"—"} • ${(achievement(average)?.level??0)>=7?"Above Average":(achievement(average)?.level??0)>=5?"Average":"Below Average"}`}</strong></div><div><span>{rankLabel}</span><strong>{band==="ECDE"?"Not ranked":rank==null?"—":rank}</strong></div><div><span>Attendance</span><strong>{attendancePercent(attendance)==null?"—":`${attendancePercent(attendance)!.toFixed(1)}%`}</strong></div></div></section>
         <section className="report-section"><div className="report-section-head"><span>04</span><div><h3>Comments & Guidance</h3><p>Professional guidance for the learner and parent/guardian.</p></div></div><div className="report-comment-grid"><div><label>Teacher's remark</label><div className="comment-box">{teacherRemark||"No teacher remark entered."}</div></div><div><label>Headteacher's remark</label><div className="comment-box">{headRemark||"No headteacher remark entered."}</div></div></div></section>
         {admin&&mode==="term"?<section className="report-section no-print"><div className="grid gap-3 md:grid-cols-2"><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Teacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={teacherRemark} onChange={e=>setTeacherRemark(e.target.value)}/></label><label className="text-xs font-black uppercase tracking-wider text-[#587064]">Headteacher's remark<textarea className="mt-2 min-h-24 w-full rounded-xl border border-[#D7E5DC] bg-white p-3 text-sm font-semibold text-[#17352A] outline-none focus:border-[#D7A52A]" value={headRemark} onChange={e=>setHeadRemark(e.target.value)}/></label></div><button onClick={save} disabled={saving} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#D7A52A] px-4 text-sm font-black text-[#17352A]">{saving?<Loader2 className="h-4 w-4 animate-spin"/>:<Save className="h-4 w-4"/>}Save report card</button></section>:null}
       </div>
