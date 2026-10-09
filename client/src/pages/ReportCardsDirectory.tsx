@@ -4,7 +4,6 @@
 import { FileDown, Loader2, Printer, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { getSupabase } from "@/lib/supabase";
 import { persistReportCardWithItems } from "@/lib/reportCardPersistence";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -555,7 +554,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(y+warningH>bottom-25){doc.addPage();y=12;}
       doc.setFillColor(255,244,214);doc.setDrawColor(216,155,40);doc.roundedRect(M,y,CW,warningH,1.5,1.5,"FD");doc.setTextColor(115,72,0);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(warningLines,M+5,y+5);y+=warningH+3;
     }
-    const totalH=14;
+    const totalH=18;
     if(y+totalH>bottom-35){doc.addPage();y=12;}
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
     const overallAchievement=avg==null?null:achievement(avg,b==="ECDE");
@@ -563,7 +562,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       ? (overallAchievement?.code==="EE"?"Exceeding Expectations":overallAchievement?.code==="ME"?"Meeting Expectations":overallAchievement?.code==="AE"?"Approaching Expectations":overallAchievement?.code==="BE"?"Below Expectations":"—")
       : (overallAchievement?.level!=null?(overallAchievement.level>=7?"Above Average":overallAchievement.level>=5?"Average":"Below Average"):"—");
     const metrics=[["TOTAL MARKS",`${fmt(tm)} / ${fmt(mx||null)}`],[b==="ECDE"?"AVERAGE ACHIEVEMENT":"MEAN AVERAGE",b==="ECDE"?(ls.length?`${(pts/ls.length).toFixed(1)} / 4`:"—"):(avg==null?"—":avg.toFixed(1)+"%")],["OVERALL LEVEL",overallAchievement?(b==="ECDE"?`${overallAchievement.code} • ${overallBand}`:`${overallAchievement.code} / Level ${overallAchievement.level} • ${overallBand}`):"—"],["CLASS RANK",b==="ECDE"?"Not ranked":studentRank==null?"—":String(studentRank)],["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
-    metrics.forEach((m,i)=>{const x=M+3+i*(CW/metrics.length);const cellW=CW/metrics.length-5;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.2);addText(m[0],x,y+5,cellW,6.2);doc.setTextColor(6,18,41);doc.setFontSize(i===2?7.2:9);addText(m[1],x,y+11,cellW,i===2?7.2:9);});y+=20;
+    metrics.forEach((m,i)=>{const x=M+3+i*(CW/metrics.length);const cellW=CW/metrics.length-5;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.2);addText(m[0],x,y+4,cellW,6.2);doc.setTextColor(6,18,41);doc.setFontSize(i===2?6.6:8.5);addText(m[1],x,y+9,cellW,i===2?6.6:8.5);});y+=24;
 
     sectionTitle("02","Comments & Guidance","For the learner and parent/guardian.");
     const boxes=[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]];
