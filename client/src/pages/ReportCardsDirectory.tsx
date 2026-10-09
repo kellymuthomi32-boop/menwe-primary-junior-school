@@ -166,7 +166,8 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
 
 const examTypeRank = (value: unknown) => {
   const type = normalize(value);
-  return type === "EXAM 1" ? 1 : type === "ENDTERM" ? 2 : 99;
+  return type === "EXAM 1" || type === "OPENER" || type === "OPENING" ? 1 :
+    type === "ENDTERM" || type === "END TERM" ? 2 : 99;
 };
 
 function canonicalTermResults(rows: Row[]) {
@@ -175,8 +176,8 @@ function canonicalTermResults(rows: Row[]) {
   // that type so stale records cannot silently contaminate the report.
   const byType = new Map<string, Row>();
   for (const row of rows) {
-    const type = normalize(row.exams?.exam_type);
-    if (type !== "EXAM 1" && type !== "ENDTERM") continue;
+    const type = assessmentSlot(row);
+    if (!type) continue;
     const id = String(row.exams?.id ?? row.exam_id ?? "");
     if (!id) continue;
     const previous = byType.get(type);
@@ -210,8 +211,8 @@ function assessmentSummary(rows: Row[], ecde = false) {
   }
   const byType = new Map<string, Row>();
   for (const row of rows) {
-    const type = normalize(row.exams?.exam_type);
-    if (type !== "EXAM 1" && type !== "ENDTERM") continue;
+    const type = assessmentSlot(row);
+    if (!type) continue;
     const id = String(row.exams?.id ?? row.exam_id ?? "");
     if (!id) continue;
     const previous = byType.get(type);
@@ -239,13 +240,16 @@ function lineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLi
       remark: p == null ? "No recorded assessment" : (ach?.remark ?? "No recorded result"),
       exam1Score: assessment?.score ?? null, exam1Max: assessment?.max ?? null, endTermScore: null, endTermMax: null };
   }
-  const exam1 = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "EXAM 1"), ids);
-  const endTerm = aggregate(results.filter(r => normalize(r.exams?.exam_type) === "ENDTERM"), ids);
+  const exam1 = aggregate(results.filter(r => assessmentSlot(r) === "EXAM 1"), ids);
+  const endTerm = aggregate(results.filter(r => assessmentSlot(r) === "ENDTERM"), ids);
   // A final term percentage is only valid when both official assessments exist.
   // Never turn a one-assessment record into a fabricated combined result.
   const complete = !!exam1 && !!endTerm && (exam1.max ?? 0) > 0 && (endTerm.max ?? 0) > 0;
+  // Keep each learning area on a 0–100 scale. The combined result is the
+  // mean of the Opener and End-Term percentages, not a misleading /200 total.
   const combined = complete
-    ? { score: (exam1!.score ?? 0) + (endTerm!.score ?? 0), max: (exam1!.max ?? 0) + (endTerm!.max ?? 0), percentage: ((exam1!.score ?? 0) + (endTerm!.score ?? 0)) / ((exam1!.max ?? 0) + (endTerm!.max ?? 0)) * 100 }
+    ? { score: (((exam1!.score ?? 0) / (exam1!.max ?? 1)) * 100 + ((endTerm!.score ?? 0) / (endTerm!.max ?? 1)) * 100) / 2, max: 100,
+        percentage: (((exam1!.score ?? 0) / (exam1!.max ?? 1)) * 100 + ((endTerm!.score ?? 0) / (endTerm!.max ?? 1)) * 100) / 2 }
     : null;
   const p = combined?.percentage ?? null;
   const ach = achievement(p, subject.code.startsWith("PP-"));
