@@ -66,3 +66,60 @@
   .report-table-wrap tr{break-inside:avoid;page-break-inside:avoid}
   .report-logo-slot,.report-logo-slot img{visibility:visible!important;opacity:1!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+
+
+/* Report-card overflow correction: the standard report has seven columns, not five. */
+.report-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.report-table-wrap table{width:100%;min-width:760px;table-layout:fixed}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(1),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(1){width:23%;text-align:left}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(2),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(2){width:12%}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(3),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(3){width:12%}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(4),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(4){width:13%}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(5),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(5){width:8%;text-align:right}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(6),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(6){width:10%;text-align:center}
+.report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(7),
+.report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(7){width:22%;text-align:left}
+.report-table-wrap th,.report-table-wrap td{overflow-wrap:anywhere;word-break:normal}
+@media(max-width:640px){
+  .report-hero{gap:8px;padding:10px}
+  .report-logo-slot{width:42px;height:42px;flex-basis:42px}
+  .report-eyebrow{font-size:12px;letter-spacing:.03em}
+  .report-hero h2{font-size:13px}
+  .report-badge{min-width:56px;padding:5px}
+  .report-badge strong{font-size:13px}
+  .report-identity{margin-left:8px;margin-right:8px}
+  .report-identity>div{padding:6px}
+  .report-identity strong{overflow-wrap:anywhere}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .report-table-wrap table{min-width:760px}
+}
+@media print{
+  .report-table-wrap{max-width:none!important;overflow:visible!important}
+  .report-table-wrap table{width:100%!important;min-width:0!important;table-layout:fixed!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(1),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(1){width:22%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(2),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(2){width:11%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(3),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(3){width:11%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(4),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(4){width:12%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(5),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(5){width:8%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(6),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(6){width:10%!important}
+  .report-table-wrap table:has(thead th:nth-child(7)) th:nth-child(7),
+  .report-table-wrap table:has(thead th:nth-child(7)) td:nth-child(7){width:26%!important}
+  .report-table-wrap th{font-size:6.5px!important;padding:5px 3px!important;letter-spacing:0!important}
+  .report-table-wrap td{font-size:7px!important;padding:4px 3px!important}
+  .report-table-wrap td strong{font-size:7px!important}
+  .report-table-wrap td small{font-size:6px!important}
+  .level-pill{min-width:0!important;padding:2px 3px!important;font-size:6.5px!important}
+  .report-table-wrap td:nth-child(4){text-align:right}
+}
