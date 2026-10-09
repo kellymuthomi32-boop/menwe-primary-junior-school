@@ -42,33 +42,33 @@
  html,body{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
  body *{visibility:hidden!important}
  html body .marksheet-v2,html body .marksheet-v2 *{visibility:visible!important}
- .print-hide,.print-hidden,.no-print,.print-hide *{display:none!important}
- html body .marksheet-v2{position:static!important;display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}
- html body .marksheet-v2>.marksheet-header{display:flex!important;position:relative!important;align-items:center!important;min-height:24mm!important;height:24mm!important;padding:3mm 5mm!important;margin:0 0 2mm!important;background:#071b3a!important;color:#fff!important;border:0!important;border-bottom:2px solid #d89b28!important;border-radius:0!important;overflow:hidden!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ .print-hide,.print-hidden,.no-print{display:none!important}
+ html body .marksheet-v2{position:relative!important;display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:visible!important;break-inside:auto!important;page-break-inside:auto!important}
+ html body .marksheet-v2>.marksheet-header{display:flex!important;position:relative!important;align-items:center!important;min-height:21mm!important;height:21mm!important;box-sizing:border-box!important;padding:2mm 4mm!important;margin:0 0 2mm!important;background:#071b3a!important;color:#fff!important;border:0!important;border-bottom:1.5px solid #d89b28!important;border-radius:0!important;overflow:hidden!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;break-after:avoid-page!important;page-break-after:avoid!important}
  html body .marksheet-v2>.marksheet-header:before,html body .marksheet-v2>.marksheet-header:after{display:none!important}
- html body .marksheet-v2>.marksheet-header .marksheet-brand-logo{position:static!important;transform:none!important;width:17mm!important;height:17mm!important;min-width:17mm!important;margin:0 5mm 0 0!important;padding:1mm!important;background:#fff!important;border:1px solid #d89b28!important;border-radius:2mm!important;display:block!important;visibility:visible!important;opacity:1!important;content:url("/menwe-logo.svg")!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2>.marksheet-header .marksheet-header-content{margin-left:0!important;position:static!important;display:block!important}
- html body .marksheet-v2>.marksheet-header h2{font-size:14pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2>.marksheet-header p{margin-top:1mm!important;font-size:7pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2>.marksheet-header h3{margin-top:2mm!important;padding:1.5mm 3mm!important;border:1px solid rgba(216,155,40,.5)!important;border-radius:1.5mm!important;background:rgba(255,255,255,.06)!important;font-size:8.5pt!important;line-height:1.05!important;color:#fff!important}
- html body .marksheet-v2>.marksheet-header-content>div,html body .marksheet-v2>.marksheet-header .marksheet-header-content>div{margin-top:1mm!important;font-size:7pt!important;color:#f3d78e!important}
- html body .marksheet-v2  html body .marksheet-v2 .marksheet-table-wrap{padding:0!important;background:#fff!important;overflow:visible!important}
- html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:9pt!important}
+ html body .marksheet-v2>.marksheet-header .marksheet-brand-logo{position:static!important;transform:none!important;width:15mm!important;height:15mm!important;min-width:15mm!important;margin:0 4mm 0 0!important;padding:1mm!important;background:#fff!important;border:1px solid #d89b28!important;border-radius:2mm!important;display:block!important;visibility:visible!important;opacity:1!important;content:url("/menwe-logo.svg")!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ html body .marksheet-v2>.marksheet-header .marksheet-header-content{margin:0!important;position:static!important;display:block!important}
+ html body .marksheet-v2>.marksheet-header h2{font-size:13pt!important;line-height:1.05!important;color:#fff!important;margin:0!important}
+ html body .marksheet-v2>.marksheet-header p{margin-top:1mm!important;font-size:7.5pt!important;line-height:1.05!important;color:#fff!important}
+ html body .marksheet-v2>.marksheet-header h3{margin-top:1.5mm!important;padding:1mm 2mm!important;border:1px solid rgba(216,155,40,.5)!important;border-radius:1mm!important;background:rgba(255,255,255,.06)!important;font-size:8.5pt!important;line-height:1.05!important;color:#fff!important}
+ html body .marksheet-v2>.marksheet-header .marksheet-header-content>div{margin-top:1mm!important;font-size:7.5pt!important;color:#f3d78e!important}
+ html body .marksheet-v2 .marksheet-table-wrap{padding:0!important;margin:0!important;background:#fff!important;overflow:visible!important}
+ html body .marksheet-v2 .marksheet-table{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-radius:0!important;box-shadow:none!important;font-size:9pt!important;break-inside:auto!important;page-break-inside:auto!important}
  html body .marksheet-v2 .marksheet-table thead{display:table-header-group!important}
  html body .marksheet-v2 .marksheet-table tbody{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tfoot{display:table-row-group!important}
  html body .marksheet-v2 .marksheet-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
- html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{padding:1.45mm .55mm!important;height:7mm!important;min-height:7mm!important;line-height:1.05!important;color:#071b3a!important;border:1px solid #8e9dad!important;font-size:9pt!important;font-weight:800!important}
- html body .marksheet-v2 .marksheet-table .name-cell{font-size:10pt!important;font-weight:900!important;text-align:left!important;white-space:nowrap!important}
- html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:10.5pt!important;font-weight:900!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2 .marksheet-table thead tr:first-of-type th{height:11mm!important}
- html body .marksheet-v2 .marksheet-table thead tr:last-child th{height:7mm!important;background:#164a82!important;font-size:9.5pt!important}
- html body .marksheet-v2 .marksheet-table thead .subject-code{font-size:9.5pt!important;color:#f3d78e!important}
+ html body .marksheet-v2 .marksheet-table th,html body .marksheet-v2 .marksheet-table td{box-sizing:border-box!important;padding:1mm .5mm!important;height:6mm!important;min-height:6mm!important;line-height:1.08!important;color:#071b3a!important;border:1px solid #8e9dad!important;font-size:9pt!important;font-weight:800!important;overflow-wrap:anywhere!important}
+ html body .marksheet-v2 .marksheet-table .name-cell{font-size:9.5pt!important;font-weight:900!important;text-align:left!important;white-space:normal!important;overflow-wrap:anywhere!important}
+ html body .marksheet-v2 .marksheet-table thead th{background:#0b315f!important;color:#fff!important;font-size:9pt!important;font-weight:900!important;white-space:normal!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ html body .marksheet-v2 .marksheet-table thead tr:first-of-type th{height:9mm!important}
+ html body .marksheet-v2 .marksheet-table thead tr:last-child th{height:6mm!important;background:#164a82!important;font-size:8.5pt!important}
+ html body .marksheet-v2 .marksheet-table thead .subject-code{font-size:8.5pt!important;color:#f3d78e!important}
  html body .marksheet-v2 .marksheet-table .mark-cell,html body .marksheet-v2 .marksheet-table .level-cell,html body .marksheet-v2 .marksheet-table .total-marks-cell,html body .marksheet-v2 .marksheet-table .points-cell,html body .marksheet-v2 .marksheet-table .rank-cell{font-size:9pt!important;font-weight:900!important}
- html body .marksheet-v2 .marksheet-table thead tr:first-of-type th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:50mm!important;min-width:50mm!important}
- html body .marksheet-v2 .marksheet-summary-row td{height:7.5mm!important;background:#f7f0df!important;font-size:9pt!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ html body .marksheet-v2 .marksheet-table thead tr:first-of-type th:nth-child(2),html body .marksheet-v2 .marksheet-table tbody td:nth-child(2){width:43mm!important;min-width:43mm!important}
+ html body .marksheet-v2 .marksheet-summary-row td{height:6.5mm!important;background:#f7f0df!important;font-size:9pt!important;font-weight:900!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
  html body .marksheet-v2 .marksheet-mean-row td{background:#fffaf0!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
- html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2  html body .marksheet-v2 .level-legend{font-size:8pt!important;line-height:1.2!important;padding:2mm 0!important;border:0!important}
+ html body .marksheet-v2 .level-legend{font-size:8.5pt!important;line-height:1.2!important;padding:2mm 0!important;border:0!important;break-inside:avoid!important;page-break-inside:avoid!important}
  html body .marksheet-v2 button,html body .marksheet-v2 [data-print-hide="true"]{display:none!important}
 }
 
