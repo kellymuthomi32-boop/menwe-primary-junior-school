@@ -39,7 +39,7 @@
 .level-ae{background:#FFF4D8;color:#8A6100;border:1px solid #E9CF86}
 .level-be{background:#FDE8E8;color:#A33232;border:1px solid #E8B9B9}
 .report-table-wrap tfoot td{background:#EEF3F8!important;color:var(--rc-navy);font-weight:900;border-top:2px solid var(--rc-gold)}
-.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .summary-grid>div{padding:8px;border:1px solid var(--rc-line);border-top:3px solid var(--rc-gold);border-radius:7px;background:#FAFBFC}
 .summary-grid strong{display:block;margin-top:3px;color:var(--rc-navy);font-size:12px}
 .report-comment-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
