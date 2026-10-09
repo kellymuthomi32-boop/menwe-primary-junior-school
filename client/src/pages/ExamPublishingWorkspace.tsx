@@ -207,7 +207,7 @@ export default function ExamPublishingWorkspace() {
   const availableSubjectIds = new Set(assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)));
   const availableSubjects = subjects
     .filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || availableSubjectIds.has(String(s.id))))
-    .map(s => selectedExamIsEcde && /\\bPP1\\b/i.test(`${selectedExamClass?.name ?? ""} ${selectedExamClass?.code ?? ""}`) && s.code === "PP-ENV"
+    .map(s => selectedExamIsEcde && /\bPP1\b/i.test(`${selectedExamClass?.name ?? ""} ${selectedExamClass?.code ?? ""}`) && s.code === "PP-ENV"
       ? { ...s, name: "Environmental and Religious Activities" }
       : s);
 
