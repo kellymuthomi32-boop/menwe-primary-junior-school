@@ -462,24 +462,34 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     y+=41;
 
     sectionTitle("01","Learning Area Performance","Learning areas shown are the learner's recorded class subjects. Scores combine the recorded assessments, with Grade 4–5 using Opener and End-Term as distinct assessment slots.");
-    const cols=[M,M+43,M+68,M+93,M+118,M+135,M+152], widths=[43,25,25,25,17,17,38];
-    doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(7.2);
-    [ "LEARNING AREA",b==="ECDE"?"ASSESSMENT":([4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1"),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,i)=>doc.text(h,cols[i]+3,y+5.3)); y+=8;
+    const cols=b==="ECDE"?[M,M+65,M+90,M+108,M+128]:[M,M+43,M+68,M+93,M+118,M+135,M+152];
+    const widths=b==="ECDE"?[65,25,18,20,62]:[43,25,25,25,17,17,38];
+    const tableHeaders=b==="ECDE"?["LEARNING AREA","ASSESSMENT","%","LEVEL","TEACHER INTERPRETATION"]:["LEARNING AREA",([4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1"),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"];
+    const drawTableHeader=()=>{doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(b==="ECDE"?7.2:6.7);tableHeaders.forEach((h,i)=>doc.text(h,cols[i]+2,y+5.3));y+=8;};
+    drawTableHeader();
     ls.forEach((l,i)=>{
-      const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[6]-6);
+      const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[widths.length-1]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
       const rowH=Math.max(9,Math.max(nameLines.length,remarkLines.length)*4+4);
-      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");doc.setFillColor(6,18,41);doc.rect(M,y,CW,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(6.7);["LEARNING AREA",b==="UPPER_PRIMARY"&&[4,5].includes(gradeFromClass(cls)??0)?"OPENER":"EXAM 1","END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"].forEach((h,j)=>doc.text(h,cols[j]+2,y+5.3));y+=8;}
+      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");drawTableHeader();}
       if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,CW,rowH,"F");}
       doc.setDrawColor(205,214,224);doc.rect(M,y,CW,rowH);
       doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(nameLines,cols[0]+3,y+5);
       doc.setFont("helvetica","normal");doc.setFontSize(7.2);
-      doc.text(l.exam1Score==null?"Not taken":`${fmt(l.exam1Score)} / ${fmt(l.exam1Max)}`,cols[1]+3,y+5);
-      doc.text(l.endTermScore==null?"Not taken":`${fmt(l.endTermScore)} / ${fmt(l.endTermMax)}`,cols[2]+3,y+5);
-      doc.text(l.score==null?"—":`${fmt(l.score)} / ${fmt(l.max)}`,cols[3]+3,y+5);
-      doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[4]+3,y+5);
-      doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[5]+3,y+5);
-      doc.setFont("helvetica","normal");doc.text(remarkLines,cols[6]+3,y+5);y+=rowH;
+      if(b==="ECDE"){
+        doc.text(l.exam1Score==null?"Not recorded":`${fmt(l.exam1Score)} / ${fmt(l.exam1Max)}`,cols[1]+2,y+5);
+        doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[2]+2,y+5);
+        doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[3]+2,y+5);
+        doc.setFont("helvetica","normal");doc.text(remarkLines,cols[4]+2,y+5);
+      }else{
+        doc.text(l.exam1Score==null?"Not taken":`${fmt(l.exam1Score)} / ${fmt(l.exam1Max)}`,cols[1]+2,y+5);
+        doc.text(l.endTermScore==null?"Not taken":`${fmt(l.endTermScore)} / ${fmt(l.endTermMax)}`,cols[2]+2,y+5);
+        doc.text(l.score==null?"—":`${fmt(l.score)} / ${fmt(l.max)}`,cols[3]+2,y+5);
+        doc.text(l.percentage==null?"—":l.percentage.toFixed(1)+"%",cols[4]+2,y+5);
+        doc.setFont("helvetica","bold");doc.text(l.levelCode+(l.level!=null?" • "+l.level:""),cols[5]+2,y+5);
+        doc.setFont("helvetica","normal");doc.text(remarkLines,cols[6]+2,y+5);
+      }
+      y+=rowH;
     });
     if(!reportComplete){
       const warning="INCOMPLETE REPORT — Required marks are missing for: "+ls.filter(l=>l.percentage==null).map(l=>l.name).join(", ")+". Overall average is withheld; complete and verify marks before issuing this report.";
