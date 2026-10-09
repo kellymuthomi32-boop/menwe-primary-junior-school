@@ -443,7 +443,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     doc.text((mode==="term"?"TERM REPORT CARD":"ANNUAL REPORT CARD")+" — "+b.replaceAll("_"," "),W/2,y+27.4,{align:"center"});
     y+=34;
 
-    const includedAssessments=assessmentSummary(studentResults).slice(0,2);
+    const includedAssessments=assessmentSummary(studentResults,b==="ECDE").slice(0,2);
     doc.setDrawColor(190,200,215);doc.setFillColor(247,250,252);doc.roundedRect(M,y,CW,35,2,2,"FD");
     const meta=[
       ["LEARNER",learnerName(student)],["ADMISSION NO.",student.admission_number??"—"],
