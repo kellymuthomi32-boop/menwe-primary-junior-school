@@ -181,19 +181,23 @@ function canonicalTermResults(rows: Row[]) {
 
 function assessmentSummary(rows: Row[], ecde = false) {
   if (ecde) {
-    const byExam = new Map<string, Row>();
+    // Pick the latest ECDE assessment once, but retain EVERY subject result
+    // belonging to that exam. Keeping only one row here dropped almost all
+    // learning areas from PP1/PP2 report cards.
+    const examById = new Map<string, Row>();
     for (const row of rows) {
       const id = String(row.exams?.id ?? row.exam_id ?? "");
       if (!id) continue;
-      const previous = byExam.get(id);
+      const previous = examById.get(id);
       const currentDate = String(row.exams?.ends_on ?? row.exams?.starts_on ?? "");
       const previousDate = String(previous?.exams?.ends_on ?? previous?.exams?.starts_on ?? "");
-      if (!previous || currentDate >= previousDate) byExam.set(id, row);
+      if (!previous || currentDate >= previousDate) examById.set(id, row);
     }
-    const latest = [...byExam.values()].sort((a,b) =>
+    const latest = [...examById.values()].sort((a,b) =>
       String(b.exams?.ends_on ?? b.exams?.starts_on ?? "").localeCompare(String(a.exams?.ends_on ?? a.exams?.starts_on ?? ""))
     )[0];
-    return latest ? [latest] : [];
+    const latestId = latest ? String(latest.exams?.id ?? latest.exam_id ?? "") : "";
+    return latestId ? rows.filter(row => String(row.exams?.id ?? row.exam_id ?? "") === latestId) : [];
   }
   const byType = new Map<string, Row>();
   for (const row of rows) {
