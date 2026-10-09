@@ -47,12 +47,17 @@ function gradeFromClass(c?: Row) {
   return m ? Number(m[1]) : null;
 }
 function assessmentSlot(row: Row): "EXAM 1" | "ENDTERM" | null {
-  const type = normalize(row.exams?.exam_type);
-  const name = normalize(row.exams?.name);
-  if (["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"].includes(type) ||
-      ["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"].includes(name)) return "EXAM 1";
-  if (["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"].includes(type) ||
-      ["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"].includes(name)) return "ENDTERM";
+  // PostgREST normally returns the many-to-one exam relation as an object;
+  // tolerate an array too so assessment detection is stable across query shapes.
+  const related = Array.isArray(row.exams) ? row.exams[0] : row.exams;
+  const type = normalize(related?.exam_type);
+  const name = normalize(related?.name);
+  const matches = (value: string, terms: string[]) =>
+    terms.some(term => value === term || value.startsWith(`${term} `) || value.endsWith(` ${term}`));
+  if (matches(type, ["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"]) ||
+      matches(name, ["EXAM 1", "OPENER", "OPENING", "FIRST ASSESSMENT", "ASSESSMENT 1"])) return "EXAM 1";
+  if (matches(type, ["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"]) ||
+      matches(name, ["ENDTERM", "END TERM", "END OF TERM", "FINAL EXAM"])) return "ENDTERM";
   return null;
 }
 function assessmentLabel(row: Row, c?: Row) {
