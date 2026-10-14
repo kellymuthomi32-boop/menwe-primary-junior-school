@@ -63,45 +63,78 @@ export default function TeacherDutyRosterPage() {
 
   const addEntry = async (e: React.FormEvent) => {
     e.preventDefault(); if (!admin || !selected) return;
+    if (current?.status === "PUBLISHED") { setMessage("Published rosters cannot be changed."); return; }
+    if (!availableDates.includes(entry.duty_date)) { setMessage("Choose an eligible weekday within this roster."); return; }
+    const teacherAssignments = entries.filter(row => row.teacher_id === entry.teacher_id);
+    if (teacherAssignments.length >= 2) { setMessage("Each teacher can have exactly two duty days. This teacher already has two assignments."); return; }
+    if (teacherAssignments.some(row => row.duty_date === entry.duty_date)) { setMessage("This teacher is already assigned on that date. Choose a different day."); return; }
     setBusy(true); setMessage(null);
     try {
       const r = await getSupabase().from("teacher_duty_roster_entries").insert({ roster_id: selected, ...entry, location: entry.location.trim() || null, notes: entry.notes.trim() || null });
-      if (r.error) throw r.error; setMessage("Duty assignment saved."); setEntry({ ...entry, teacher_id: "", location: "", notes: "" }); await load();
+      if (r.error) throw r.error; setMessage("Duty assignment saved. Add one more different weekday for this teacher if needed."); setEntry({ ...entry, teacher_id: "", location: "", notes: "" }); await load();
     } catch (e) { setMessage(e instanceof Error ? e.message : "Assignment could not be saved."); }
     finally { setBusy(false); }
   };
 
   const assignAllTeachers = async () => {
-    if (!admin || !selected || !teachers.length || !availableDates.length) return;
-    const unassigned = teachers.filter(t => !entries.some(e => e.teacher_id === t.id));
-    if (!unassigned.length) { setMessage("All active teachers already have an assignment in this roster."); return; }
-    if (!confirm(`Assign all remaining ${unassigned.length} active teachers across the available weekdays? Saturdays, Sundays and 24–26 December are excluded.`)) return;
+    if (!admin || !selected || !teachers.length || !availableDates.length || current?.status === "PUBLISHED") return;
+    const counts = new Map<string, number>();
+    const usedDates = new Map<string, Set<string>>();
+    const dateLoads = new Map<string, number>();
+    for (const row of entries) {
+      counts.set(row.teacher_id, (counts.get(row.teacher_id) ?? 0) + 1);
+      if (!usedDates.has(row.teacher_id)) usedDates.set(row.teacher_id, new Set());
+      usedDates.get(row.teacher_id)!.add(row.duty_date);
+      dateLoads.set(row.duty_date, (dateLoads.get(row.duty_date) ?? 0) + 1);
+    }
+    const needs = teachers.reduce((sum, teacher) => sum + Math.max(0, 2 - (counts.get(teacher.id) ?? 0)), 0);
+    const overAssigned = teachers.filter(teacher => (counts.get(teacher.id) ?? 0) > 2);
+    if (overAssigned.length) { setMessage(`Cannot auto-assign: ${overAssigned.length} teacher(s) already have more than two assignments. Remove extras before continuing.`); return; }
+    if (!needs) { setMessage("Every active teacher already has two assignments. Check that each teacher's dates are different before publishing."); return; }
+    if (availableDates.length < 2) { setMessage("The roster needs at least two eligible weekdays for each teacher's separate duty dates."); return; }
+    if (!confirm(`Complete the roster by assigning ${needs} duty day(s), so every active teacher has exactly two different weekdays? Saturdays, Sundays and 24–26 December are excluded.`)) return;
     setBusy(true); setMessage(null);
     try {
-      const rows = unassigned.map((t, i) => ({
-        roster_id: selected,
-        duty_date: availableDates[i % availableDates.length],
-        teacher_id: t.id,
-        duty_type: "GENERAL",
-        location: null,
-        notes: "Holiday duty — automatically allocated; Deputy Head may edit the assignment."
-      }));
+      const rows: Row[] = [];
+      for (const teacher of teachers) {
+        const count = counts.get(teacher.id) ?? 0;
+        if (count >= 2) continue;
+        const alreadyUsed = usedDates.get(teacher.id) ?? new Set<string>();
+        while ((counts.get(teacher.id) ?? 0) < 2) {
+          const candidateDates = availableDates.filter(date => !alreadyUsed.has(date)).sort((a, b) => (dateLoads.get(a) ?? 0) - (dateLoads.get(b) ?? 0) || a.localeCompare(b));
+          const date = candidateDates[0];
+          if (!date) throw new Error(`No second distinct weekday is available for ${teacherName(teacher)}.`);
+          rows.push({
+            roster_id: selected, duty_date: date, teacher_id: teacher.id, duty_type: "GENERAL", location: null,
+            notes: "Holiday duty — automatically allocated; Deputy Head may edit the assignment."
+          });
+          alreadyUsed.add(date);
+          counts.set(teacher.id, (counts.get(teacher.id) ?? 0) + 1);
+          dateLoads.set(date, (dateLoads.get(date) ?? 0) + 1);
+        }
+        usedDates.set(teacher.id, alreadyUsed);
+      }
       const result = await getSupabase().from("teacher_duty_roster_entries").insert(rows);
       if (result.error) throw result.error;
-      setMessage(`Assigned ${unassigned.length} active teachers. Review the dates and publish when ready.`);
+      setMessage(`Added ${rows.length} duty day(s). Every active teacher now has two assignments; review and publish when ready.`);
       await load();
     } catch (e) { setMessage(e instanceof Error ? e.message : "Could not assign all teachers."); }
     finally { setBusy(false); }
   };
 
   const removeEntry = async (id: string) => {
-    if (!admin || !confirm("Remove this duty assignment?")) return;
-    const r = await getSupabase().from("teacher_duty_roster_entries").delete().eq("id", id);
-    if (r.error) setMessage(r.error.message); else await load();
+    if (!admin || !selected || current?.status === "PUBLISHED") { setMessage("Only draft roster assignments can be removed."); return; }
+    if (!confirm("Remove this duty assignment?")) return;
+    const r = await getSupabase().from("teacher_duty_roster_entries").delete().eq("id", id).eq("roster_id", selected);
+    if (r.error) setMessage(r.error.message); else { setMessage("Duty assignment removed."); await load(); }
   };
 
   const saveEdit = async (id: string) => {
     if (!admin || !selected || current?.status === "PUBLISHED") return;
+    if (!availableDates.includes(editForm.duty_date)) { setMessage("Choose an eligible weekday within this roster."); return; }
+    const otherAssignments = entries.filter(row => row.id !== id && row.teacher_id === editForm.teacher_id);
+    if (otherAssignments.length >= 2) { setMessage("That teacher already has two other assignments. Remove or reassign one first."); return; }
+    if (otherAssignments.some(row => row.duty_date === editForm.duty_date)) { setMessage("That teacher is already assigned on the selected date. Choose a different day."); return; }
     setBusy(true); setMessage(null);
     try {
       const result = await getSupabase().from("teacher_duty_roster_entries").update({ duty_date: editForm.duty_date, teacher_id: editForm.teacher_id, duty_type: editForm.duty_type, location: editForm.location.trim() || null, notes: editForm.notes.trim() || null }).eq("id", id).eq("roster_id", selected);
@@ -113,7 +146,17 @@ export default function TeacherDutyRosterPage() {
 
   const publish = async () => {
     if (!admin || !selected || current?.status === "PUBLISHED") return;
-    if (!confirm("Publish this roster? Teachers will be able to see the assignments. You will no longer be able to edit this roster here.")) return;
+    const invalidDate = entries.find(row => !availableDates.includes(row.duty_date));
+    if (invalidDate) { setMessage("Cannot publish: an assignment falls on a weekend, excluded holiday, or outside the roster dates."); return; }
+    const problems = teachers.flatMap(teacher => {
+      const assigned = entries.filter(row => row.teacher_id === teacher.id);
+      if (assigned.length !== 2) return [`${teacherName(teacher)} (${assigned.length}/2 days)`];
+      if (new Set(assigned.map(row => row.duty_date)).size !== 2) return [`${teacherName(teacher)} (duplicate date)`];
+      return [];
+    });
+    if (problems.length) { setMessage(`Cannot publish yet. Each active teacher needs exactly two different duty days: ${problems.slice(0, 6).join(", ")}${problems.length > 6 ? `, and ${problems.length - 6} more` : ""}.`); return; }
+    if (entries.some(row => !teachers.some(teacher => teacher.id === row.teacher_id))) { setMessage("Cannot publish: remove or reassign entries for teachers who are no longer active."); return; }
+    if (!confirm("Publish this roster? Every active teacher has two different duty days. Teachers will be able to see the assignments, and editing will be locked.")) return;
     const r = await getSupabase().from("teacher_duty_rosters").update({ status: "PUBLISHED", updated_at: new Date().toISOString() }).eq("id", selected).eq("status", "DRAFT");
     if (r.error) setMessage(r.error.message); else { setMessage("Roster published. All authorised teachers can now see it."); await load(); }
   };
@@ -144,10 +187,10 @@ export default function TeacherDutyRosterPage() {
   if (!profile) return null;
   return <PortalLayout role={profile.role}><main className="mx-auto w-full max-w-[1440px] space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
     <header className="menwe-portal-hero rounded-[2rem] p-6 text-white sm:p-8"><span className="menwe-portal-kicker"><CalendarDays size={14}/> Staff scheduling</span><h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Teacher Duty Roster</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">A clear, editable plan for school holiday supervision. Add teachers, adjust duty dates, leave comments, then publish when the Deputy Head is satisfied.</p><div className="mt-6 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">Nov 2 – Dec 31, 2026</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">Weekdays only</span><span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">Deputy Head review</span></div></header>
-    {admin && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="mb-5 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ink)]/5"><ShieldCheck size={19}/></span><div><h2 className="text-lg font-bold">Roster management</h2><p className="text-sm text-[var(--ink)]/55">Add or remove assignments, update dates and duties, and leave a comment for the team. Changes stay in draft until you publish.</p></div></div><form onSubmit={createRoster} className="grid gap-3 md:grid-cols-4"><input required className={input} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Roster title"/><input required type="date" className={input} value={form.start_date} onChange={e=>setForm({...form,start_date:e.target.value})}/><input required type="date" className={input} value={form.end_date} onChange={e=>setForm({...form,end_date:e.target.value})}/><button disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><Plus size={16}/>Create roster</button></form></section>}
+    {admin && <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="mb-5 flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--ink)]/5"><ShieldCheck size={19}/></span><div><h2 className="text-lg font-bold">Roster management</h2><p className="text-sm text-[var(--ink)]/55">Give every active teacher exactly two different duty weekdays. Add or remove assignments, edit dates and leave comments; publishing stays blocked until every teacher has two valid days.</p></div></div><form onSubmit={createRoster} className="grid gap-3 md:grid-cols-4"><input required className={input} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Roster title"/><input required type="date" className={input} value={form.start_date} onChange={e=>setForm({...form,start_date:e.target.value})}/><input required type="date" className={input} value={form.end_date} onChange={e=>setForm({...form,end_date:e.target.value})}/><button disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><Plus size={16}/>Create roster</button></form></section>}
     <section className="menwe-card rounded-[1.75rem] p-5 sm:p-7"><div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">Published schedules</p><h2 className="mt-1 text-2xl font-bold">Duty calendar</h2></div>{current&&<div className="flex flex-wrap gap-2"><button onClick={downloadPdf} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-white px-3 text-xs font-bold"><Download size={15}/>Download PDF</button><button onClick={downloadCsv} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[var(--ink)]/10 bg-white px-3 text-xs font-bold"><Download size={15}/>CSV</button><button onClick={()=>window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--ink)] px-3 text-xs font-bold text-white"><Printer size={15}/>Print</button></div>}</div>
       {rosters.length>0&&<div className="mt-5 flex gap-2 overflow-x-auto pb-1">{rosters.map(r=><button key={r.id} onClick={()=>setSelected(r.id)} className={`min-w-[210px] rounded-2xl border p-4 text-left transition-all ${selected===r.id?"border-[var(--gold)] bg-[var(--gold)]/8":"border-[var(--ink)]/10 bg-white"}`}><div className="flex items-center justify-between gap-2"><span className="text-sm font-bold">{text(r.title)}</span><span className="rounded-full bg-[var(--ink)]/5 px-2 py-1 text-[9px] font-black uppercase">{text(r.status)}</span></div><p className="mt-2 text-xs text-[var(--ink)]/55">{fmt(r.start_date)} – {fmt(r.end_date)}</p><p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">{r.status === "PUBLISHED" ? "Visible to teachers" : "Awaiting review"}</p></button>)}</div>}
-      {current && admin && current.status !== "PUBLISHED" && <form onSubmit={addEntry} className="mt-5 grid gap-3 rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)]/50 p-4 md:grid-cols-5"><select required className={input} value={entry.duty_date} onChange={e=>setEntry({...entry,duty_date:e.target.value})}>{availableDates.map(d=><option key={d} value={d}>{fmt(d)}</option>)}</select><select required className={input} value={entry.teacher_id} onChange={e=>setEntry({...entry,teacher_id:e.target.value})}><option value="">Teacher</option>{teachers.map(t=><option key={t.id} value={t.id}>{teacherName(t)}</option>)}</select><select className={input} value={entry.duty_type} onChange={e=>setEntry({...entry,duty_type:e.target.value})}><option>GENERAL</option><option>MORNING</option><option>BREAK</option><option>LUNCH</option><option>GATE</option><option>COMPOUND</option><option>BOARDING</option><option>OTHER</option></select><input className={input} placeholder="Location (optional)" value={entry.location} onChange={e=>setEntry({...entry,location:e.target.value})}/><button disabled={busy||!selectedTeacher} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><Plus size={16}/>Assign duty</button><div className="md:col-span-4"><label className="mb-1.5 flex items-center gap-2 text-xs font-bold text-[var(--ink)]/65"><MessageSquare size={14}/>Comment / instructions (optional)</label><input className={input} placeholder="E.g. Report to the Deputy Head at 8:00 am…" value={entry.notes} onChange={e=>setEntry({...entry,notes:e.target.value})}/></div><button type="button" onClick={assignAllTeachers} disabled={busy||current.status==="PUBLISHED"||teachers.length===0||availableDates.length===0} className="min-h-11 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-black text-emerald-800">Assign all active teachers</button><button type="button" onClick={publish} disabled={busy||current.status==="PUBLISHED"||entries.length===0} className="min-h-11 rounded-xl border border-[var(--gold)] bg-[var(--gold)]/10 px-4 text-sm font-black">{current.status==="PUBLISHED"?"Published":"Publish roster"}</button></form>}
+      {current && admin && current.status !== "PUBLISHED" && <form onSubmit={addEntry} className="mt-5 grid gap-3 rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)]/50 p-4 md:grid-cols-5"><select required className={input} value={entry.duty_date} onChange={e=>setEntry({...entry,duty_date:e.target.value})}>{availableDates.map(d=><option key={d} value={d}>{fmt(d)}</option>)}</select><select required className={input} value={entry.teacher_id} onChange={e=>setEntry({...entry,teacher_id:e.target.value})}><option value="">Teacher</option>{teachers.map(t=><option key={t.id} value={t.id}>{teacherName(t)}</option>)}</select><select className={input} value={entry.duty_type} onChange={e=>setEntry({...entry,duty_type:e.target.value})}><option>GENERAL</option><option>MORNING</option><option>BREAK</option><option>LUNCH</option><option>GATE</option><option>COMPOUND</option><option>BOARDING</option><option>OTHER</option></select><input className={input} placeholder="Location (optional)" value={entry.location} onChange={e=>setEntry({...entry,location:e.target.value})}/><button disabled={busy||!selectedTeacher} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white"><Plus size={16}/>Assign duty</button><div className="md:col-span-4"><label className="mb-1.5 flex items-center gap-2 text-xs font-bold text-[var(--ink)]/65"><MessageSquare size={14}/>Comment / instructions (optional)</label><input className={input} placeholder="E.g. Report to the Deputy Head at 8:00 am…" value={entry.notes} onChange={e=>setEntry({...entry,notes:e.target.value})}/></div><button type="button" onClick={assignAllTeachers} disabled={busy||current.status==="PUBLISHED"||teachers.length===0||availableDates.length<2} className="min-h-11 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-black text-emerald-800">Complete two days per teacher</button><button type="button" onClick={publish} disabled={busy||current.status==="PUBLISHED"||entries.length===0} className="min-h-11 rounded-xl border border-[var(--gold)] bg-[var(--gold)]/10 px-4 text-sm font-black">{current.status==="PUBLISHED"?"Published":"Publish roster"}</button></form>}
       {loading?<div className="flex justify-center py-12"><Loader2 className="animate-spin text-[var(--accent)]"/></div>:sortedEntries.length?<><div className="mt-6 grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)]/55 p-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--ink)]/55"><Users size={15}/> Assignments</div><p className="mt-2 text-2xl font-black">{sortedEntries.length}</p></div><div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)]/55 p-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--ink)]/55"><CalendarCheck2 size={15}/> Eligible weekdays</div><p className="mt-2 text-2xl font-black">{availableDates.length}</p></div><div className="rounded-2xl border border-[var(--ink)]/10 bg-[var(--paper)]/55 p-4"><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--ink)]/55"><MessageSquare size={15}/> Comments added</div><p className="mt-2 text-2xl font-black">{sortedEntries.filter(e=>String(e.notes||"").trim()).length}</p></div></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead><tr className="border-b border-[var(--ink)]/10 text-xs font-bold uppercase tracking-[.12em] text-[var(--ink)]/45"><th className="p-3">Date</th><th className="p-3">Teacher</th><th className="p-3">Duty</th><th className="p-3">Location</th><th className="p-3">Comments / instructions</th>{admin&&<th className="p-3">Edit / remove</th>}</tr></thead><tbody>{sortedEntries.map(e=><tr key={e.id} className="border-b border-[var(--ink)]/7"><td className="p-3 font-semibold">{editingId===e.id ? <select className={input} value={editForm.duty_date} onChange={ev=>setEditForm({...editForm,duty_date:ev.target.value})}>{availableDates.map(d=><option key={d} value={d}>{fmt(d)}</option>)}</select> : fmt(e.duty_date)}</td><td className="p-3">{editingId===e.id ? <select className={input} value={editForm.teacher_id} onChange={ev=>setEditForm({...editForm,teacher_id:ev.target.value})}>{teachers.map(t=><option key={t.id} value={t.id}>{teacherName(t)}</option>)}</select> : teacherName(e.teachers??{})}</td><td className="p-3">{editingId===e.id ? <select className={input} value={editForm.duty_type} onChange={ev=>setEditForm({...editForm,duty_type:ev.target.value})}>{["GENERAL","MORNING","BREAK","LUNCH","GATE","COMPOUND","BOARDING","OTHER"].map(v=><option key={v}>{v}</option>)}</select> : <span className="rounded-full bg-[var(--gold)]/10 px-3 py-1 text-[10px] font-black">{text(e.duty_type)}</span>}</td><td className="p-3">{editingId===e.id ? <input className={input} value={editForm.location} placeholder="Location" onChange={ev=>setEditForm({...editForm,location:ev.target.value})}/> : text(e.location)}</td><td className="p-3">{editingId===e.id ? <textarea className={`${input} min-w-[190px]`} rows={2} value={editForm.notes} placeholder="Add a comment or instruction…" onChange={ev=>setEditForm({...editForm,notes:ev.target.value})}/> : <div className="flex max-w-[280px] items-start gap-2">{e.notes ? <MessageSquare size={14} className="mt-0.5 shrink-0 text-[var(--accent)]"/> : null}<span className="whitespace-normal">{text(e.notes,"No comment")}</span></div>}</td>{admin&&<td className="p-3"><div className="flex items-center gap-1">{editingId===e.id ? <><button disabled={busy} onClick={()=>void saveEdit(e.id)} aria-label="Save assignment and comment" className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-600 text-white"><Save size={15}/></button><button onClick={()=>setEditingId(null)} aria-label="Cancel editing" className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--ink)]/10"><X size={15}/></button></> : current?.status!=="PUBLISHED" && <><button onClick={()=>{setEditingId(e.id);setEditForm({duty_date:e.duty_date,teacher_id:e.teacher_id,duty_type:e.duty_type||"GENERAL",location:e.location||"",notes:e.notes||""})}} aria-label="Edit assignment or comment" className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--ink)]/10 text-[var(--ink)]"><Pencil size={15}/></button><button onClick={()=>void removeEntry(e.id)} aria-label="Remove assignment" className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 text-red-600"><Trash2 size={15}/></button></>}</div></td>}</tr>)}</tbody></table></div></>:<div className="mt-6 rounded-2xl border border-dashed border-[var(--ink)]/15 px-5 py-12 text-center text-sm text-[var(--ink)]/55">{current?"No duty assignments have been added to this roster yet.":"No duty roster has been created yet."}</div>}
       {message&&<p role="status" className="mt-5 rounded-xl border border-[var(--gold)]/20 bg-[var(--gold)]/10 px-4 py-3 text-sm">{message}</p>}
     </section></main></PortalLayout>;
