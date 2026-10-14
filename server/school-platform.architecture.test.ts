@@ -38,16 +38,16 @@ describe("school platform canonical architecture", () => {
     expect(layout).toContain('profile?.display_name'); expect(layout).not.toContain('profile?.full_name');
   });
 
-  it("declares exam workspace values before hooks that capture them", async () => {
+  it("declares exam workspace derived values before async loading and restores saved drafts", async () => {
     const workspace = await read("../client/src/pages/ExamPublishingWorkspace.tsx");
-    const visibleExams = workspace.indexOf("const visibleExams =");
     const groupedExams = workspace.indexOf("const examGroups = useMemo");
-    const load = workspace.indexOf("const load = async");
-    const restoreEffect = workspace.indexOf("if (!draftRestored || !exams.length) return;");
-    expect(visibleExams).toBeGreaterThan(-1);
-    expect(groupedExams).toBeGreaterThan(visibleExams);
-    expect(load).toBeGreaterThan(groupedExams);
-    expect(restoreEffect).toBeGreaterThan(load);
+    const refresh = workspace.indexOf("const refresh = useCallback(async () =>");
+    const selectedExam = workspace.indexOf("const selectedExam = exams.find");
+    const restoreEffect = workspace.indexOf("if (!storageKey) return;");
+    expect(groupedExams).toBeGreaterThan(-1);
+    expect(refresh).toBeGreaterThan(groupedExams);
+    expect(selectedExam).toBeGreaterThan(groupedExams);
+    expect(restoreEffect).toBeGreaterThan(refresh);
   });
 
   it("ships public-content and deployment security basics", async () => {
