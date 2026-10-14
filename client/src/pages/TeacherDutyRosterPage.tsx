@@ -24,7 +24,7 @@ export default function TeacherDutyRosterPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState("");
   const [form, setForm] = useState({ title: "Holiday Duty Roster", start_date: "2026-11-02", end_date: "2026-12-31" });
-  const [entry, setEntry] = useState({ duty_date: new Date().toISOString().slice(0, 10), teacher_id: "", duty_type: "GENERAL", location: "", notes: "" });
+  const [entry, setEntry] = useState({ duty_date: "2026-11-02", teacher_id: "", duty_type: "GENERAL", location: "", notes: "" });
   const admin = !!profile && adminRoles.includes(profile.role);
 
   const load = useCallback(async () => {
