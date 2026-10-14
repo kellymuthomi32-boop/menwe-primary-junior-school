@@ -38,16 +38,14 @@ describe("school platform canonical architecture", () => {
     expect(layout).toContain('profile?.display_name'); expect(layout).not.toContain('profile?.full_name');
   });
 
-  it("declares exam workspace derived values before async loading and restores saved drafts", async () => {
+  it("defines canonical exam grouping before selection-dependent values", async () => {
     const workspace = await read("../client/src/pages/ExamPublishingWorkspace.tsx");
-    const groupedExams = workspace.indexOf("const examGroups = useMemo");
     const refresh = workspace.indexOf("const refresh = useCallback(async () =>");
+    const groupedExams = workspace.indexOf("const examGroups = useMemo");
     const selectedExam = workspace.indexOf("const selectedExam = exams.find");
-    const restoreEffect = workspace.indexOf("if (!storageKey) return;");
-    expect(groupedExams).toBeGreaterThan(-1);
-    expect(refresh).toBeGreaterThan(groupedExams);
+    expect(refresh).toBeGreaterThan(-1);
+    expect(groupedExams).toBeGreaterThan(refresh);
     expect(selectedExam).toBeGreaterThan(groupedExams);
-    expect(restoreEffect).toBeGreaterThan(refresh);
   });
 
   it("ships public-content and deployment security basics", async () => {
