@@ -612,7 +612,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     // Use more of the A4 page for short reports while retaining extra
     // safety margin for longer Junior School subject lists.
     const pdfScale = areas.length <= 5 ? 0.92 : areas.length <= 7 ? 0.89 : areas.length <= 9 ? 0.86 : 0.83;
-    const pdfXOffset=(W-W*pdfScale)/2, pdfYOffset=(297-297*pdfScale)/2;\n    doc.internal.write(`${pdfScale} 0 0 ${pdfScale} ${pdfXOffset.toFixed(3)} ${pdfYOffset.toFixed(3)} cm`);
+    const pdfXOffset=(W-W*pdfScale)/2, pdfYOffset=(297-297*pdfScale)/2; 
+    doc.internal.write(`${pdfScale} 0 0 ${pdfScale} ${pdfXOffset.toFixed(3)} ${pdfYOffset.toFixed(3)} cm`);
     const logoDataUrl=await getPdfLogoDataUrl();
     const addText=(text:string,x:number,y0:number,width:number,size:number,opts:any={})=>{
       doc.setFontSize(size); const lines=doc.splitTextToSize(String(text??"—"),width); doc.text(lines,x,y0,opts); return lines.length;
