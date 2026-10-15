@@ -477,12 +477,16 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const tm=ls.reduce((n,l)=>n+(l.score??0),0), mx=ls.reduce((n,l)=>n+(l.max??0),0), reportComplete=ls.length>0&&ls.every(l=>l.percentage!=null), avg=reportComplete&&mx?tm/mx*100:null, pts=ls.reduce((n,l)=>n+(l.level??0),0), att=attendancePercent(studentAttendance);
     const W=210, M=10, CW=W-M*2, bottom=287;
     let y=10;
+    // Keep every individual learner report on one A4 page. Scale the complete
+    // vector layout uniformly so all sections remain present and legible.
+    doc.internal.write("q");
+    doc.internal.write("0.85 0 0 0.85 45 28 cm");
     const logoDataUrl=await getPdfLogoDataUrl();
     const addText=(text:string,x:number,y0:number,width:number,size:number,opts:any={})=>{
       doc.setFontSize(size); const lines=doc.splitTextToSize(String(text??"—"),width); doc.text(lines,x,y0,opts); return lines.length;
     };
     const sectionTitle=(num:string,title:string,sub?:string)=>{
-      if(y>bottom-18){doc.addPage();y=12;}
+      
       doc.setFillColor(6,18,41);doc.roundedRect(M,y,CW,9,1.5,1.5,"F");
       doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.text(num,M+4,y+5.9);
       doc.setFontSize(9);doc.text(title,M+15,y+5.9);
@@ -543,7 +547,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       const remark=String(l.remark??"—"), remarkLines=doc.splitTextToSize(remark,widths[widths.length-1]-6);
       const nameLines=doc.splitTextToSize(String(l.name),widths[0]-6);
       const rowH=Math.max(9,Math.max(nameLines.length,remarkLines.length)*4+4);
-      if(y+rowH>bottom-40){doc.addPage();y=12;sectionTitle("01","Learning Area Performance (continued)");drawTableHeader();}
+      
       if(i%2===1){doc.setFillColor(247,250,252);doc.rect(M,y,CW,rowH,"F");}
       doc.setDrawColor(205,214,224);doc.rect(M,y,CW,rowH);
       doc.setTextColor(16,42,67);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text(nameLines,cols[0]+3,y+5);
@@ -567,7 +571,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const openerTotal=ls.reduce((n,l)=>n+(l.exam1Score??0),0);
     const endTermTotal=ls.reduce((n,l)=>n+(l.endTermScore??0),0);
     const footerH=11;
-    if(y+footerH>bottom-40){doc.addPage();y=12;sectionTitle("02","Learning Area Performance (continued)");drawTableHeader();}
+    
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,footerH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
     doc.setTextColor(6,18,41);doc.setFont("helvetica","bold");doc.setFontSize(6.8);
     if(b==="ECDE"){
@@ -589,12 +593,12 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     if(!reportComplete){
       const warning="INCOMPLETE REPORT — Required marks are missing for: "+ls.filter(l=>l.percentage==null).map(l=>l.name).join(", ")+". Overall average is withheld; complete and verify marks before issuing this report.";
       const warningLines=doc.splitTextToSize(warning,CW-10), warningH=Math.max(12,warningLines.length*3.5+6);
-      if(y+warningH>bottom-25){doc.addPage();y=12;}
+      
       doc.setFillColor(255,244,214);doc.setDrawColor(216,155,40);doc.roundedRect(M,y,CW,warningH,1.5,1.5,"FD");doc.setTextColor(115,72,0);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(warningLines,M+5,y+5);y+=warningH+3;
     }
     sectionTitle("03","Performance Summary","Key information for the learner and parent/guardian.");
     const totalH=18;
-    if(y+totalH>bottom-35){doc.addPage();y=12;}
+    
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
     const overallAchievement=avg==null?null:achievement(avg,b==="ECDE");
     const overallBand=b==="ECDE"
@@ -607,15 +611,16 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const boxes=[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]];
     boxes.forEach((m,i)=>{
       const x=M+i*95,w=90;doc.setDrawColor(190,200,215);const lines=doc.splitTextToSize(String(m[1]),w-8);const h=Math.max(30,Math.min(45,14+lines.length*4));
-      if(y+h>bottom-12){doc.addPage();y=12;}
+      
       doc.roundedRect(x,y,w,h,2,2,"S");doc.setTextColor(7,27,58);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(m[0],x+4,y+6);
       doc.setTextColor(55,70,85);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text(lines.slice(0,6),x+4,y+12);
       doc.setDrawColor(70,85,100);doc.line(x+4,y+h-7,x+55,y+h-7);doc.setFontSize(6.2);doc.text("Signature / Date",x+4,y+h-3);
     });
     y+=48;
-    if(y>bottom-18){doc.addPage();y=12;}
+    
     doc.setDrawColor(6,18,41);doc.line(M,y,M+CW,y);y+=6;doc.setTextColor(6,18,41);doc.setFont("helvetica","bold");doc.setFontSize(8);doc.text("MENWE PRIMARY & JUNIOR SCHOOL",W/2,y,{align:"center"});y+=4;
     doc.setTextColor(105,115,125);doc.setFont("helvetica","normal");doc.setFontSize(7);addText("This report reflects recorded assessment results for the selected academic period.",W/2,y,CW,7,{align:"center"});
+    doc.internal.write("Q");
   };
   const print=()=>window.print();
 
