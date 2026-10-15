@@ -73,3 +73,16 @@
 }
 
 .marksheet-v2 .marksheet-table .marksheet-no-col{width:42px}.marksheet-v2 .marksheet-table .marksheet-learner-col{width:240px}.marksheet-v2 .marksheet-table .marksheet-subject-col{width:64px}.marksheet-v2 .marksheet-table .marksheet-total-col{width:82px}.marksheet-v2 .marksheet-table .marksheet-points-col{width:78px}.marksheet-v2 .marksheet-table .marksheet-rank-col{width:58px}
+
+.marksheet-print-repeat-header{display:none}
+@media print{
+ html body .marksheet-v2>.marksheet-header{display:none!important}
+ html body .marksheet-v2 .marksheet-print-repeat-header{display:table-row!important;break-inside:avoid!important;page-break-inside:avoid!important}
+ html body .marksheet-v2 .marksheet-print-repeat-header th{height:19mm!important;min-height:19mm!important;padding:2mm 4mm!important;background:#071b3a!important;color:#fff!important;text-align:left!important;white-space:normal!important;line-height:1.1!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ html body .marksheet-v2 .marksheet-print-heading{display:flex!important;align-items:center!important;gap:4mm!important;text-align:left!important;line-height:1.1!important}
+ html body .marksheet-v2 .marksheet-print-heading img{display:block!important;width:14mm!important;height:14mm!important;object-fit:contain!important;background:#fff!important;padding:1mm!important;border:1px solid #d89b28!important}
+ html body .marksheet-v2 .marksheet-print-heading div{display:flex!important;flex-direction:column!important;gap:1mm!important}
+ html body .marksheet-v2 .marksheet-print-heading strong{font-size:12pt!important;color:#fff!important}
+ html body .marksheet-v2 .marksheet-print-heading span{font-size:7pt!important;color:#fff!important}
+ html body .marksheet-v2 .marksheet-print-heading b{font-size:8pt!important;color:#f3d78e!important}
+}
