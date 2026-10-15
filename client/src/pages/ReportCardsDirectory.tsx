@@ -563,6 +563,29 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       }
       y+=rowH;
     });
+    // Mirror the on-screen marksheet's totals row in the downloaded PDF.
+    const openerTotal=ls.reduce((n,l)=>n+(l.exam1Score??0),0);
+    const endTermTotal=ls.reduce((n,l)=>n+(l.endTermScore??0),0);
+    const footerH=11;
+    if(y+footerH>bottom-40){doc.addPage();y=12;sectionTitle("02","Learning Area Performance (continued)");drawTableHeader();}
+    doc.setFillColor(238,243,248);doc.rect(M,y,CW,footerH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
+    doc.setTextColor(6,18,41);doc.setFont("helvetica","bold");doc.setFontSize(6.8);
+    if(b==="ECDE"){
+      doc.text("TOTAL / OVERALL",cols[0]+2,y+7);
+      doc.text(fmt(tm),cols[1]+2,y+7);
+      doc.text(avg==null?"—":avg.toFixed(1)+"%",cols[2]+2,y+7);
+      doc.text(overallAchievement?.code??"—",cols[3]+2,y+7);
+    }else{
+      doc.text("TOTAL / OVERALL",cols[0]+2,y+7);
+      doc.text(fmt(openerTotal),cols[1]+2,y+7);
+      doc.text(fmt(endTermTotal),cols[2]+2,y+7);
+      doc.text(fmt(tm),cols[3]+2,y+7);
+      doc.text(avg==null?"—":avg.toFixed(1)+"%",cols[4]+2,y+7);
+      doc.text(b==="JUNIOR_SCHOOL"?String(pts):"Rank "+(studentRank??"—"),cols[5]+2,y+7);
+      doc.setFont("helvetica","normal");doc.setFontSize(5.8);
+      addText(b==="JUNIOR_SCHOOL"?"Ranks by Total Points.":"Ranks by Total Marks. Missing assessments are not treated as zero.",cols[6]+2,y+4,widths[6]-3,5.8);
+    }
+    y+=footerH;
     if(!reportComplete){
       const warning="INCOMPLETE REPORT — Required marks are missing for: "+ls.filter(l=>l.percentage==null).map(l=>l.name).join(", ")+". Overall average is withheld; complete and verify marks before issuing this report.";
       const warningLines=doc.splitTextToSize(warning,CW-10), warningH=Math.max(12,warningLines.length*3.5+6);
