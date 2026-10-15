@@ -114,18 +114,37 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
   const canonical = canonicalSubjects(subjects, band);
 
   if (band === "ECDE") {
-    const isPP1 = /\bPP1\b/i.test(className);
+    // PP1 and PP2 use combined learning areas: CRE is recorded with
+    // Environmental Activities, and Psychomotor is recorded with Creative
+    // Activities. Those combined marks are already saved against the main
+    // area IDs, so do not create empty standalone CRE/Psychomotor rows or
+    // add their scores a second time.
     const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)));
-    if (!isPP1) return sortSubjects(ppAreas);
     const env = ppAreas.find(s => s.code === "PP-ENV");
     const cre = ppAreas.find(s => s.code === "PP-CRE");
-    const merged: ReportSubject[] = ppAreas.filter(s => s.code !== "PP-CRE");
-    if (env && cre) {
+    const creative = ppAreas.find(s => s.code === "PP-CREA");
+    const psychomotor = ppAreas.find(s => s.code === "PP-PSY");
+    const merged: ReportSubject[] = ppAreas.filter(s =>
+      s.code !== "PP-CRE" && s.code !== "PP-PSY"
+    );
+
+    if (env) {
       const index = merged.findIndex(s => s.id === env.id);
-      if (index >= 0) merged[index] = { ...env, name: "Environmental and Religious Activities", code: "PP-ENV-CRE", synthetic: true, componentIds: [env.id, cre.id] };
-    } else if (env) {
-      const index = merged.findIndex(s => s.id === env.id);
-      if (index >= 0) merged[index] = { ...env, name: "Environmental and Religious Activities", code: "PP-ENV-CRE", synthetic: true };
+      if (index >= 0) merged[index] = {
+        ...env,
+        name: cre ? "Environmental and Religious Activities" : "Environmental Activities",
+        code: cre ? "PP-ENV-CRE" : env.code,
+        synthetic: Boolean(cre),
+      };
+    }
+    if (creative) {
+      const index = merged.findIndex(s => s.id === creative.id);
+      if (index >= 0) merged[index] = {
+        ...creative,
+        name: psychomotor ? "Creative and Psychomotor Activities" : "Creative Activities",
+        code: psychomotor ? "PP-CREA-PSY" : creative.code,
+        synthetic: Boolean(psychomotor),
+      };
     }
     return sortSubjects(merged);
   }
