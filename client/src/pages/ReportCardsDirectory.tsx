@@ -111,6 +111,20 @@ const upperCreativeComponent = (s: Row) =>
 const upperScienceComponent = (s: Row) =>
   is(s, /\b(AGRICULTURE|HOME SCIENCE|HSC|INFORMATION COMMUNICATION TECHNOLOGY|ICT|COMPUTER)\b/);
 
+function expectedCoreAreaCount(band: Band): number | null {
+  if (band === "LOWER_PRIMARY") return 4;
+  if (band === "UPPER_PRIMARY") return 6;
+  if (band === "JUNIOR_SCHOOL") return 9;
+  // ECDE report-area counts differ between PP1 and PP2.
+  return null;
+}
+function assertReportAreasConfigured(areas: ReportSubject[], band: Band, className: string) {
+  const expected = expectedCoreAreaCount(band);
+  if (expected != null && areas.length < expected) {
+    throw new Error(\`\${className || band} is configured with only \${areas.length} report learning areas; \${expected} are required. Fix the class subject mapping before generating reports.\`);
+  }
+}
+
 function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false, className = ""): ReportSubject[] {
   const canonical = canonicalSubjects(subjects, band);
 
@@ -449,7 +463,10 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(q.error)throw q.error;
       const normalizedResults = mode === "term" ? (bandFromClass(cls.data ?? undefined) === "ECDE" ? (q.data ?? []) : canonicalTermResults(q.data ?? [])) : (q.data ?? []);
       setResults(normalizedResults);
-      const classSubjects=subjectRowsFromRelations(sub.data??[]); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined),bandFromClass(cls.data??undefined)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
+      const classSubjects=subjectRowsFromRelations(sub.data??[]);
+      const reportBand=bandFromClass(cls.data??undefined);
+      const reportAreas=reportAreasForBand(classSubjects,reportBand,reportBand==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
+      assertReportAreasConfigured(reportAreas,reportBand,String(cls.data?.name ?? cls.data?.code ?? ""));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
       // PP1 East and PP1 West retain their own class rank and also share one
@@ -782,11 +799,17 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
 
       const groups=new Map<string,Row[]>();
       for(const r of ar.data??[]){const k=String(r.student_id);groups.set(k,[...(groups.get(k)??[]),r]);}
+      // Match individual-report logic: use the latest exam per assessment slot.
+      if(bandFromClass(selectedBatchClass)!=="ECDE"){
+        for(const [id,rows] of groups.entries()) groups.set(id,canonicalTermResults(rows));
+      }
       const attendanceGroups=new Map<string,Row[]>();
       for(const r of attAll.data??[]){const k=String(r.student_id);attendanceGroups.set(k,[...(attendanceGroups.get(k)??[]),r]);}
 
       const subjects=batchSubjects;
-      const reportAreas=reportAreasForBand(subjects,bandFromClass(selectedBatchClass),bandFromClass(selectedBatchClass)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(selectedBatchClass) ?? 0),String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
+      const batchBand=bandFromClass(selectedBatchClass);
+      const reportAreas=reportAreasForBand(subjects,batchBand,batchBand==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(selectedBatchClass) ?? 0),String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
+      assertReportAreasConfigured(reportAreas,batchBand,String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
       const standings=ids.map(id=>{
         const ls=reportAreas.map(x=>lineFor(x,groups.get(id)??[],bandFromClass(selectedBatchClass)==="ECDE"));
         return{id,marks:ls.reduce((n,l)=>n+(l.score??0),0),points:ls.reduce((n,l)=>n+(l.level??0),0)};
