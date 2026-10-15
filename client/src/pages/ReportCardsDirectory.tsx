@@ -744,13 +744,27 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       const ids=Array.from(new Set((enr.data??[]).map((r:any)=>String(r.student_id))));
       if(!ids.length)throw new Error("No active learners were found in this class.");
 
-      const [sr,ar,rc,attAll]=await Promise.all([
+      const [sr,ar,rc]=await Promise.all([
         db.from("students").select("id,admission_number,first_name,middle_name,last_name").in("id",ids),
         db.from("exam_results").select("student_id,subject_id,score,maximum_score,exam_id,grade,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",ids).eq("exams.class_id",classId).eq("exams.term_id",termId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",batchSubjects.map(s=>String(s.id))),
-        db.from("report_cards").select("student_id,teacher_remark,headteacher_remark").in("student_id",ids).eq("term_id",termId),
-        db.from("attendance_records").select("student_id,status,attendance_sessions!inner(class_id,session_date)").in("student_id",ids)
+        db.from("report_cards").select("student_id,teacher_remark,headteacher_remark").in("student_id",ids).eq("term_id",termId)
       ]);
-      for(const q of[sr,ar,rc,attAll])if(q.error)throw q.error;
+      for(const q of[sr,ar,rc])if(q.error)throw q.error;
+      if((sr.data??[]).length!==ids.length){
+        const found=new Set((sr.data??[]).map((s:any)=>String(s.id)));
+        const missing=ids.filter(id=>!found.has(id));
+        throw new Error(\`Class roster mismatch: \${missing.length} enrolled learner record(s) could not be loaded. No batch PDF was generated.\`);
+      }
+      // Attendance must match the selected class AND term, not the learner's
+      // entire attendance history across the school year or other classes.
+      let attendanceQuery=db.from("attendance_records")
+        .select("student_id,status,attendance_sessions!inner(class_id,session_date)")
+        .in("student_id",ids)
+        .eq("attendance_sessions.class_id",classId);
+      if(selectedTerm?.starts_on) attendanceQuery=attendanceQuery.gte("attendance_sessions.session_date",String(selectedTerm.starts_on).slice(0,10));
+      if(selectedTerm?.ends_on) attendanceQuery=attendanceQuery.lte("attendance_sessions.session_date",String(selectedTerm.ends_on).slice(0,10));
+      const attAll=await attendanceQuery;
+      if(attAll.error)throw attAll.error;
 
       const groups=new Map<string,Row[]>();
       for(const r of ar.data??[]){const k=String(r.student_id);groups.set(k,[...(groups.get(k)??[]),r]);}
