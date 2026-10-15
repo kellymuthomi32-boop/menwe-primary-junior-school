@@ -121,7 +121,7 @@ function expectedCoreAreaCount(band: Band): number | null {
 function assertReportAreasConfigured(areas: ReportSubject[], band: Band, className: string) {
   const expected = expectedCoreAreaCount(band);
   if (expected != null && areas.length < expected) {
-    throw new Error(\`\${className || band} is configured with only \${areas.length} report learning areas; \${expected} are required. Fix the class subject mapping before generating reports.\`);
+    throw new Error(`${className || band} is configured with only ${areas.length} report learning areas; ${expected} are required. Fix the class subject mapping before generating reports.`);
   }
 }
 
@@ -801,7 +801,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if((sr.data??[]).length!==ids.length){
         const found=new Set((sr.data??[]).map((s:any)=>String(s.id)));
         const missing=ids.filter(id=>!found.has(id));
-        throw new Error(\`Class roster mismatch: \${missing.length} enrolled learner record(s) could not be loaded. No batch PDF was generated.\`);
+        throw new Error(`Class roster mismatch: ${missing.length} enrolled learner record(s) could not be loaded. No batch PDF was generated.`);
       }
       // Attendance must match the selected class AND term, not the learner's
       // entire attendance history across the school year or other classes.
