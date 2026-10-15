@@ -23,6 +23,7 @@ const fmt = (v: number | null) => v == null || !Number.isFinite(v) ? "—" : Num
 const learnerName = (s: Row) => [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(" ");
 // Normalize PostgREST many-to-one relations whether the client returns an object or an array.
 const examOf = (row: Row): Row => Array.isArray(row?.exams) ? (row.exams[0] ?? {}) : (row?.exams ?? {});
+const subjectRowsFromRelations = (rows: Row[]) => rows.flatMap((row: Row) => Array.isArray(row?.subjects) ? row.subjects : row?.subjects ? [row.subjects] : []).filter((subject: Row) => subject && subject.id);
 
 function achievement(value: number | null, ecde = false) {
   if (value == null) return null;
@@ -330,6 +331,13 @@ function lineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLi
   };
 }
 function annualLineFor(subject: ReportSubject, results: Row[], ecde = false): ReportLine {
+  const ids = subject.componentIds?.length ? subject.componentIds : [subject.id];
+  // Keep assessment-column data independent from the annual-completion check.
+  // A saved Opener must remain visible even if End-Term is still missing.
+  const annualExam1 = aggregate(results.filter(r => assessmentSlot(r) === "EXAM 1"), ids);
+  const annualEndTerm = ecde
+    ? aggregate(assessmentSummary(results, true), ids)
+    : aggregate(results.filter(r => assessmentSlot(r) === "ENDTERM"), ids);
   const byTerm = new Map<string, Row[]>();
   for (const row of results) {
     const termId = String(examOf(row).term_id ?? "");
@@ -344,15 +352,12 @@ function annualLineFor(subject: ReportSubject, results: Row[], ecde = false): Re
   if (!termLines.length) {
     return { ...subject, score: null, max: null, percentage: null, level: null, levelCode: "—",
       remark: results.length ? "Incomplete annual assessment record" : "No recorded result",
-      exam1Score: null, exam1Max: null, endTermScore: null, endTermMax: null };
+      exam1Score: annualExam1?.score ?? null, exam1Max: annualExam1?.max ?? null,
+      endTermScore: annualEndTerm?.score ?? null, endTermMax: annualEndTerm?.max ?? null };
   }
   const percentage = termLines.reduce((sum, line) => sum + (line.percentage ?? 0), 0) / termLines.length;
   const ach = achievement(percentage, subject.code.startsWith("PP-"));
-  // Annual reports still show the underlying assessment columns. When the
-  // year contains multiple terms, aggregate each assessment slot across the
-  // year rather than discarding the values and rendering "Not taken".
-  const annualExam1 = aggregate(results.filter(r => assessmentSlot(r) === "EXAM 1"), subject.componentIds?.length ? subject.componentIds : [subject.id]);
-  const annualEndTerm = aggregate(results.filter(r => assessmentSlot(r) === "ENDTERM"), subject.componentIds?.length ? subject.componentIds : [subject.id]);
+  // Annual reports aggregate each assessment slot across the selected academic year.
   return { ...subject, score: percentage, max: 100, percentage,
     level: ach?.level ?? null, levelCode: ach?.code ?? "—", remark: ach?.remark ?? "Annual performance",
     exam1Score: annualExam1?.score ?? null, exam1Max: annualExam1?.max ?? null,
@@ -430,7 +435,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       if(q.error)throw q.error;
       const normalizedResults = mode === "term" ? (bandFromClass(cls.data ?? undefined) === "ECDE" ? (q.data ?? []) : canonicalTermResults(q.data ?? [])) : (q.data ?? []);
       setResults(normalizedResults);
-      const classSubjects=(sub.data??[]).map((x:any)=>x.subjects).filter(Boolean); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined),bandFromClass(cls.data??undefined)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
+      const classSubjects=subjectRowsFromRelations(sub.data??[]); const reportAreas=reportAreasForBand(classSubjects,bandFromClass(cls.data??undefined),bandFromClass(cls.data??undefined)==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
       // PP1 East and PP1 West retain their own class rank and also share one
@@ -717,7 +722,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       const classId=String(selectedBatchClass.id);
       const classSubjectsQuery=await db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId);
       if(classSubjectsQuery.error)throw classSubjectsQuery.error;
-      const batchSubjects=(classSubjectsQuery.data??[]).map((x:any)=>x.subjects).filter(Boolean);
+      const batchSubjects=subjectRowsFromRelations(classSubjectsQuery.data??[]);
       if(!batchSubjects.length)throw new Error(`No subjects are configured for ${selectedBatchClass.name??selectedBatchClass.code??"the selected class"}.`);
       const enr=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
       if(enr.error)throw enr.error;
