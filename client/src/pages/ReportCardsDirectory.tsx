@@ -172,9 +172,16 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
     };
 
     const socialStudies = direct(isSST, "SST");
-    // In Grades 4–5, CRE is recorded within Social Studies at Menwe.
-    // Do not create a separate CRE row that would imply a second mark is required.
-    if (socialStudies && includeUpperCRE) socialStudies.name = "Social Studies (including CRE)";
+    // In Grades 4–5, some existing End-Term records still store CRE under
+    // its own subject ID. Combine those saved CRE scores with Social Studies
+    // in one report row, without creating a second CRE row or losing marks.
+    if (socialStudies && includeUpperCRE) {
+      socialStudies.name = "Social Studies (including CRE)";
+      const creSubject = canonical.find(s => isReligious(s) && !isSST(s));
+      if (creSubject && creSubject.id !== socialStudies.id) {
+        socialStudies.componentIds = [socialStudies.id, creSubject.id];
+      }
+    }
     const upper: ReportSubject[] = [
       direct(isEnglish, "ENG"),
       direct(isKiswahili, "KIS"),
@@ -425,11 +432,18 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     setBusy(true);reset();
     try{const db=getSupabase();
       const en=await db.from("enrollments").select("class_id").eq("student_id",studentId).eq("academic_year_id",yearId).eq("status","ACTIVE").order("created_at",{ascending:false}).limit(1).maybeSingle();if(en.error)throw en.error;if(!en.data?.class_id)throw new Error("This learner is not enrolled in an active class for the selected academic year.");
-      const classId=String(en.data.class_id); const [cls,sub,a]=await Promise.all([
+      const classId=String(en.data.class_id); const [cls,sub]=await Promise.all([
         db.from("classes").select("id,academic_year_id,code,name,level,status").eq("id",classId).maybeSingle(),
-        db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId),
-        db.from("attendance_records").select("id,status,attendance_sessions!inner(class_id,session_date)").eq("student_id",studentId)
-      ]);for(const q of[cls,sub,a])if(q.error)throw q.error;setClassRow(cls.data??null);setAllSubjects((sub.data??[]).flatMap((x:any)=>Array.isArray(x.subjects)?x.subjects:(x.subjects?[x.subjects]:[])).filter((s:any)=>s&&s.id));setAttendance(a.data??[]);
+        db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId)
+      ]);for(const q of[cls,sub])if(q.error)throw q.error;
+      let attendanceQuery=db.from("attendance_records")
+        .select("id,status,attendance_sessions!inner(class_id,session_date)")
+        .eq("student_id",studentId)
+        .eq("attendance_sessions.class_id",classId);
+      if(mode==="term"&&selectedTerm?.starts_on) attendanceQuery=attendanceQuery.gte("attendance_sessions.session_date",String(selectedTerm.starts_on).slice(0,10));
+      if(mode==="term"&&selectedTerm?.ends_on) attendanceQuery=attendanceQuery.lte("attendance_sessions.session_date",String(selectedTerm.ends_on).slice(0,10));
+      const a=await attendanceQuery;if(a.error)throw a.error;
+      setClassRow(cls.data??null);setAllSubjects((sub.data??[]).flatMap((x:any)=>Array.isArray(x.subjects)?x.subjects:(x.subjects?[x.subjects]:[])).filter((s:any)=>s&&s.id));setAttendance(a.data??[]);
       const ids=(sub.data??[]).map((x:any)=>String(x.subject_id)); const termIds=terms.filter(t=>String(t.academic_year_id)===yearId).map(t=>String(t.id));
       const q=mode==="term"?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):termIds.length?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):{data:[],error:null} as any;
       if(q.error)throw q.error;
