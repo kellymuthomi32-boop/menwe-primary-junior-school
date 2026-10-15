@@ -170,13 +170,16 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
       return found ? { ...found, code, synthetic: false } : null;
     };
 
+    const socialStudies = direct(isSST, "SST");
+    // In Grades 4–5, CRE is recorded within Social Studies at Menwe.
+    // Do not create a separate CRE row that would imply a second mark is required.
+    if (socialStudies && includeUpperCRE) socialStudies.name = "Social Studies (including CRE)";
     const upper: ReportSubject[] = [
       direct(isEnglish, "ENG"),
       direct(isKiswahili, "KIS"),
       direct(isMath, "MATH"),
       direct(isScience, "INT SCI"),
-      direct(isSST, "SST"),
-      ...(includeUpperCRE ? [direct(isReligious, "RE")].filter(Boolean) as ReportSubject[] : []),
+      socialStudies,
       direct(s => is(s, /\bCREATIVE ARTS AND SPORTS\b/), "CAS"),
     ].filter(Boolean) as ReportSubject[];
 
@@ -421,7 +424,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
         db.from("classes").select("id,academic_year_id,code,name,level,status").eq("id",classId).maybeSingle(),
         db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId),
         db.from("attendance_records").select("id,status,attendance_sessions!inner(class_id,session_date)").eq("student_id",studentId)
-      ]);for(const q of[cls,sub,a])if(q.error)throw q.error;setClassRow(cls.data??null);setAllSubjects((sub.data??[]).map((x:any)=>x.subjects).filter(Boolean));setAttendance(a.data??[]);
+      ]);for(const q of[cls,sub,a])if(q.error)throw q.error;setClassRow(cls.data??null);setAllSubjects((sub.data??[]).flatMap((x:any)=>Array.isArray(x.subjects)?x.subjects:(x.subjects?[x.subjects]:[])).filter((s:any)=>s&&s.id));setAttendance(a.data??[]);
       const ids=(sub.data??[]).map((x:any)=>String(x.subject_id)); const termIds=terms.filter(t=>String(t.academic_year_id)===yearId).map(t=>String(t.id));
       const q=mode==="term"?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):termIds.length?await db.from("exam_results").select("id,exam_id,student_id,subject_id,score,maximum_score,grade,teacher_comment,exams!inner(id,term_id,class_id,name,exam_type,starts_on,ends_on,status),subjects(id,name,code)").eq("student_id",studentId).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",ids):{data:[],error:null} as any;
       if(q.error)throw q.error;
