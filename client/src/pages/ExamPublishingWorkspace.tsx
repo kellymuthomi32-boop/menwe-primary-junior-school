@@ -203,16 +203,22 @@ export default function ExamPublishingWorkspace() {
   const selectedIsPP1 = selectedExamIsEcde && /\bPP1\b/i.test(`${selectedExamClass?.name ?? ""} ${selectedExamClass?.code ?? ""}`);
   const mappedSubjectIds = classSubjects.filter(x => String(x.class_id) === String(selectedExam?.class_id)).map(x => String(x.subject_id));
   const assignedSubjectIds = teacher ? assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)) : [];
-  // PP1 enters one mark for the merged Environmental + CRE learning area.
-  // Keep CRE mapped for reports to read legacy marks, but do not require a separate mark.
-  const mergedCREIds = new Set(subjects.filter(s => selectedIsPP1 && s.code === "PP-CRE").map(s => String(s.id)));
+  // PP1 records CRE within Environmental Activities; Grades 4–5 record CRE
+  // within Social Studies. Keep legacy CRE mappings readable but never require
+  // a duplicate standalone mark for these combined learning areas.
+  const mergedCREIds = new Set(subjects.filter(s =>
+    (selectedIsPP1 && s.code === "PP-CRE") ||
+    (isGrade4or5Class(selectedExamClass) && s.code === "CRE")
+  ).map(s => String(s.id)));
   const requiredSubjects = [...new Set([...mappedSubjectIds, ...assignedSubjectIds])].filter(id => !mergedCREIds.has(id));
   const availableSubjectIds = new Set(assignments.filter(a => String(a.class_id) === String(selectedExam?.class_id)).map(a => String(a.subject_id)));
   const availableSubjects = subjects
     .filter(s => requiredSubjects.includes(String(s.id)) && (!teacher || availableSubjectIds.has(String(s.id))))
     .map(s => selectedIsPP1 && s.code === "PP-ENV"
       ? { ...s, name: "Environmental and Religious Activities" }
-      : s);
+      : isGrade4or5Class(selectedExamClass) && s.code === "SST"
+        ? { ...s, name: "Social Studies (including CRE)" }
+        : s);
 
   const completion = useMemo(() => {
     const required = learnerCount * requiredSubjects.length;
