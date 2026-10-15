@@ -574,7 +574,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       doc.text("TOTAL / OVERALL",cols[0]+2,y+7);
       doc.text(fmt(tm),cols[1]+2,y+7);
       doc.text(avg==null?"—":avg.toFixed(1)+"%",cols[2]+2,y+7);
-      doc.text(overallAchievement?.code??"—",cols[3]+2,y+7);
+      doc.text(achievement(avg,true)?.code??"—",cols[3]+2,y+7);
     }else{
       doc.text("TOTAL / OVERALL",cols[0]+2,y+7);
       doc.text(fmt(openerTotal),cols[1]+2,y+7);
