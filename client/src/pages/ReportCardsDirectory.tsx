@@ -119,7 +119,7 @@ function reportAreasForBand(subjects: Row[], band: Band, includeUpperCRE = false
     // Activities. Those combined marks are already saved against the main
     // area IDs, so do not create empty standalone CRE/Psychomotor rows or
     // add their scores a second time.
-    const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)));
+    const ppAreas = canonical.filter(s => /^PP-/.test(String(s.code)) || isKiswahili(s));
     const env = ppAreas.find(s => s.code === "PP-ENV");
     const cre = ppAreas.find(s => s.code === "PP-CRE");
     const creative = ppAreas.find(s => s.code === "PP-CREA");
