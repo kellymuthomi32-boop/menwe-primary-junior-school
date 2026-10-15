@@ -456,6 +456,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
         .eq("attendance_sessions.class_id",classId);
       if(mode==="term"&&selectedTerm?.starts_on) attendanceQuery=attendanceQuery.gte("attendance_sessions.session_date",String(selectedTerm.starts_on).slice(0,10));
       if(mode==="term"&&selectedTerm?.ends_on) attendanceQuery=attendanceQuery.lte("attendance_sessions.session_date",String(selectedTerm.ends_on).slice(0,10));
+      if(mode==="annual"&&selectedYear?.starts_on) attendanceQuery=attendanceQuery.gte("attendance_sessions.session_date",String(selectedYear.starts_on).slice(0,10));
+      if(mode==="annual"&&selectedYear?.ends_on) attendanceQuery=attendanceQuery.lte("attendance_sessions.session_date",String(selectedYear.ends_on).slice(0,10));
       const a=await attendanceQuery;if(a.error)throw a.error;
       setClassRow(cls.data??null);setAllSubjects((sub.data??[]).flatMap((x:any)=>Array.isArray(x.subjects)?x.subjects:(x.subjects?[x.subjects]:[])).filter((s:any)=>s&&s.id));setAttendance(a.data??[]);
       const ids=(sub.data??[]).map((x:any)=>String(x.subject_id)); const termIds=terms.filter(t=>String(t.academic_year_id)===yearId).map(t=>String(t.id));
@@ -468,7 +470,22 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       const reportAreas=reportAreasForBand(classSubjects,reportBand,reportBand==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(cls.data??undefined) ?? 0),String(cls.data?.name ?? cls.data?.code ?? ""));
       assertReportAreasConfigured(reportAreas,reportBand,String(cls.data?.name ?? cls.data?.code ?? ""));
       const enroll=await db.from("enrollments").select("student_id").eq("class_id",classId).eq("academic_year_id",yearId).eq("status","ACTIVE");
-      if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){const grouped=new Map<string,Row[]>();for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}const standings=idsStudents.map(id=>{const ls=reportAreas.map(a=>lineFor(a,grouped.get(id)??[]));const marks=ls.reduce((n,l)=>n+(l.score??0),0);const points=ls.reduce((n,l)=>n+(l.level??0),0);return {id,marks,points};}).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);}}
+      if(!enroll.error&&(enroll.data??[]).length){const idsStudents:string[]=Array.from(new Set<string>((enroll.data??[]).map((x:any)=>String(x.student_id))));const rankQ=mode==="term"?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).eq("exams.term_id",termId).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):termIds.length?await db.from("exam_results").select("student_id,subject_id,score,maximum_score,exams!inner(term_id,class_id,name,exam_type,status,ends_on,starts_on)").in("student_id",idsStudents).in("exams.term_id",termIds).eq("exams.class_id",classId).in("exams.status",canUseEnteredResults?["DRAFT","PUBLISHED"]:["PUBLISHED"]).in("subject_id",(sub.data??[]).map((x:any)=>String(x.subject_id))):{data:[],error:null} as any;if(!rankQ.error){
+          const grouped=new Map<string,Row[]>();
+          for(const r of rankQ.data??[]){const k=String(r.student_id);grouped.set(k,[...(grouped.get(k)??[]),r]);}
+          if(mode==="term"&&bandFromClass(cls.data??undefined)!=="ECDE"){
+            for(const [id,rows] of grouped.entries()) grouped.set(id,canonicalTermResults(rows));
+          }
+          const standings=idsStudents.map(id=>{
+            const rows=grouped.get(id)??[];
+            const ecde=bandFromClass(cls.data??undefined)==="ECDE";
+            const ls=reportAreas.map(a=>mode==="annual"?annualLineFor(a,rows,ecde):lineFor(a,rows,ecde));
+            const marks=ls.reduce((n,l)=>n+(l.score??0),0);
+            const points=ls.reduce((n,l)=>n+(l.level??0),0);
+            return {id,marks,points};
+          }).sort((a,b)=>bandFromClass(cls.data??undefined)==="JUNIOR_SCHOOL"?b.points-a.points||b.marks-a.marks:b.marks-a.marks||b.points-a.points);
+          const pos=standings.findIndex(x=>x.id===studentId);setRank(pos>=0?pos+1:null);
+        }}
       // PP1 East and PP1 West retain their own class rank and also share one
       // overall PP1 ranking. Calculate the combined ranking from the same
       // selected term and each class's own configured learning areas.
