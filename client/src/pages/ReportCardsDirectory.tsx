@@ -612,7 +612,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     // Use more of the A4 page for short reports while retaining extra
     // safety margin for longer Junior School subject lists.
     const pdfScale = areas.length <= 5 ? 0.92 : areas.length <= 7 ? 0.89 : areas.length <= 9 ? 0.86 : 0.83;
-    doc.internal.write(`${pdfScale} 0 0 ${pdfScale} 24 12 cm`);
+    const pdfXOffset=(W-W*pdfScale)/2, pdfYOffset=(297-297*pdfScale)/2;\n    doc.internal.write(`${pdfScale} 0 0 ${pdfScale} ${pdfXOffset.toFixed(3)} ${pdfYOffset.toFixed(3)} cm`);
     const logoDataUrl=await getPdfLogoDataUrl();
     const addText=(text:string,x:number,y0:number,width:number,size:number,opts:any={})=>{
       doc.setFontSize(size); const lines=doc.splitTextToSize(String(text??"—"),width); doc.text(lines,x,y0,opts); return lines.length;
@@ -654,22 +654,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     addText(includedAssessments.length?includedAssessments.map((a,i)=>`${i+1}. ${b==="ECDE"?"End-Term":assessmentLabel(a,cls)}`).join("   •   "):"No assessment recorded",M+30,y+32,CW-35,7.5);
     y+=41;
 
-    sectionTitle("01","Assessments Included",b==="ECDE"?"This ECDE report card uses End-Term results only.":(gradeFromClass(cls)??99)>=1&&(gradeFromClass(cls)??99)<=6?"This primary-school report contains Opener and End-Term assessments, shown separately.":"This report contains Exam 1 and End-Term assessments, shown separately.");
-    const assessmentCards=includedAssessments.length?includedAssessments:[];
-    const cardGap=4, cardW=(CW-cardGap)/2, cardH=19;
-    assessmentCards.forEach((a,i)=>{
-      const x=M+i*(cardW+cardGap), ex=examOf(a);
-      doc.setFillColor(250,251,252);doc.setDrawColor(205,214,224);doc.roundedRect(x,y,cardW,cardH,1.5,1.5,"FD");
-      doc.setFillColor(216,155,40);doc.rect(x,y,cardW,1.2,"F");
-      doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.5);
-      doc.text(b==="ECDE"?"END-TERM":assessmentLabel(a,cls).toUpperCase(),x+3,y+5);
-      doc.setTextColor(6,18,41);doc.setFontSize(8.5);doc.text(b==="ECDE"?"End-Term":assessmentLabel(a,cls),x+3,y+10);
-      doc.setTextColor(90,105,120);doc.setFont("helvetica","normal");doc.setFontSize(7);
-      const dateText=[ex.starts_on,ex.ends_on&&ex.ends_on!==ex.starts_on?ex.ends_on:null].filter(Boolean).join(" – ")||"Date not recorded";
-      doc.text(dateText,x+3,y+15);
-    });
-    y+=assessmentCards.length?cardH+4:3;
-    sectionTitle("02","Learning Area Performance","Learning areas mirror the class marksheet. Assessment scores remain visible and the combined score is the average percentage of the recorded assessments.");
+    sectionTitle("01","Learning Area Performance","Learning areas mirror the class marksheet. Assessment scores remain visible and the combined score is the average percentage of the recorded assessments.");
     const cols=b==="ECDE"?[M,M+65,M+90,M+108,M+128]:[M,M+43,M+68,M+93,M+118,M+135,M+152];
     const widths=b==="ECDE"?[65,25,18,20,62]:[43,25,25,25,17,17,38];
     const tableHeaders=b==="ECDE"?["LEARNING AREA","END-TERM","%","LEVEL","TEACHER INTERPRETATION"]:["LEARNING AREA",assessmentColumnLabel(cls).toUpperCase(),"END-TERM","COMBINED","%","LEVEL","TEACHER INTERPRETATION"];
@@ -728,7 +713,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       
       doc.setFillColor(255,244,214);doc.setDrawColor(216,155,40);doc.roundedRect(M,y,CW,warningH,1.5,1.5,"FD");doc.setTextColor(115,72,0);doc.setFont("helvetica","bold");doc.setFontSize(7.2);doc.text(warningLines,M+5,y+5);y+=warningH+3;
     }
-    sectionTitle("03","Performance Summary","Key information for the learner and parent/guardian.");
+    sectionTitle("02","Performance Summary","Key information for the learner and parent/guardian.");
     const totalH=18;
     
     doc.setFillColor(238,243,248);doc.rect(M,y,CW,totalH,"F");doc.setDrawColor(216,155,40);doc.line(M,y,M+CW,y);
@@ -739,7 +724,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     const metrics=[["TOTAL MARKS",`${fmt(tm)}`],[b==="ECDE"?"AVERAGE ACHIEVEMENT":"MEAN AVERAGE",b==="ECDE"?(ls.length?`${(pts/ls.length).toFixed(1)} / 4`:"—"):(avg==null?"—":avg.toFixed(1)+"%")],["OVERALL LEVEL",overallAchievement?(b==="ECDE"?`${overallAchievement.code} • ${overallBand}`:`${overallAchievement.code} / Level ${overallAchievement.level} • ${overallBand}`):"—"],["CLASS RANK",b==="ECDE"&& !/PP1/i.test(String(cls.name??"")+" "+String(cls.code??""))?"Not ranked":studentRank==null?"—":String(studentRank)],...(b==="ECDE"&&/PP1/i.test(String(cls.name??"")+" "+String(cls.code??""))?[["OVERALL PP1 RANK",studentOverallRank==null?"—":String(studentOverallRank)]]:[]),["TOTAL POINTS",b==="JUNIOR_SCHOOL"?String(pts):"—"]];
     metrics.forEach((m,i)=>{const x=M+3+i*(CW/metrics.length);const cellW=CW/metrics.length-5;doc.setTextColor(90,105,120);doc.setFont("helvetica","bold");doc.setFontSize(6.2);addText(m[0],x,y+4,cellW,6.2);doc.setTextColor(6,18,41);doc.setFontSize(i===2?6.6:8.5);addText(m[1],x,y+9,cellW,i===2?6.6:8.5);});y+=24;
 
-    sectionTitle("04","Comments & Guidance","Professional guidance for the learner and parent/guardian.");
+    sectionTitle("03","Comments & Guidance","Professional guidance for the learner and parent/guardian.");
     const boxes=[["CLASS TEACHER REMARK",teacher||"No teacher remark entered."],["HEADTEACHER REMARK",head||"No headteacher remark entered."]];
     boxes.forEach((m,i)=>{
       const x=M+i*95,w=90;doc.setDrawColor(190,200,215);const lines=doc.splitTextToSize(String(m[1]),w-8);const h=Math.max(30,Math.min(45,14+lines.length*4));
