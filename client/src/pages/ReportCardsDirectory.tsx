@@ -480,7 +480,19 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
           }
         }
       }
-      if(mode==="term"){const rc=await db.from("report_cards").select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").eq("student_id",studentId).eq("term_id",termId).maybeSingle();if(rc.error)throw rc.error;if(rc.data){setReport(rc.data);setTeacherRemark(rc.data.teacher_remark??"");setHeadRemark(rc.data.headteacher_remark??"");}}
+      if(mode==="term"){
+        const rc=await db.from("report_cards").select("id,attendance_percentage,average_score,teacher_remark,headteacher_remark,generated_at").eq("student_id",studentId).eq("term_id",termId).maybeSingle();
+        if(rc.error)throw rc.error;
+        if(rc.data){setReport(rc.data);setTeacherRemark(rc.data.teacher_remark??"");setHeadRemark(rc.data.headteacher_remark??"");}
+      }else{
+        // Annual reports should carry forward the most recent saved comments
+        // from this learner's term reports in the selected academic year.
+        const remarksQ=termIds.length?await db.from("report_cards").select("teacher_remark,headteacher_remark,generated_at").eq("student_id",studentId).in("term_id",termIds).order("generated_at",{ascending:false}):{data:[],error:null} as any;
+        if(remarksQ.error)throw remarksQ.error;
+        const savedRemarks=remarksQ.data??[];
+        setTeacherRemark(savedRemarks.find((r:any)=>String(r.teacher_remark??"").trim())?.teacher_remark??"");
+        setHeadRemark(savedRemarks.find((r:any)=>String(r.headteacher_remark??"").trim())?.headteacher_remark??"");
+      }
       if(!(q.data??[]).length)setMessage("No recorded results were found for this learner in the selected period.");
     }catch(e){setMessage(e instanceof Error?e.message:"Report card could not be generated.");}finally{setBusy(false);}
   };
@@ -549,7 +561,10 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     // Keep every individual learner report on one A4 page. Scale the complete
     // vector layout uniformly so all sections remain present and legible.
     doc.internal.write("q");
-    doc.internal.write("0.85 0 0 0.85 45 28 cm");
+    // Use more of the A4 page for short reports while retaining extra
+    // safety margin for longer Junior School subject lists.
+    const pdfScale = areas.length <= 5 ? 0.92 : areas.length <= 7 ? 0.89 : areas.length <= 9 ? 0.86 : 0.83;
+    doc.internal.write(`${pdfScale} 0 0 ${pdfScale} 24 12 cm`);
     const logoDataUrl=await getPdfLogoDataUrl();
     const addText=(text:string,x:number,y0:number,width:number,size:number,opts:any={})=>{
       doc.setFontSize(size); const lines=doc.splitTextToSize(String(text??"—"),width); doc.text(lines,x,y0,opts); return lines.length;
