@@ -758,14 +758,18 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
     }
   };
   const batchPdf=async()=>{
-    if(!batchClassId||!yearId||mode!=="term"||!termId){
-      setMessage("Select a grade/class, academic year and term before creating the class batch.");
-      return;
-    }
+    // A class batch is a term report. Resolve the class from the chosen learner
+    // when possible, so the action does not fail just because the class selector
+    // was left at its default value.
+    const resolvedClassId=batchClassId || String(students.find(s=>String(s.id)===studentId)?._classId ?? "");
+    if(!resolvedClassId){setMessage("Choose a grade/class in the first selector before producing all class reports.");return;}
+    if(!yearId){setMessage("Choose the academic year before producing all class reports.");return;}
+    if(mode!=="term"){setMessage("Choose Term report, then select the term. Annual batch PDFs are not supported by this action yet.");return;}
+    if(!termId){setMessage("Choose the term for the selected academic year before producing all class reports.");return;}
     setBusy(true);setMessage("");
     try{
       const db=getSupabase();
-      const selectedBatchClass=classes.find(c=>String(c.id)===batchClassId);
+      const selectedBatchClass=classes.find(c=>String(c.id)===resolvedClassId);
       if(!selectedBatchClass)throw new Error("The selected grade/class could not be found for this academic year.");
       const classId=String(selectedBatchClass.id);
       const classSubjectsQuery=await db.from("class_subjects").select("subject_id,subjects(id,name,code,status)").eq("class_id",classId);
