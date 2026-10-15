@@ -801,7 +801,13 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       for (const [i,p] of persisted.sort((a,b)=>learnerName(a.st).localeCompare(learnerName(b.st))).entries()) {
         if(i)doc.addPage();
         const pos=standings.findIndex(x=>x.id===p.id);
-        await drawPdfPage(doc,p.st,selectedBatchClass,subjects,groups.get(p.id)??[],p.attRows,pos>=0?pos+1:null,p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??"");
+        const overallOrder=[...prepared].filter(x=>x.average!=null).sort((a,b)=>(b.average??-1)-(a.average??-1)||learnerName(a.st).localeCompare(learnerName(b.st)));
+        const overallPos=overallOrder.findIndex(x=>x.id===p.id);
+        await drawPdfPage(
+          doc,p.st,selectedBatchClass,subjects,groups.get(p.id)??[],p.attRows,
+          pos>=0?pos+1:null,overallPos>=0?overallPos+1:null,
+          p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??""
+        );
       }
       doc.save(`${safePart(selectedBatchClass.name??selectedBatchClass.code)}_${safePart(selectedTerm?.name)}_Report_Cards.pdf`);
       setMessage(`Batch PDF created for ${persisted.length} learners. Supabase persistence verified before PDF generation.`);
