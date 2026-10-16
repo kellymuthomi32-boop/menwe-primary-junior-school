@@ -119,12 +119,25 @@ export default function ClassMarksheetV2() {
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
     if (band === "ECDE") {
-      // PP1's configured learning areas do not include a standalone RE column.
-      // Keep this scoped to PP1 so PP2 and all other grades retain their own subjects.
-      const isPP1 = /\bPP1\b/i.test(`${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`);
-      const ecdeSubjects = isPP1
+      const classLabel = `${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`;
+      const isPP1 = /\bPP1\b/i.test(classLabel);
+      const isPP2 = /\bPP\s*2\b|\bPRE[\s-]*PRIMARY\s*2\b/i.test(classLabel);
+      // PP1 has no standalone Religious Education column.
+      const pp1Subjects = isPP1
         ? subjects.filter(s => !matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\b/, /^IRE\b/, /^CRE\b/]))
         : subjects;
+      // For PP2 printouts, hide learning-area columns with no saved marks
+      // for any learner. If no marks have been entered, retain all columns.
+      const hasAnyPP2Marks = isPP2 && pp1Subjects.some(s =>
+        rows.some(row => (row.results ?? []).some((result: Row) =>
+          str(result.subject_id) === str(s.id) && num(result.score) !== null
+        ))
+      );
+      const ecdeSubjects = hasAnyPP2Marks
+        ? pp1Subjects.filter(s => rows.some(row => (row.results ?? []).some((result: Row) =>
+            str(result.subject_id) === str(s.id) && num(result.score) !== null
+          )))
+        : pp1Subjects;
       return ecdeSubjects.map(s => ({ ...s, code: subjectCode(s) }));
     }
     if (band === "LOWER_PRIMARY") { const enteredSubjectIds = new Set(rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)); const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) })); return sortReportSubjects(entered); }
