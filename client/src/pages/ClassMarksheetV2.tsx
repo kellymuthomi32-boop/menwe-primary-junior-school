@@ -118,7 +118,15 @@ export default function ClassMarksheetV2() {
   }, [selectionRestored, loading, yearId, termId, classId, visibleClasses, visibleTerms]);
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
-    if (band === "ECDE") { return subjects.map(s => ({ ...s, code: subjectCode(s) })); }
+    if (band === "ECDE") {
+      // PP1's configured learning areas do not include a standalone RE column.
+      // Keep this scoped to PP1 so PP2 and all other grades retain their own subjects.
+      const isPP1 = /\\bPP1\\b/i.test(`${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`);
+      const ecdeSubjects = isPP1
+        ? subjects.filter(s => !matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\\b/, /^IRE\\b/, /^CRE\\b/]))
+        : subjects;
+      return ecdeSubjects.map(s => ({ ...s, code: subjectCode(s) }));
+    }
     if (band === "LOWER_PRIMARY") { const enteredSubjectIds = new Set(rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)); const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) })); return sortReportSubjects(entered); }
     if (band === "UPPER_PRIMARY") { const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) })); const out: ReportSubject[] = [...normal]; const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); const scienceComponents = subjects.filter(INT_SCI); if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false }); else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) }); const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/])); const casComponents = subjects.filter(CAS); if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false }); else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) }); return sortReportSubjects(out); }
     const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"]; const out: ReportSubject[] = []; for (const code of codes) { if (code === "INT SCI") { const s = subjects.find(x => matches(x, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); if (s) out.push({ ...s, code }); } else if (code === "CAS") { const s = subjects.find(x => matches(x, [/CREATIVE ARTS.*SPORT/])); const components = subjects.filter(CAS); if (s) out.push({ ...s, code }); else if (components.length) out.push({ id: "__junior_cas__", code, name: "Creative Arts & Sports", synthetic: true, componentIds: components.map(x => x.id) }); } else { const s = fixedJuniorSubject(code, subjects); if (s) out.push(s); } } return out.length ? out : sortReportSubjects(subjects.slice(0, 9).map(s => ({ ...s, code: subjectCode(s) })));
