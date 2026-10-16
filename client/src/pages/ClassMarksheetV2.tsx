@@ -121,9 +121,9 @@ export default function ClassMarksheetV2() {
     if (band === "ECDE") {
       // PP1's configured learning areas do not include a standalone RE column.
       // Keep this scoped to PP1 so PP2 and all other grades retain their own subjects.
-      const isPP1 = /\\bPP1\\b/i.test(`${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`);
+      const isPP1 = /\bPP1\b/i.test(`${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`);
       const ecdeSubjects = isPP1
-        ? subjects.filter(s => !matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\\b/, /^IRE\\b/, /^CRE\\b/]))
+        ? subjects.filter(s => !matches(s, [/RELIGIOUS EDUCATION/, /ISLAMIC RELIGIOUS/, /CHRISTIAN RELIGIOUS/, /^RE\b/, /^IRE\b/, /^CRE\b/]))
         : subjects;
       return ecdeSubjects.map(s => ({ ...s, code: subjectCode(s) }));
     }
