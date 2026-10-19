@@ -128,7 +128,8 @@ export default function ClassMarksheetV2() {
       const mathematics = pick([/MATHEMATICS/, /^MATH?\\b/, /^MAT\\b/]);
       const integratedScience = pick([/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]);
       const socialStudies = pick([/SOCIAL STUDIES/, /^SST\\b/]);
-      const creativeArts = pick([/CREATIVE ARTS.*SPORT/, /CREATIVE ARTS/]);
+      // Grade 4 currently stores the entered CAS marks under the legacy Creative Arts (ART) subject. Prefer the subject that actually has persisted scores so the CAS column does not appear blank.
+      const creativeArts = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/, /CREATIVE ARTS/]) && rows.some(row => resultsFor(row, str(s.id)).some((result: Row) => num(result.score) !== null))) ?? pick([/CREATIVE ARTS.*SPORT/, /CREATIVE ARTS/]);
       const ordered: ReportSubject[] = [];
       if (socialStudies) ordered.push({ ...socialStudies, code: "SST", name: "Social Studies" });
       if (mathematics) ordered.push({ ...mathematics, code: "MATH", name: "Mathematics" });
