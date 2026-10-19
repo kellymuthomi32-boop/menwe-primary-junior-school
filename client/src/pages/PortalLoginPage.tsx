@@ -103,7 +103,7 @@ export default function PortalLoginPage() {
     clearFeedback();
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !password || !confirmPassword) { setMessage("Complete all registration fields to continue."); return; }
-    if (password.length < 6) { setMessage("Password must contain at least 6 characters."); return; }
+    if (password.length < 6) { setMessage("Choose a password with at least 6 characters. Ask a trusted family member to help if needed."); return; }
     if (password !== confirmPassword) { setMessage("Passwords do not match."); return; }
     setBusy(true);
     try {
@@ -145,7 +145,7 @@ export default function PortalLoginPage() {
         const lookup = identifier.trim();
         if (!lookup) { setMessage("Enter the learner admission number or UPI number."); return; }
         const { data: studentId, error } = await client.rpc("verify_learner_registration", { identifier: lookup });
-        if (error || !studentId) { setMessage("Learner record not found. Please contact school ICT or administration."); return; }
+        if (error || !studentId) { setMessage("We could not find that admission or UPI number. Check the number on the school admission documents, or ask the school office for help."); return; }
         metadata = { student_id: studentId as string, role: "parent", account_type: "parent_student" };
       }
 
@@ -166,10 +166,10 @@ export default function PortalLoginPage() {
       setSchoolCode("");
       setIdentifier(normalizedEmail);
       if (data.session) {
-        setSuccess("Account created successfully.");
+        setSuccess("Registration complete. Opening your family portal…");
         await postLoginRedirect();
       } else {
-        setSuccess("Account created. Please confirm your email before signing in.");
+        setSuccess("One last step: open the confirmation message sent to your email, tap the link, then return here and sign in. If you need help, ask the school office or a trusted family member.");
         setMode("signin");
       }
     } catch (error) { setMessage(friendlyError(error)); }
