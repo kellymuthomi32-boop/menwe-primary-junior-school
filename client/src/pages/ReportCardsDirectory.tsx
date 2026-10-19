@@ -851,7 +851,6 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
       const batchBand=bandFromClass(selectedBatchClass);
       const reportAreas=reportAreasForBand(subjects,batchBand,batchBand==="UPPER_PRIMARY" && [4,5].includes(gradeFromClass(selectedBatchClass) ?? 0),String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
       assertReportAreasConfigured(reportAreas,batchBand,String(selectedBatchClass?.name ?? selectedBatchClass?.code ?? ""));
-      const batchBand=bandFromClass(selectedBatchClass);
       const batchLine=(area:ReportSubject,rows:Row[])=>mode==="annual"?annualLineFor(area,rows,batchBand==="ECDE"):lineFor(area,rows,batchBand==="ECDE");
       const standings=ids.map(id=>{
         const ls=reportAreas.map(x=>batchLine(x,groups.get(id)??[]));
