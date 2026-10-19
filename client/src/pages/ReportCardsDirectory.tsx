@@ -871,7 +871,8 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
         const id=String(st.id),studentResults=groups.get(id)??[],linesForStudent=reportAreas.map(x=>batchLine(x,studentResults));
         const totalMarks=linesForStudent.reduce((n,l)=>n+(l.score??0),0);
         const totalMax=linesForStudent.reduce((n,l)=>n+(l.max??0),0);
-        const average=totalMax>0?totalMarks/totalMax*100:null;
+        const allLearningAreasComplete=linesForStudent.length>0&&linesForStudent.every(l=>l.percentage!=null);
+        const average=allLearningAreasComplete&&totalMax>0?totalMarks/totalMax*100:null;
         const attRows=attendanceGroups.get(id)??[],remarks=existingRemarks.get(id);
         const itemRows=linesForStudent.filter(l=>l.score!=null||l.max!=null).map(l=>({
           subject_id:String(l.id),score:l.score,maximum_score:l.max,grade:l.levelCode==="—"?null:l.levelCode
@@ -879,11 +880,9 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
         return{st,id,linesForStudent,average,attRows,remarks,itemRows};
       });
 
-      const incompleteLearners=prepared.filter(p=>p.linesForStudent.some(l=>l.percentage==null));
-      if(incompleteLearners.length){
-        const examples=incompleteLearners.slice(0,5).map(p=>`${learnerName(p.st)} (${p.linesForStudent.filter(l=>l.percentage==null).map(l=>l.name).join(", ")})`).join("; ");
-        throw new Error(`Batch report stopped: ${incompleteLearners.length} learner(s) have missing/incomplete assessment results. No batch reports were saved or generated. Examples: ${examples}. Complete the missing marks, then try again.`);
-      }
+      // Do not block the class batch for incomplete marks. Generate a report for
+      // every selected learner, leaving missing learning areas ungraded. Overall
+      // average is shown only when every required learning area has a result.
 
       // Annual reports are PDFs across the year, not records for a single term.
       const persisted=[];
