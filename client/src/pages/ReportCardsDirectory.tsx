@@ -886,18 +886,28 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
 
       // Annual reports are PDFs across the year, not records for a single term.
       const persisted=[];
+      const persistenceWarnings:string[]=[];
       if(mode==="term"){
+        // A learner with no marks must still receive a printable report.
+        // Persist each learner independently: one empty/incomplete record must
+        // never cancel the entire class PDF. Report-card save failures are
+        // surfaced after the PDF has been generated.
         for(const p of prepared){
-          const result=await persistReportCardWithItems(db,{
-            studentId:p.id,termId,classId,
-            attendancePercentage:attendancePercent(p.attRows),averageScore:p.average,
-            teacherRemark:p.remarks?.teacher_remark??null,headteacherRemark:p.remarks?.headteacher_remark??null,
-            generatedBy:user?.id??null,items:p.itemRows
-          });
-          if(result.itemCount!==p.itemRows.length){
-            throw new Error(`Report-card item verification failed for ${learnerName(p.st)}: expected ${p.itemRows.length}, saved ${result.itemCount}.`);
+          try{
+            const result=await persistReportCardWithItems(db,{
+              studentId:p.id,termId,classId,
+              attendancePercentage:attendancePercent(p.attRows),averageScore:p.average,
+              teacherRemark:p.remarks?.teacher_remark??null,headteacherRemark:p.remarks?.headteacher_remark??null,
+              generatedBy:user?.id??null,items:p.itemRows
+            });
+            if(result.itemCount!==p.itemRows.length){
+              persistenceWarnings.push(`${learnerName(p.st)} (expected ${p.itemRows.length} saved learning areas, got ${result.itemCount})`);
+            }
+            persisted.push({...p,reportCardId:result.reportCardId});
+          }catch(saveError){
+            persistenceWarnings.push(`${learnerName(p.st)} (${saveError instanceof Error?saveError.message:"report-card record could not be saved"})`);
+            persisted.push(p);
           }
-          persisted.push({...p,reportCardId:result.reportCardId});
         }
       }else{
         persisted.push(...prepared);
@@ -916,9 +926,12 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
         );
       }
       doc.save(`${safePart(selectedBatchClass.name??selectedBatchClass.code)}_${safePart(mode==="term"?selectedTerm?.name:"Annual_"+(selectedYear?.name??yearId))}_Report_Cards.pdf`);
-      setMessage(mode==="term"
-        ?`Term batch PDF created for ${persisted.length} learners. Report-card records were saved and verified.`
-        :`Annual batch PDF created for ${persisted.length} learners using recorded results across the selected academic year.`);
+      const baseMessage=mode==="term"
+        ?`Term batch PDF created for ${persisted.length} learners. Incomplete learners are included with missing marks left blank.`
+        :`Annual batch PDF created for ${persisted.length} learners using recorded results across the selected academic year. Incomplete learners are included with missing marks left blank.`;
+      setMessage(persistenceWarnings.length
+        ?`${baseMessage} Note: report-card database saving needs attention for ${persistenceWarnings.length} learner(s): ${persistenceWarnings.slice(0,3).join("; ")}${persistenceWarnings.length>3?" …":""}. The PDF was still generated.`
+        :baseMessage);
     }catch(e){setMessage(e instanceof Error?e.message:"Batch report generation failed. No PDF was generated.");}
     finally{setBusy(false);}
   };
