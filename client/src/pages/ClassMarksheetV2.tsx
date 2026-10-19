@@ -118,6 +118,26 @@ export default function ClassMarksheetV2() {
   }, [selectionRestored, loading, yearId, termId, classId, visibleClasses, visibleTerms]);
 
   const displaySubjects = useMemo<ReportSubject[]>(() => {
+    // Grades 4–5 use the six learning areas on the approved marksheet.
+    // Agriculture is already included in the saved Integrated Science average,
+    // and CRE is already included in the saved Grade 4 Social Studies average.
+    if (isGrade4or5) {
+      const pick = (patterns: RegExp[]) => subjects.find(s => matches(s, patterns));
+      const english = pick([/ENGLISH/, /^ENG\\b/]);
+      const kiswahili = pick([/KISWAHILI/, /^KIS\\b/, /^KSW\\b/]);
+      const mathematics = pick([/MATHEMATICS/, /^MATH?\\b/, /^MAT\\b/]);
+      const integratedScience = pick([/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\\b/]);
+      const socialStudies = pick([/SOCIAL STUDIES/, /^SST\\b/]);
+      const creativeArts = pick([/CREATIVE ARTS.*SPORT/, /CREATIVE ARTS/]);
+      const ordered: ReportSubject[] = [];
+      if (socialStudies) ordered.push({ ...socialStudies, code: "SST", name: "Social Studies" });
+      if (mathematics) ordered.push({ ...mathematics, code: "MATH", name: "Mathematics" });
+      if (kiswahili) ordered.push({ ...kiswahili, code: "KIS", name: "Kiswahili" });
+      if (integratedScience) ordered.push({ ...integratedScience, code: "INT SCI", name: "Integrated Science" });
+      if (english) ordered.push({ ...english, code: "ENG", name: "English" });
+      if (creativeArts) ordered.push({ ...creativeArts, code: "CAS", name: "Creative Arts and Sports" });
+      return ordered;
+    }
     if (band === "ECDE") {
       const classLabel = `${str(selectedClass?.name)} ${str(selectedClass?.code)} ${str(selectedClass?.level)}`;
       const isPP1 = /\bPP1\b/i.test(classLabel);
@@ -143,7 +163,7 @@ export default function ClassMarksheetV2() {
     if (band === "LOWER_PRIMARY") { const enteredSubjectIds = new Set(rows.flatMap(row => (row.results ?? []).map((result: Row) => str(result.subject_id))).filter(Boolean)); const entered = subjects.filter(s => enteredSubjectIds.has(str(s.id)) && !matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])).map(s => ({ ...s, code: subjectCode(s) })); return sortReportSubjects(entered); }
     if (band === "UPPER_PRIMARY") { const normal = subjects.filter(s => !CAS(s) && !INT_SCI(s) && !matches(s, [/CREATIVE ARTS.*SPORT/, /INTEGRATED SCIENCE/])).map(s => ({ ...s, code: subjectCode(s) })); const out: ReportSubject[] = [...normal]; const directScience = subjects.find(s => matches(s, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); const scienceComponents = subjects.filter(INT_SCI); if (directScience) out.push({ ...directScience, code: "INT SCI", synthetic: false }); else if (scienceComponents.length) out.push({ id: "__int_sci__", code: "INT SCI", name: "Integrated Science", synthetic: true, componentIds: scienceComponents.map(s => s.id) }); const directCas = subjects.find(s => matches(s, [/CREATIVE ARTS.*SPORT/])); const casComponents = subjects.filter(CAS); if (directCas) out.push({ ...directCas, code: "CAS", synthetic: false }); else if (casComponents.length) out.push({ id: "__cas__", code: "CAS", name: "Creative Arts & Sports", synthetic: true, componentIds: casComponents.map(s => s.id) }); return sortReportSubjects(out); }
     const codes = ["ENG", "KIS", "MATH", "INT SCI", "SST", "CAS", "AGR NUT", "RE", "PRE TECH"]; const out: ReportSubject[] = []; for (const code of codes) { if (code === "INT SCI") { const s = subjects.find(x => matches(x, [/INTEGRATED SCIENCE/, /SCIENCE TECHNOLOGY/, /^SCI\b/])); if (s) out.push({ ...s, code }); } else if (code === "CAS") { const s = subjects.find(x => matches(x, [/CREATIVE ARTS.*SPORT/])); const components = subjects.filter(CAS); if (s) out.push({ ...s, code }); else if (components.length) out.push({ id: "__junior_cas__", code, name: "Creative Arts & Sports", synthetic: true, componentIds: components.map(x => x.id) }); } else { const s = fixedJuniorSubject(code, subjects); if (s) out.push(s); } } return out.length ? out : sortReportSubjects(subjects.slice(0, 9).map(s => ({ ...s, code: subjectCode(s) })));
-  }, [subjects, band, rows]);
+  }, [subjects, band, rows, isGrade4or5]);
   const draftKey = (studentId: string, subjectId: string) => studentId + ":" + subjectId;
   const setDraftMark = (studentId: string, subjectId: string, value: string) => setDraftMarks(prev => ({ ...prev, [draftKey(studentId, subjectId)]: value }));
   const saveLearnerMarks = async (row: Row) => {
