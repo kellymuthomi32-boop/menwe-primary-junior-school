@@ -923,7 +923,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
           p.remarks?.teacher_remark??"",p.remarks?.headteacher_remark??""
         );
       }
-      doc.save(`${safePart(selectedBatchClass.name??selectedBatchClass.code)}_${safePart(mode==="term"?selectedTerm?.name:"Annual_"+(selectedYear?.name??yearId))}_Report_Cards.pdf`);
+      doc.save(targetStudentId?reportFilename(prepared[0].st,selectedBatchClass.name,mode==="term"?selectedTerm?.name:"Annual_"+(selectedYear?.name??yearId)):`${safePart(selectedBatchClass.name??selectedBatchClass.code)}_${safePart(mode==="term"?selectedTerm?.name:"Annual_"+(selectedYear?.name??yearId))}_Report_Cards.pdf`);
       const baseMessage=mode==="term"
         ?`Term batch PDF created for ${persisted.length} learners. Incomplete learners are included with missing marks left blank.`
         :`Annual batch PDF created for ${persisted.length} learners using recorded results across the selected academic year. Incomplete learners are included with missing marks left blank.`;
