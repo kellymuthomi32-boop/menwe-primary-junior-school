@@ -73,9 +73,11 @@ export default function PortalLoginPage() {
     const input = identifier.trim();
     if (input.includes("@") && input.includes(".")) return input.toLowerCase();
     if (tab === "family") {
-      const { data: studentId, error } = await getSupabase().rpc("verify_learner_registration", { identifier: input });
-      if (error || !studentId) throw new Error("We could not find that admission or UPI number. Check it with the school office.");
-      return `family.${studentId}@accounts.menwe.invalid`;
+      const { data, error } = await getSupabase().functions.invoke("resolve-family-login", { body: { identifier: input } });
+      if (error || typeof data?.email !== "string") {
+        throw new Error(typeof data?.error === "string" ? data.error : "Invalid login credentials or unregistered school identifier.");
+      }
+      return data.email;
     }
     const { data, error } = await getSupabase().rpc("resolve_user_identifier_email", { user_identifier: input });
     if (error || !data) throw new Error("Invalid login credentials or unregistered identifier.");
