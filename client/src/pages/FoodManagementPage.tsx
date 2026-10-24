@@ -5,7 +5,8 @@ import { isAdministrator, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 
 type Assignment = { responsibility: string; active: boolean };
 type Contribution = { id: string; item_type: string; quantity: number; unit: string; received_date: string; received_from: string | null; notes: string | null };
-type Payment = { id: string; learner_id: string | null; payer_name: string | null; amount: number; expected_amount?: number; balance?: number; payment_date: string; receipt_reference: string | null; status: string };\ntype LearnerOption = { id: string; admission_number: string | null; first_name: string; middle_name: string | null; last_name: string };
+type Payment = { id: string; learner_id: string | null; payer_name: string | null; amount: number; expected_amount?: number; balance?: number; payment_date: string; receipt_reference: string | null; status: string };
+type LearnerOption = { id: string; admission_number: string | null; first_name: string; middle_name: string | null; last_name: string };
 type Adjustment = { id: string; item_type: string; quantity: number; unit: string; adjustment_type: string; adjustment_date: string; notes: string | null };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -16,7 +17,8 @@ export default function FoodManagementPage() {
   const admin = isAdministrator(profile?.role as any);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);\n  const [learners, setLearners] = useState<LearnerOption[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [learners, setLearners] = useState<LearnerOption[]>([]);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [tab, setTab] = useState("overview");
   const [saving, setSaving] = useState(false);
@@ -40,13 +42,15 @@ export default function FoodManagementPage() {
     setAssignments(assigned);
     const foodAllowed = admin || assigned.some((x) => ["FOOD_RECORDING", "FOOD_MANAGER"].includes(x.responsibility));
     const riceAllowed = admin || assigned.some((x) => ["RICE_MONEY", "FOOD_MANAGER"].includes(x.responsibility));
-    const learnerQuery = riceAllowed ? db.from("students").select("id,admission_number,first_name,middle_name,last_name").eq("status","ACTIVE").is("deleted_at",null).order("first_name").range(0,999) : Promise.resolve({ data: [], error: null } as any);\n    const [food, rice, stock, learnerResult] = await Promise.all([
+    const learnerQuery = riceAllowed ? db.from("students").select("id,admission_number,first_name,middle_name,last_name").eq("status","ACTIVE").is("deleted_at",null).order("first_name").range(0,999) : Promise.resolve({ data: [], error: null } as any);
+    const [food, rice, stock, learnerResult] = await Promise.all([
       foodAllowed ? db.from("food_contributions").select("id,item_type,quantity,unit,received_date,received_from,notes").order("received_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       riceAllowed ? db.from("rice_payments").select("id,learner_id,payer_name,amount,payment_date,receipt_reference,status").order("payment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       foodAllowed ? db.from("food_stock_adjustments").select("id,item_type,quantity,unit,adjustment_type,adjustment_date,notes").order("adjustment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
     ]);
     setContributions((food.data ?? []) as Contribution[]);
-    setPayments((rice.data ?? []) as Payment[]);\n    setLearners((learnerResult.data ?? []) as LearnerOption[]);
+    setPayments((rice.data ?? []) as Payment[]);
+    setLearners((learnerResult.data ?? []) as LearnerOption[]);
     setAdjustments((stock.data ?? []) as Adjustment[]);
     if (assignmentResult.error || food.error || rice.error || stock.error || learnerResult.error) setError("Some food records could not be loaded.");
   };
