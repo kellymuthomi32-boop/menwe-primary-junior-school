@@ -398,8 +398,11 @@ export default function ReportCardsDirectory(){
   const storageKey=user?.id?`menwe:report-card-workspace:${user.id}`:"";
   const [classRow,setClassRow]=useState<Row|null>(null),[rank,setRank]=useState<number|null>(null),[overallRank,setOverallRank]=useState<number|null>(null),[allSubjects,setAllSubjects]=useState<Row[]>([]),[results,setResults]=useState<Row[]>([]),[attendance,setAttendance]=useState<Row[]>([]),[report,setReport]=useState<Row|null>(null),[teacherRemark,setTeacherRemark]=useState(""),[headRemark,setHeadRemark]=useState(""),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
 
-  useEffect(()=>{void(async()=>{if(!user)return;try{const db=getSupabase();const[s,y,t]=await Promise.all([
-    db.from("students").select("id,admission_number,first_name,middle_name,last_name,status").eq("status","ACTIVE").order("first_name").order("last_name"),
+  useEffect(()=>{void(async()=>{if(!user)return;try{const db=getSupabase();const studentQuery = profile?.role === "STUDENT"
+      ? db.from("students").select("id,admission_number,first_name,middle_name,last_name,status").eq("status","ACTIVE").eq("profile_id", user.id).order("first_name").order("last_name")
+      : db.from("students").select("id,admission_number,first_name,middle_name,last_name,status").eq("status","ACTIVE").order("first_name").order("last_name");
+const[s,y,t]=await Promise.all([
+    studentQuery,
     db.from("academic_years").select("id,name,starts_on,ends_on,is_current,status").eq("status","ACTIVE").order("starts_on",{ascending:false}),
     db.from("terms").select("id,academic_year_id,name,starts_on,ends_on,is_current,status").eq("status","ACTIVE").order("starts_on",{ascending:false})
   ]);for(const q of[s,y,t])if(q.error)throw q.error;
@@ -472,7 +475,7 @@ setStudents(orderedStudents);setYears(y.data??[]);setTerms(t.data??[]);setClasse
   const reset=()=>{setClassRow(null);setRank(null);setOverallRank(null);setAllSubjects([]);setResults([]);setAttendance([]);setReport(null);setTeacherRemark("");setHeadRemark("");setMessage("");};
 
   const generate=async()=>{
-    if(!studentId||!yearId||(mode==="term"&&!termId)){setMessage(mode==="term"?"Select learner, academic year and term first.":"Select learner and academic year first.");return;}
+    if(profile?.role==="STUDENT"&&(!students.some(s=>String(s.id)===String(studentId))||students.length!==1)){setMessage("Your learner account is not linked to exactly one active learner record. Ask the school administrator to link it before viewing reports.");return;}if(!studentId||!yearId||(mode==="term"&&!termId)){setMessage(mode==="term"?"Select learner, academic year and term first.":"Select learner and academic year first.");return;}
     setBusy(true);reset();
     try{const db=getSupabase();
       const en=await db.from("enrollments").select("class_id").eq("student_id",studentId).eq("academic_year_id",yearId).eq("status","ACTIVE").order("created_at",{ascending:false}).limit(1).maybeSingle();if(en.error)throw en.error;if(!en.data?.class_id)throw new Error("This learner is not enrolled in an active class for the selected academic year.");
