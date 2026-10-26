@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save, ShieldCheck, UserRound, BookOpen, GraduationCap } from "lucide-react";
+import { Loader2, Save, ShieldCheck, UserRound, BookOpen, GraduationCap, Camera } from "lucide-react";
 import { PortalLayout } from "@/components/PortalLayout";
 import { isAdministrator, useSchoolAuth } from "@/contexts/SupabaseAuthContext";
 import { getSupabase } from "@/lib/supabase";
@@ -15,8 +15,10 @@ export default function PortalProfilePage() {
   const { user, profile, refreshProfile } = useSchoolAuth();
   const teacher = profile?.role === "TEACHER";
   const admin = !!profile && isAdministrator(profile.role);
-  const [fullName, setFullName] = useState(profile?.display_name ?? "");
+  const [fullName, setFullName] = useState(profile?.full_name ?? profile?.display_name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [teacherId, setTeacherId] = useState("");
   const [classes, setClasses] = useState<Row[]>([]);
   const [subjects, setSubjects] = useState<Row[]>([]);
@@ -32,7 +34,7 @@ export default function PortalProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setFullName(profile?.display_name ?? "");
+    setFullName(profile?.full_name ?? profile?.display_name ?? "");
     setPhone(profile?.phone ?? "");
   }, [profile?.display_name, profile?.phone]);
 
@@ -95,6 +97,44 @@ export default function PortalProfilePage() {
     setClassTeacherIds(current => current.includes(classId) ? current.filter(x => x !== classId) : [...current, classId]);
   };
 
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setError("Choose a JPG, PNG or WebP image."); return; }
+    if (file.size > 2 * 1024 * 1024) { setError("Profile photos must be 2 MB or smaller."); return; }
+    setAvatarBusy(true); setError(null); setMessage(null);
+    try {
+      const db = getSupabase();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-100) || "profile-photo";
+      const storageKey = user.id + "/" + Date.now() + "-" + safeName;
+      const upload = await db.storage.from("profile-photos").upload(storageKey, file, { contentType: file.type, upsert: false });
+      if (upload.error) throw upload.error;
+      const update = await db.from("profiles").update({ avatar_url: storageKey }).eq("id", user.id);
+      if (update.error) throw update.error;
+      const signed = await db.storage.from("profile-photos").createSignedUrl(storageKey, 3600);
+      if (signed.error) throw signed.error;
+      setAvatarPreview(signed.data.signedUrl);
+      await refreshProfile();
+      setMessage("Profile photo updated.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Profile photo could not be uploaded.");
+    } finally {
+      setAvatarBusy(false);
+      event.target.value = "";
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const key = String(profile?.avatar_url ?? "");
+    if (!key || !user?.id) { setAvatarPreview(""); return; }
+    if (/^https?:\\/\\//i.test(key)) { setAvatarPreview(key); return; }
+    getSupabase().storage.from("profile-photos").createSignedUrl(key, 3600).then(({ data, error: signedError }) => {
+      if (!cancelled) setAvatarPreview(signedError ? "" : data?.signedUrl ?? "");
+    }).catch(() => { if (!cancelled) setAvatarPreview(""); });
+    return () => { cancelled = true; };
+  }, [profile?.avatar_url, user?.id]);
+
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user?.id || !profile) return;
@@ -145,13 +185,17 @@ export default function PortalProfilePage() {
     <main className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
       <section className="menwe-admin-hero rounded-[2rem] p-6 text-white shadow-xl sm:p-8">
         <p className="menwe-admin-kicker"><UserRound size={14}/> My profile</p>
-        <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">Account & teaching profile</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">Teachers can keep their name and contact details current and choose the active classes and subjects they teach. Your account role remains controlled by school authorization.</p>
+        <h1 className="mt-4 font-serif text-4xl font-semibold sm:text-5xl">{profile?.role === "STUDENT" ? "My learner profile" : "Account & teaching profile"}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70">{profile?.role === "STUDENT" ? "Update your account name, phone number and profile photo here. Official admission details such as your admission number and date of birth remain controlled by the school." : "Teachers can keep their name and contact details current and choose the active classes and subjects they teach. Your account role remains controlled by school authorization."}</p>
       </section>
       <form onSubmit={save} className="mt-6 grid gap-6">
         <section className="menwe-card rounded-[1.75rem] p-6 sm:p-8">
+          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--ink)]/10 bg-[var(--mist)] p-4">
+            {avatarPreview ? <img src={avatarPreview} alt="Profile" className="h-20 w-20 rounded-full object-cover ring-2 ring-[var(--gold)]" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-[var(--ink)]/45 ring-1 ring-[var(--ink)]/10"><UserRound size={30}/></div>}
+            <div className="min-w-0 flex-1"><p className="font-bold">Profile photo</p><p className="mt-1 text-xs text-[var(--ink)]/60">JPG, PNG or WebP · up to 2 MB. Only you and authorised school administrators can access this photo.</p><label className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl bg-[var(--ink)] px-4 text-sm font-bold text-white">{avatarBusy ? <Loader2 size={15} className="animate-spin"/> : <Camera size={15}/>} {avatarBusy ? "Uploading…" : "Choose photo"}<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={avatarBusy} onChange={handleAvatarChange}/></label></div>
+          </div>
           <div className="grid gap-5 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-bold">Full name<input required maxLength={120} value={fullName} onChange={e => setFullName(e.target.value)} className={input}/></label>
+            <label className="grid gap-1.5 text-sm font-bold">{profile?.role === "STUDENT" ? "Account name" : "Full name"}<input required maxLength={120} value={fullName} onChange={e => setFullName(e.target.value)} className={input}/></label>
             <label className="grid gap-1.5 text-sm font-bold">Phone<input maxLength={40} value={phone} onChange={e => setPhone(e.target.value)} className={input}/></label>
           </div>
         </section>
