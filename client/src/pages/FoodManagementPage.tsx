@@ -7,6 +7,7 @@ type Assignment = { responsibility: string; active: boolean };
 type Term = { id:string; name:string; starts_on:string; ends_on:string; is_current:boolean; academic_year_id:string; academic_years?:{name:string}|null };
 type LearnerContribution = { id:string; learner_id:string; item_type:string; quantity:number; unit:string; received_date:string; term_id:string|null; academic_year_id:string|null; notes:string|null };
 type Accountability = { learner_id:string|null; admission_number:string|null; learner_name:string|null; maize:number|null; beans:number|null; sorghum:number|null; millet:number|null; rice_paid:number|null; rice_expected:number|null; rice_balance:number|null };
+type TermBalance = { id:string; learner_id:string; academic_year_id:string; term_id:string; item_type:string; opening_quantity:number; received_quantity:number; closing_quantity:number; notes:string|null };
 type Contribution = { id: string; item_type: string; quantity: number; unit: string; received_date: string; received_from: string | null; notes: string | null };
 type Payment = { id:string; learner_id:string|null; payer_name:string|null; amount:number; expected_amount?:number; balance?:number; payment_date:string; receipt_reference:string|null; status:string; term_id?:string|null; term?:string|null; academic_year?:number|null };
 type LearnerOption = { id: string; admission_number: string | null; first_name: string; middle_name: string | null; last_name: string };
@@ -24,7 +25,7 @@ export default function FoodManagementPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [learners, setLearners] = useState<LearnerOption[]>([]);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-  const [terms,setTerms]=useState<Term[]>([]); const [years,setYears]=useState<{id:string;name:string;is_current:boolean}[]>([]); const [learnerContributions,setLearnerContributions]=useState<LearnerContribution[]>([]); const [accountability,setAccountability]=useState<Accountability[]>([]); const [selectedTerm,setSelectedTerm]=useState(""); const [showLearnerContribution,setShowLearnerContribution]=useState(false); const [learnerContribution,setLearnerContribution]=useState({learner_id:"",item_type:"MAIZE",quantity:1,unit:"kg",received_date:today(),notes:""}); const [newTerm,setNewTerm]=useState({academic_year_id:"",name:"Term 1",starts_on:"",ends_on:""});
+  const [terms,setTerms]=useState<Term[]>([]); const [years,setYears]=useState<{id:string;name:string;is_current:boolean}[]>([]); const [learnerContributions,setLearnerContributions]=useState<LearnerContribution[]>([]); const [accountability,setAccountability]=useState<Accountability[]>([]); const [termBalances,setTermBalances]=useState<TermBalance[]>([]); const [showBalanceModal,setShowBalanceModal]=useState(false); const [balanceDraft,setBalanceDraft]=useState({learner_id:"",item_type:"MAIZE",opening_quantity:0,notes:""}); const [selectedTerm,setSelectedTerm]=useState(""); const [showLearnerContribution,setShowLearnerContribution]=useState(false); const [learnerContribution,setLearnerContribution]=useState({learner_id:"",item_type:"MAIZE",quantity:1,unit:"kg",received_date:today(),notes:""}); const [newTerm,setNewTerm]=useState({academic_year_id:"",name:"Term 1",starts_on:"",ends_on:""});
   const [tab, setTab] = useState("overview");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -49,18 +50,18 @@ export default function FoodManagementPage() {
     const riceAllowed = admin || assigned.some((x) => ["RICE_MONEY", "FOOD_MANAGER"].includes(x.responsibility));
     const learnerQuery = (riceAllowed||foodAllowed) ? db.from("students").select("id,admission_number,first_name,middle_name,last_name").eq("status","ACTIVE").is("deleted_at",null).order("first_name").range(0,999) : Promise.resolve({data:[],error:null} as any);
     const learnerFoodQuery=foodAllowed?db.from("food_learner_contributions").select("id,learner_id,item_type,quantity,unit,received_date,term_id,academic_year_id,notes").order("received_date",{ascending:false}).limit(5000):Promise.resolve({data:[],error:null} as any);
-    const accountabilityQuery=foodAllowed?db.from("food_learner_accountability").select("learner_id,admission_number,learner_name,maize,beans,sorghum,millet,rice_paid,rice_expected,rice_balance").order("learner_name").limit(5000):Promise.resolve({data:[],error:null} as any);
-    const [food, rice, stock, learnerResult, learnerFoodResult, accountabilityResult] = await Promise.all([
+    const accountabilityQuery=foodAllowed?db.from("food_learner_accountability").select("learner_id,admission_number,learner_name,maize,beans,sorghum,millet,rice_paid,rice_expected,rice_balance").order("learner_name").limit(5000):Promise.resolve({data:[],error:null} as any); const balanceQuery=foodAllowed?db.from("food_learner_term_balances").select("id,learner_id,academic_year_id,term_id,item_type,opening_quantity,received_quantity,closing_quantity,notes").limit(5000):Promise.resolve({data:[],error:null} as any);
+    const [food, rice, stock, learnerResult, learnerFoodResult, accountabilityResult, balanceResult] = await Promise.all([
       foodAllowed ? db.from("food_contributions").select("id,item_type,quantity,unit,received_date,received_from,notes").order("received_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       riceAllowed ? db.from("rice_payments").select("id,learner_id,payer_name,amount,expected_amount,balance,payment_date,receipt_reference,status,term_id,term,academic_year").order("payment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       foodAllowed ? db.from("food_stock_adjustments").select("id,item_type,quantity,unit,adjustment_type,adjustment_date,notes").order("adjustment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
-      learnerQuery, learnerFoodQuery, accountabilityQuery,
+      learnerQuery, learnerFoodQuery, accountabilityQuery, balanceQuery,
     ]);
     setContributions((food.data ?? []) as Contribution[]);
     setPayments((rice.data ?? []) as Payment[]);
     setLearners((learnerResult.data ?? []) as LearnerOption[]);
-    setAdjustments((stock.data ?? []) as Adjustment[]); setLearnerContributions((learnerFoodResult.data??[]) as LearnerContribution[]); setAccountability((accountabilityResult.data??[]) as Accountability[]);
-    if (assignmentResult.error || termResult.error || yearResult.error || food.error || rice.error || stock.error || learnerResult.error || learnerFoodResult.error || accountabilityResult.error) setError("Some food records could not be loaded.");
+    setAdjustments((stock.data ?? []) as Adjustment[]); setLearnerContributions((learnerFoodResult.data??[]) as LearnerContribution[]); setAccountability((accountabilityResult.data??[]) as Accountability[]); setTermBalances((balanceResult.data??[]) as TermBalance[]);
+    if (assignmentResult.error || termResult.error || yearResult.error || food.error || rice.error || stock.error || learnerResult.error || learnerFoodResult.error || accountabilityResult.error || balanceResult.error) setError("Some food records could not be loaded.");
   };
 
   useEffect(() => { void load(); }, [profile?.id, admin]);
