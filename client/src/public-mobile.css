@@ -1,0 +1,50 @@
+/* Public website mobile quality layer — homepage, hero carousel, gallery and content pages. */
+html { scroll-padding-top: 5rem; }
+body { overflow-x: clip; }
+#main-content, #main-content > *, main, section, article, footer { min-width: 0; }
+img, video, iframe { max-width: 100%; }
+button, a { -webkit-tap-highlight-color: transparent; }
+:where(button,a,input,select,textarea,[tabindex]):focus-visible { outline: 3px solid rgba(216,155,40,.85); outline-offset: 3px; }
+@media (max-width: 767px) {
+  #main-content { overflow-x: clip; }
+  #main-content section { scroll-margin-top: 5.25rem; }
+  #main-content .mx-auto { min-width: 0; }
+  #main-content h1 { overflow-wrap: anywhere; }
+  #main-content h2, #main-content h3, #main-content p { overflow-wrap: break-word; }
+  #main-content button, #main-content a { touch-action: manipulation; }
+  #main-content input, #main-content select, #main-content textarea { max-width: 100%; font-size: 16px; }
+  /* Keep hero artwork and text from competing for the same narrow space. */
+  .menwe-exact-page section[aria-labelledby="hero-title"] { padding-top: 1.25rem !important; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] h1 { max-width: 100%; font-size: clamp(2.35rem, 11.2vw, 3.6rem) !important; line-height: .98 !important; overflow-wrap: anywhere; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .grid { min-width: 0; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .flex.w-full.h-full.items-center.justify-center.gap-2 { gap: .35rem !important; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .flex.w-full.h-full.items-center.justify-center.gap-2 > button { min-width: 0; min-height: 0; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .relative.z-20.mx-auto.mt-6 .grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: .75rem; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .relative.z-20.mx-auto.mt-6 .grid > div { min-width: 0; }
+  /* Public page spacing and card grids. */
+  #main-content .py-28, #main-content .py-24 { padding-top: 3.25rem; padding-bottom: 3.25rem; }
+  #main-content .py-20 { padding-top: 2.75rem; padding-bottom: 2.75rem; }
+  #main-content .gap-12 { gap: 1.75rem; }
+  #main-content .gap-10 { gap: 1.5rem; }
+  #main-content .rounded-\[2rem\] { border-radius: 1.25rem; }
+  #main-content .rounded-\[3rem\] { border-radius: 1.5rem; }
+  /* Gallery category controls stay swipeable instead of shrinking or clipping. */
+  #main-content .overflow-x-auto { max-width: 100%; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  #main-content [role="dialog"] { max-width: calc(100vw - 1rem); }
+  #main-content [role="dialog"] img { max-height: 64svh; object-fit: contain; }
+  /* Do not make gallery cards too tall on phones; keep captions readable. */
+  #main-content .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-3 > button { min-width: 0; }
+  #main-content .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-3 > button h3 { font-size: 1.15rem; line-height: 1.35; }
+  /* Footer contact groups and navigation wrap without horizontal scrolling. */
+  footer .grid, footer nav { min-width: 0; }
+  footer a, footer button { overflow-wrap: anywhere; }
+}
+@media (max-width: 380px) {
+  #main-content .px-5 { padding-left: 1rem; padding-right: 1rem; }
+  #main-content .text-4xl { font-size: 2rem; }
+  #main-content .text-3xl { font-size: 1.65rem; }
+  .menwe-exact-page section[aria-labelledby="hero-title"] .relative.z-20.mx-auto.mt-6 .grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #main-content *, #main-content *::before, #main-content *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
