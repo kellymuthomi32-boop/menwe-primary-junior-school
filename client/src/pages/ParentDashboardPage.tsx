@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, ArrowRight, BarChart3, Bell, BookOpen, BookOpenCheck, CalendarDays, CheckCircle2, Clock3, CreditCard, FileText, GraduationCap, LibraryBig, LogOut, MessageSquare, RefreshCw, TrendingUp, UserRound } from "lucide-react";
+import { AlertCircle, ArrowRight, BarChart3, Bell, BookOpen, BookOpenCheck, CalendarDays, CheckCircle2, Clock3, CreditCard, FileText, GraduationCap, LibraryBig, LogOut, MessageSquare, RefreshCw, TrendingUp, UserRound, Utensils } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { PortalLayout } from "@/components/PortalLayout";
 import { useSchoolAuth } from "@/contexts/SupabaseAuthContext";
@@ -180,6 +180,8 @@ export default function ParentDashboardPage() {
     { href: "/portal/report-cards", label: "Report cards", description: averageScore !== null ? `${averageScore}% average across published results.` : "Published academic reports.", icon: FileText },
     { href: "/portal/attendance", label: "Attendance", description: attendanceRate !== null ? `${attendanceRate}% attendance this period.` : "Attendance records and history.", icon: CalendarDays },
     { href: "/portal/finance", label: "Fees & payments", description: outstanding ? `${money(outstanding)} currently outstanding.` : "View fee records and payments.", icon: CreditCard },
+    ...(isStudent ? [{ href: "/portal/food/my-record", label: "My food & rice", description: "Check your recorded food contributions and rice balance.", icon: Utensils }] : []),
+    { href: "/portal/profile", label: "My profile", description: "Review your account details and contact information.", icon: UserRound },
     { href: "/portal/timetable", label: "Timetable", description: todayLessons.length ? `${todayLessons.length} lesson${todayLessons.length === 1 ? "" : "s"} on today's timetable.` : "View the school timetable.", icon: Clock3 },
     { href: "/portal/library", label: "Library", description: "Books, loans and reservations.", icon: LibraryBig },
   ];
