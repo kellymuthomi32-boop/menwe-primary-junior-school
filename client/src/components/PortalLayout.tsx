@@ -80,6 +80,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0,coordinatorScope:strin
   );
   academics.push(
    {label:"Academics",key:"academics",icon:GraduationCap,href:"/portal/academics"},
+   {label:"2027 year transition",key:"academic-year-transition",icon:CalendarDays,href:"/portal/admin/academic-year-transition"},
    {label:"Attendance",key:"attendance-admin",icon:ClipboardCheck,href:"/portal/attendance"},
    {label:"Exams & report cards",key:"exams-admin",icon:FileText,href:"/portal/exams"},
    {label:"Reports Centre",key:"reports-admin",icon:FileText,href:"/portal/reports"},
