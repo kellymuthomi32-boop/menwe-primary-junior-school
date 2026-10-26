@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./mobile-responsive.css";
+import "./dashboard-mobile.css";
 import "./homepage-premium.css";
 import "./header-micro.css";
 import "./brand-alignment.css";
