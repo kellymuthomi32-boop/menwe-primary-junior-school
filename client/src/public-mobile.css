@@ -73,3 +73,114 @@ button, a { -webkit-tap-highlight-color: transparent; }
   #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 { gap: .25rem; }
   #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button { width: 2.15rem; height: 2.15rem; }
 }
+
+
+/* Hero refinement: stronger image framing, clearer labels and reliable touch controls. */
+#main-content section[aria-labelledby="hero-title"] {
+  isolation: isolate;
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] > div.relative.h-full {
+  box-shadow: 0 24px 70px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.06) inset;
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] img {
+  object-position: center;
+  will-change: opacity, transform;
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 {
+  padding-top: 4rem;
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button:active {
+  transform: scale(.96);
+}
+#main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 > .mt-5 button {
+  min-height: 12px;
+  cursor: pointer;
+}
+#main-content section[aria-labelledby="hero-title"] .inline-flex.min-h-12 {
+  min-height: 48px;
+}
+@media (min-width: 768px) {
+  #main-content section[aria-labelledby="hero-title"] > div.relative.mx-auto {
+    padding-top: 3.75rem;
+    padding-bottom: 3.75rem;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 h2 {
+    max-width: 24rem;
+    text-wrap: balance;
+  }
+}
+@media (max-width: 767px) {
+  #main-content section[aria-labelledby="hero-title"] > div.relative.mx-auto {
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] {
+    height: clamp(300px, 94vw, 390px);
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 {
+    left: .75rem;
+    right: .75rem;
+    top: .75rem;
+    align-items: flex-start;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 > div {
+    max-width: 57%;
+    padding: .45rem .6rem;
+    line-height: 1.25;
+    white-space: normal;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 > div:last-child {
+    max-width: 39%;
+    justify-content: center;
+    text-align: center;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 {
+    padding: 1rem .85rem .9rem;
+    padding-top: 3.5rem;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.items-end.justify-between {
+    align-items: flex-end;
+    gap: .5rem;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 h2 {
+    max-width: 9.5rem;
+    font-size: clamp(1rem, 4.2vw, 1.2rem);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 {
+    gap: .25rem;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 380px) {
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 > div {
+    font-size: 8px;
+    letter-spacing: .04em;
+  }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] img,
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] button {
+    will-change: auto;
+    transition: none !important;
+  }
+}
