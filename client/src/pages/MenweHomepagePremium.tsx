@@ -8,10 +8,13 @@ import "@/styles/menwe-hero-exact.css";
 import "@/mobile-layout-fix.css";
 
 const slides = [
-  // These two hero slots are backed by verified, administrator-managed school photographs.
-  // Keep the homepage authentic: never fill the main hero with generic stock or illustration imagery.
+  // Preserve the five-image homepage carousel. Prefer the administrator-managed real school
+  // photo for each slot; existing local fallbacks keep the layout intact until each slot is filled.
   { key: "homepage_hero_1", src: "/hero-learning.svg", alt: "Menwe learners in a learning environment", label: "Learning at Menwe" },
   { key: "homepage_hero_2", src: "/hero-community.svg", alt: "Menwe school community", label: "Our school community" },
+  { key: "homepage_hero_3", src: "/hero-arts.svg", alt: "Menwe learners exploring creativity", label: "Creativity and confidence" },
+  { key: "homepage_hero_4", src: "/gallery/girls-rugby-county.svg", alt: "Menwe girls rugby team represented at county level", label: "Talent beyond the classroom" },
+  { key: "homepage_hero_5", src: "/hero-science.svg", alt: "Menwe learners exploring science and innovation", label: "Discovery and innovation" },
 ] as const;
 
 const pathways = [
