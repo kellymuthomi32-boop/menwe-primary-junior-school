@@ -44,7 +44,9 @@ export default function AcademicYearTransitionPage() {
       ]);
       if (sourceError) throw sourceError;
       if (targetError) throw targetError;
-      if (enrollmentError) throw enrollmentError;\n      if (termError) throw termError;\n      setActive2027Terms(termCount ?? 0);
+      if (enrollmentError) throw enrollmentError;
+      if (termError) throw termError;
+      setActive2027Terms(termCount ?? 0);
       const sourceRows = (sourceData ?? []) as ClassRow[];
       const targetRows = (targetData ?? []) as ClassRow[];
       setSourceClasses(sourceRows);
@@ -114,7 +116,8 @@ export default function AcademicYearTransitionPage() {
           <ShieldAlert className="mt-0.5 shrink-0 text-[var(--accent)]" size={20}/>
           <div className="text-sm leading-6 text-[var(--ink)]/75">
             <p className="font-semibold text-[var(--ink)]">Before you run it</p>
-            <p>PP1 East and PP1 West move to PP2; PP2 moves to Grade 1; Grades 1–8 each move up one grade. Grade 9 is deliberately held for leaver confirmation so repeaters or returning learners are not locked out by mistake. New PP1 admissions remain separate.</p>\n            {active2027Terms === 0 && <p className="mt-2 font-semibold">Set up an active 2027 Term 1 under Academic Management first. No learner records will be changed until a 2027 term is configured.</p>}
+            <p>PP1 East and PP1 West move to PP2; PP2 moves to Grade 1; Grades 1–8 each move up one grade. Grade 9 is deliberately held for leaver confirmation so repeaters or returning learners are not locked out by mistake. New PP1 admissions remain separate.</p>
+            {active2027Terms === 0 && <p className="mt-2 font-semibold">Set up an active 2027 Term 1 under Academic Management first. No learner records will be changed until a 2027 term is configured.</p>}
             <p className="mt-1">The operation sets 2027 as the current academic year after enrolments succeed. It can only run once; repeat clicks return the saved result instead of creating duplicate enrolments.</p>
             {missingTargets.length > 0 && <p className="mt-2 font-semibold">Missing 2027 destinations: {missingTargets.join(", ")}. Fix the class setup before proceeding.</p>}
             {completed && <p className="mt-2 font-semibold">Transition already completed or 2027 is already active. Check the result message below before taking further action.</p>}
