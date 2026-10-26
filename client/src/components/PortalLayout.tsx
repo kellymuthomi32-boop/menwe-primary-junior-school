@@ -7,6 +7,7 @@ import NotificationBell from "./NotificationBell";
 import ApexAssistant from "./ParentAssistant";
 import "@/portal-theme.css";
 import "@/portal-polish.css";
+import "@/portal-mobile.css";
 
 type PortalNavItem={label:string;key:string;icon:LucideIcon;href:string;badge?:number};
 const safeRole=(role:unknown):AppRole=>typeof role==="string"&&role.trim()?role as AppRole:"STUDENT";
