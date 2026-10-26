@@ -9,6 +9,7 @@ import PrivacyAnalytics from "./components/PrivacyAnalytics";
 import CookieConsent from "./components/CookieConsent";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import "./mobile-premium.css";
+import "./public-mobile.css";
 function lazyWithChunkRecovery<T extends ComponentType<any> = ComponentType<any>>(importer: () => Promise<{ default: T }>, key: string) { return lazy(async () => { try { return await importer(); } catch (error) { const message = error instanceof Error ? error.message : String(error); const chunk = /dynamically imported module|loading chunk|chunkloaderror|failed to fetch/i.test(message); const storage = `menwe:chunk-recovery:${key}`; if (chunk && typeof window !== "undefined" && !sessionStorage.getItem(storage)) { sessionStorage.setItem(storage, "1"); window.location.reload(); await new Promise<never>(() => undefined); } if (typeof window !== "undefined") sessionStorage.removeItem(storage); throw error; } }); }
 const pageMeta: Record<string, { title: string; description: string }> = {
   "/": { title: "Menwe Primary & Junior School | Menwe Village", description: "Discover CBC learning, admissions, school life and family support at Menwe Primary & Junior School in Menwe Village, Meru." },
