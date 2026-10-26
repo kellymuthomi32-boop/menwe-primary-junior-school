@@ -78,6 +78,10 @@ begin
     raise exception 'The 2027 class setup is incomplete. Missing required destination classes: %', array_to_string(v_missing_classes, ', ');
   end if;
 
+  if not exists (select 1 from public.terms where academic_year_id=v_target.id and status='ACTIVE') then
+    raise exception 'Create an active 2027 Term 1 in Academic Management before running the transition. No learner records were changed.';
+  end if;
+
   select count(*) into v_source_count
   from public.enrollments e
   join public.classes c on c.id=e.class_id
