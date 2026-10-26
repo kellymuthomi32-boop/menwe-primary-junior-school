@@ -130,8 +130,30 @@ export default function ParentDashboardPage() {
         if (examRows.length) { const { data } = await db.from("exam_results").select("exam_id,subject_id,score,maximum_score,grade,teacher_comment").eq("student_id", learner.id).in("exam_id", examRows.map(row => row.id)); setResults((data ?? []) as Result[]); } else setResults([]);
         const homeworkRows = (homeworkRes.data ?? []) as Homework[]; setHomework(homeworkRows);
         if (homeworkRows.length) { const { data } = await db.from("homework_submissions").select("homework_id,submitted_at,marked_at,mark,feedback").eq("student_id", learner.id).in("homework_id", homeworkRows.map(row => row.id)); setSubmissions((data ?? []) as Submission[]); } else setSubmissions([]);
-        setInvoices((invoicesRes.data ?? []) as Invoice[]);
-        if ((invoicesRes.data ?? []).length) { const { data } = await db.from("payments").select("invoice_id,amount,status,paid_at").in("invoice_id", (invoicesRes.data ?? []).map((row: Invoice) => row.id)); setPayments((data ?? []) as Payment[]); } else setPayments([]);
+        const invoiceRows = (invoicesRes.data ?? []) as Invoice[];
+        if (invoiceRows.length) {
+          const invoiceIds = invoiceRows.map(row => row.id);
+          const [itemsRes, paymentsRes] = await Promise.all([
+            db.from("invoice_items").select("invoice_id,amount").in("invoice_id", invoiceIds),
+            db.from("payments").select("invoice_id,amount,status,paid_at").in("invoice_id", invoiceIds),
+          ]);
+          if (itemsRes.error) throw itemsRes.error;
+          if (paymentsRes.error) throw paymentsRes.error;
+          const itemTotals = new Map<string, number>();
+          for (const item of itemsRes.data ?? []) {
+            itemTotals.set(item.invoice_id, (itemTotals.get(item.invoice_id) ?? 0) + Number(item.amount ?? 0));
+          }
+          setInvoices(invoiceRows.map(invoice => ({
+            ...invoice,
+            // Invoice line items are the source of truth when present; retain the
+            // stored total only for legacy invoices that have no line items.
+            total_amount: itemTotals.has(invoice.id) ? itemTotals.get(invoice.id)! : Number(invoice.total_amount ?? 0),
+          })));
+          setPayments((paymentsRes.data ?? []) as Payment[]);
+        } else {
+          setInvoices([]);
+          setPayments([]);
+        }
         setAnnouncements(((announcementsRes.data ?? []) as Announcement[]).filter(item => !item.target_class_id || item.target_class_id === classId).slice(0, 4));
         setTimetable((timetableRes.data ?? []) as TimetableEntry[]);
       } catch (error) { if (active) setMessage(friendlyError(error)); }
