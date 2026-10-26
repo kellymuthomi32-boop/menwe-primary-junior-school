@@ -1,6 +1,7 @@
 import { Activity, Award, BookOpen, HeartHandshake, Leaf, Music, ShieldCheck, Sprout, Users, Volleyball } from "lucide-react";
 import { useLocation } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
+import { cacheBustedUrl, useSiteMedia } from "@/lib/siteMedia";
 
 type Club = {
   icon: typeof Activity;
@@ -40,17 +41,20 @@ function ClubCard({ club }: { club: Club }) {
 
 export default function SchoolLifePage() {
   const [, navigate] = useLocation();
+  const { media } = useSiteMedia(["homepage_hero_4", "gallery_banner"]);
+  const sportsImage = cacheBustedUrl(media.homepage_hero_4?.image_url, media.homepage_hero_4?.updated_at);
+  const communityImage = cacheBustedUrl(media.gallery_banner?.image_url, media.gallery_banner?.updated_at);
 
   return (
     <PublicLayout>
       <section className="relative overflow-hidden bg-gradient-to-br from-[#061229] via-[#0b1d3a] to-[#061229] text-white">
         <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-[#D89B28]/10 blur-3xl" />
         <div className="pointer-events-none absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-sky-400/10 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
+        <div className="relative mx-auto grid w-full max-w-7xl items-center gap-8 overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1fr_.8fr] lg:px-8 lg:py-20"><div>
           <span className="inline-flex min-h-[48px] items-center rounded-full border border-[#D89B28]/30 bg-[#D89B28]/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#D89B28] sm:text-sm">Co-Curricular Excellence &amp; Pupil Welfare</span>
           <h1 className="mt-6 max-w-4xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">Vibrant School Life &amp; Holistic Development</h1>
           <p className="mt-6 max-w-3xl text-base leading-7 text-white/75 sm:text-lg sm:leading-8">Menwe Primary &amp; Junior School gives learners room to discover talents, build friendships, stay active and serve their community through clubs, sports, environmental initiatives and pupil support.</p>
-        </div>
+        </div><div className="grid grid-cols-2 gap-3"><figure className="relative h-44 overflow-hidden rounded-2xl border border-white/15 sm:h-56"><img src={sportsImage || "/gallery/girls-rugby-county.svg"} alt="Menwe learners taking part in school sports" className="h-full w-full object-cover" loading="lazy"/><figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061229]/90 to-transparent px-3 pb-3 pt-8 text-xs font-bold text-white">Sport &amp; talent</figcaption></figure><figure className="relative mt-8 h-44 overflow-hidden rounded-2xl border border-white/15 sm:h-56"><img src={communityImage || "/hero-community.svg"} alt="Menwe school life and community" className="h-full w-full object-cover" loading="lazy"/><figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061229]/90 to-transparent px-3 pb-3 pt-8 text-xs font-bold text-white">Community &amp; belonging</figcaption></figure></div></div>
       </section>
 
       <section className="mx-auto w-full max-w-7xl overflow-hidden px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
