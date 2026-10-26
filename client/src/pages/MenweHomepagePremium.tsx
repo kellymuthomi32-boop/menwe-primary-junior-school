@@ -1,5 +1,5 @@
 import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FlaskConical, HeartHandshake, MapPin, Medal, Phone, Play, ShieldCheck, Sparkles, Trophy, UsersRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { cacheBustedUrl, useSiteMedia } from "@/lib/siteMedia";
@@ -39,21 +39,28 @@ const experienceCards = [
 function HeroGallery({ media }: { media: Record<string, any> }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const resolved = useMemo(() => slides.map((slide) => ({ ...slide, src: cacheBustedUrl(media[slide.key]?.image_url, media[slide.key]?.updated_at) || slide.src, alt: media[slide.key]?.alt_text || slide.alt })), [media]);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const touchStartX = useRef<number | null>(null);
+  const resolved = useMemo(() => slides.map((slide) => ({
+    ...slide,
+    src: failedImages[slide.key] ? slide.src : (cacheBustedUrl(media[slide.key]?.image_url, media[slide.key]?.updated_at) || slide.src),
+    alt: media[slide.key]?.alt_text || slide.alt,
+    caption: media[slide.key]?.label?.replace(/^Homepage hero\\s*[—-]\\s*/i, "").trim() || slide.label,
+  })), [failedImages, media]);
   useEffect(() => { if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; const timer = window.setInterval(() => setActive((v) => (v + 1) % resolved.length), 6000); return () => window.clearInterval(timer); }, [paused, resolved.length]);
   const current = resolved[active] ?? resolved[0];
-  return <div className="relative h-[360px] sm:h-[480px] lg:h-[590px]">
+  return <div className="relative h-[360px] sm:h-[480px] lg:h-[590px]" role="region" aria-label="Menwe school highlights" aria-roledescription="carousel" onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; }} onTouchEnd={(event) => { const start = touchStartX.current; const end = event.changedTouches[0]?.clientX; touchStartX.current = null; if (start === null || end === undefined) return; const distance = end - start; if (Math.abs(distance) > 45) { setPaused(true); setActive((value) => (value + (distance < 0 ? 1 : -1) + resolved.length) % resolved.length); } }}>
     <div className="absolute -inset-8 rounded-[3rem] bg-[#D89B28]/15 blur-3xl" aria-hidden="true" />
     <div className="relative h-full overflow-hidden rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl ring-1 ring-white/10 backdrop-blur-sm" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}>
-      {resolved.map((slide, index) => <img key={slide.key} src={slide.src} alt={slide.alt} loading={index === 0 ? "eager" : "lazy"} className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 ${index === active ? "scale-100 opacity-100" : "scale-105 opacity-0"}`} />)}
+      {resolved.map((slide, index) => <img key={slide.key} src={slide.src} alt={slide.alt} loading={index === 0 ? "eager" : "lazy"} onError={() => { if (!failedImages[slide.key]) setFailedImages((previous) => ({ ...previous, [slide.key]: true })); }} className={`absolute inset-0 h-full w-full object-cover transition-all duration-1000 ${index === active ? "scale-100 opacity-100" : "pointer-events-none scale-105 opacity-0"}`} />)}
       <div className="absolute inset-0 bg-gradient-to-t from-[#061229] via-[#061229]/15 to-transparent" />
       <div className="absolute left-4 right-4 top-4 flex items-center justify-between sm:left-6 sm:right-6 sm:top-6">
         <div className="rounded-full border border-white/20 bg-[#061229]/65 px-3 py-2 text-[10px] font-black uppercase tracking-[.18em] text-white backdrop-blur-md sm:text-xs">Menwe • Learning in action</div>
         <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-[10px] font-bold text-white backdrop-blur-md sm:text-xs"><span className="h-2 w-2 rounded-full bg-[#D89B28]" />Menwe since 1961</div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7 lg:p-9">
-        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-[#D89B28]">{String(active + 1).padStart(2, "0")} / {String(resolved.length).padStart(2, "0")}</p><h2 className="mt-2 max-w-xl text-xl font-black text-white sm:text-3xl">{current.label}</h2></div><div className="flex gap-2"><button onClick={() => setActive((v) => (v - 1 + resolved.length) % resolved.length)} aria-label="Previous hero image" className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11"><ChevronLeft size={18}/></button><button onClick={() => setActive((v) => (v + 1) % resolved.length)} aria-label="Next hero image" className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11"><ChevronRight size={18}/></button><button onClick={() => setPaused((v) => !v)} aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-[10px] font-black text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11">{paused ? "▶" : "Ⅱ"}</button></div></div>
-        <div className="mt-5 flex gap-1.5">{resolved.map((slide, index) => <button key={slide.key} onClick={() => setActive(index)} aria-label={`Show ${slide.label}`} className={`h-1.5 rounded-full transition-all ${index === active ? "w-10 bg-[#D89B28]" : "w-2 bg-white/45"}`} />)}</div>
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.18em] text-[#D89B28]">{String(active + 1).padStart(2, "0")} / {String(resolved.length).padStart(2, "0")}</p><h2 aria-live="polite" aria-atomic="true" className="mt-2 max-w-xl text-xl font-black text-white sm:text-3xl">{current.caption}</h2></div><div className="flex gap-2"><button onClick={() => setActive((v) => (v - 1 + resolved.length) % resolved.length)} aria-label="Previous hero image" className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11"><ChevronLeft size={18}/></button><button onClick={() => setActive((v) => (v + 1) % resolved.length)} aria-label="Next hero image" className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11"><ChevronRight size={18}/></button><button onClick={() => setPaused((v) => !v)} aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-[#061229]/70 text-[10px] font-black text-white backdrop-blur-md hover:bg-[#061229] sm:h-11 sm:w-11">{paused ? "▶" : "Ⅱ"}</button></div></div>
+        <div className="mt-5 flex gap-1.5">{resolved.map((slide, index) => <button key={slide.key} onClick={() => { setActive(index); setPaused(true); }} aria-label={`Show slide ${index + 1}: ${slide.caption}`} aria-current={index === active ? "true" : undefined} className={`inline-flex min-h-11 min-w-7 items-center justify-center rounded-full px-1 transition-all ${index === active ? "w-10" : "w-7"}`}><span className={`h-1.5 rounded-full ${index === active ? "w-8 bg-[#D89B28]" : "w-2 bg-white/55"}`} /></button>)}</div>
       </div>
     </div>
   </div>;
