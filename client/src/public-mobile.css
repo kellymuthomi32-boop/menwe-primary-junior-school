@@ -48,3 +48,28 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   #main-content *, #main-content *::before, #main-content *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Actual homepage hero markup (the first public section is labelled hero-title). */
+@media (max-width: 767px) {
+  #main-content section[aria-labelledby="hero-title"] { padding-top: 0; }
+  #main-content section[aria-labelledby="hero-title"] h1 { max-width: 100%; font-size: clamp(2.25rem, 10.5vw, 3.35rem); line-height: 1.02; overflow-wrap: normal; }
+  #main-content section[aria-labelledby="hero-title"] > div.relative.mx-auto { padding-top: 1.5rem; }
+  #main-content section[aria-labelledby="hero-title"] > div.relative.mx-auto > .grid { gap: 1.75rem; }
+  #main-content section[aria-labelledby="hero-title"] .mt-9.grid.grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .6rem; }
+  #main-content section[aria-labelledby="hero-title"] .mt-9.grid.grid-cols-3 > div { min-width: 0; }
+  #main-content section[aria-labelledby="hero-title"] .mt-9.grid.grid-cols-3 > div > div:first-child { font-size: clamp(1.1rem, 5vw, 1.5rem); overflow-wrap: anywhere; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] { height: clamp(280px, 92vw, 380px); }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] > div.relative.h-full { border-radius: 1.25rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 { padding: 1rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 h2 { max-width: 10rem; font-size: 1.05rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button { width: 2.4rem; height: 2.4rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 { gap: .5rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 > div { max-width: 60%; font-size: 9px; letter-spacing: .08em; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.top-4 > div:last-child { max-width: 42%; letter-spacing: 0; }
+}
+@media (max-width: 380px) {
+  #main-content section[aria-labelledby="hero-title"] h1 { font-size: 2.2rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.items-end.justify-between { gap: .4rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 { gap: .25rem; }
+  #main-content section[aria-labelledby="hero-title"] .relative.h-\[360px\] .absolute.bottom-0 .flex.gap-2 button { width: 2.15rem; height: 2.15rem; }
+}
