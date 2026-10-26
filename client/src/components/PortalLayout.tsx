@@ -103,7 +103,7 @@ function buildItems(roleInput:unknown,pendingAdmissions=0,coordinatorScope:strin
   );
   content.push(
    {label:"School content",key:"content",icon:Settings,href:"/portal/content"},
-   {label:"Gallery",key:"gallery",icon:Image,href:"/portal/gallery"},
+   {label:"Gallery & Media Manager",key:"gallery",icon:Image,href:"/portal/media"},
   );
   communication.push(
    {label:"Announcements",key:"admin-announcements",icon:Megaphone,href:"/portal/announcements"},
