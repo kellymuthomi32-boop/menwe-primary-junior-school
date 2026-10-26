@@ -1,0 +1,129 @@
+/* Mobile usability layer for every authenticated Menwe portal route. */
+.menwe-portal,
+.menwe-portal > div,
+.menwe-portal main,
+.menwe-portal main > * { min-width: 0; }
+
+.menwe-portal img,
+.menwe-portal video,
+.menwe-portal canvas,
+.menwe-portal svg { max-width: 100%; }
+
+.menwe-portal [role="dialog"] {
+  box-sizing: border-box;
+  max-width: 100vw;
+}
+
+@media (max-width: 1023px) {
+  .menwe-portal main,
+  .menwe-portal [data-portal-content] {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .menwe-portal header {
+    padding-left: max(.75rem, env(safe-area-inset-left));
+    padding-right: max(.75rem, env(safe-area-inset-right));
+    gap: .5rem;
+  }
+
+  .menwe-portal header > * { min-width: 0; }
+  .menwe-portal header button { flex-shrink: 0; }
+
+  .menwe-portal [role="dialog"] > div:first-child {
+    width: min(17.5rem, calc(100vw - 4.25rem));
+    max-width: calc(100vw - 4.25rem);
+  }
+
+  .menwe-portal .menwe-portal-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menwe-portal input,
+  .menwe-portal select,
+  .menwe-portal textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .menwe-portal button,
+  .menwe-portal a,
+  .menwe-portal [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 767px) {
+  .menwe-portal { overflow-x: clip; }
+  .menwe-portal main { padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+  .menwe-portal main h1 { overflow-wrap: anywhere; }
+  .menwe-portal main h2,
+  .menwe-portal main h3 { overflow-wrap: anywhere; }
+
+  .menwe-portal main .grid,
+  .menwe-portal main .flex { min-width: 0; }
+
+  .menwe-portal main .grid > *,
+  .menwe-portal main .flex > * { min-width: 0; }
+
+  .menwe-portal main .overflow-x-auto {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menwe-portal main table { max-width: none; }
+  .menwe-portal main th,
+  .menwe-portal main td { overflow-wrap: anywhere; }
+
+  .menwe-portal main input,
+  .menwe-portal main select,
+  .menwe-portal main textarea { width: 100%; min-width: 0; }
+
+  .menwe-portal main button { max-width: 100%; }
+  .menwe-portal main .flex.items-center.justify-between { flex-wrap: wrap; }
+  .menwe-portal main .flex.gap-2,
+  .menwe-portal main .flex.gap-3,
+  .menwe-portal main .flex.gap-4 { flex-wrap: wrap; }
+
+  .menwe-portal [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .menwe-portal [role="tablist"]::-webkit-scrollbar { display: none; }
+  .menwe-portal [role="tab"] { flex: 0 0 auto; }
+
+  .menwe-portal [role="dialog"] {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .menwe-portal [role="dialog"] input,
+  .menwe-portal [role="dialog"] select,
+  .menwe-portal [role="dialog"] textarea { min-width: 0; }
+
+  .menwe-portal .menwe-admin-hero button { width: 100%; }
+}
+
+@media (max-width: 359px) {
+  .menwe-portal header { gap: .35rem; }
+  .menwe-portal header .truncate { max-width: 38vw; }
+  .menwe-portal main { padding-left: .625rem !important; padding-right: .625rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menwe-portal *,
+  .menwe-portal *::before,
+  .menwe-portal *::after { scroll-behavior: auto !important; }
+}
