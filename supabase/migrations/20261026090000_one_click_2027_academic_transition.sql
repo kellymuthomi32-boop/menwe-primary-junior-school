@@ -31,7 +31,11 @@ declare
   v_missing_classes text[];
   v_details jsonb;
 begin
-  if v_user is null or not private.is_admin() then
+  if v_user is null or not exists (
+    select 1 from public.profiles p
+    where p.id = v_user and p.status = 'ACTIVE'
+      and p.role in ('SUPER_ADMIN','ADMIN','HEAD_OF_INSTITUTION')
+  ) then
     raise exception 'Only an authorised school administrator can run the academic year transition.'
       using errcode = '42501';
   end if;
