@@ -40,6 +40,7 @@ export default function AcademicYearTransitionPage() {
         db.from("classes").select("id,name,academic_year_id,status").eq("academic_year_id", source.id).eq("status", "ACTIVE").order("name"),
         db.from("classes").select("id,name,academic_year_id,status").eq("academic_year_id", target.id).eq("status", "ACTIVE").order("name"),
         db.from("enrollments").select("class_id,student_id,students!inner(status)").eq("academic_year_id", source.id).eq("status", "ACTIVE").eq("students.status", "ACTIVE"),
+        db.from("terms").select("id", { count: "exact", head: true }).eq("academic_year_id", target.id).eq("status", "ACTIVE"),
       ]);
       if (sourceError) throw sourceError;
       if (targetError) throw targetError;
@@ -78,8 +79,8 @@ export default function AcademicYearTransitionPage() {
       if (error) throw error;
       const result = data as { message?: string; promoted_count?: number; grade9_review_count?: number; already_completed?: boolean } | null;
       setCompleted(true);
-      setMessage({ kind: "success", text: result?.message ?? "The academic transition completed. Refresh the preview to verify the results." });
       await load();
+      setMessage({ kind: "success", text: result?.message ?? "The academic transition completed. Refresh the preview to verify the results." });
     } catch (error) {
       setMessage({ kind: "error", text: error instanceof Error ? error.message : "The transition failed. No partial changes were committed." });
     } finally {
