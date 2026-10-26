@@ -45,7 +45,7 @@ function HeroGallery({ media }: { media: Record<string, any> }) {
     ...slide,
     src: failedImages[slide.key] ? slide.src : (cacheBustedUrl(media[slide.key]?.image_url, media[slide.key]?.updated_at) || slide.src),
     alt: media[slide.key]?.alt_text || slide.alt,
-    caption: media[slide.key]?.label?.replace(/^Homepage hero\\s*[—-]\\s*/i, "").trim() || slide.label,
+    caption: media[slide.key]?.label?.replace(/^Homepage hero\s*[—-]\s*/i, "").trim() || slide.label,
   })), [failedImages, media]);
   useEffect(() => { if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; const timer = window.setInterval(() => setActive((v) => (v + 1) % resolved.length), 6000); return () => window.clearInterval(timer); }, [paused, resolved.length]);
   const current = resolved[active] ?? resolved[0];
