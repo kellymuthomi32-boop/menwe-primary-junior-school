@@ -5,17 +5,8 @@ import { getSupabase } from "@/lib/supabase";
 import { cacheBustedUrl, resolveSiteImage, useSiteMedia } from "@/lib/siteMedia";
 
 type Item={id:string;title:string;category:string;image:string;description:string};
-const fallback=[
- {id:"science",title:"Science discovery",category:"JSS Science Labs & Computers",image:"https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1800&q=88",description:"Practical science learning, investigation and laboratory-based discovery."},
- {id:"digital",title:"Digital learning",category:"JSS Science Labs & Computers",image:"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=88",description:"Technology-supported learning spaces build digital confidence and problem-solving habits."},
- {id:"sport",title:"Active on the field",category:"Sports & Marching Band",image:"https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1800&q=88",description:"Sport develops fitness, teamwork, discipline and resilience."},
- {id:"rugby",title:"Girls' rugby county representation",category:"Girls' Rugby",image:"/gallery/girls-rugby-county.svg?v=20260905",description:"Menwe Junior School girls represented the school at county level."},
- {id:"music",title:"Music and expression",category:"Sports & Marching Band",image:"https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1800&q=88",description:"Music and marching-band activities create space for coordination and creative expression."},
- {id:"classroom",title:"Focused classroom learning",category:"Academic Classrooms",image:"https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1800&q=88",description:"Guided teaching, participation, collaboration and practical competency development."},
- {id:"study",title:"Collaborative study",category:"Academic Classrooms",image:"https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&w=1800&q=88",description:"Purposeful learning spaces encourage communication and responsibility."},
- {id:"agriculture",title:"Growing through agriculture",category:"4-K Club & Agriculture Projects",image:"https://images.unsplash.com/photo-1592982537447-6f2a6a0a7c1c?auto=format&fit=crop&w=1800&q=88",description:"Agriculture projects connect learners with practical skills and environmental stewardship."},
- {id:"campus",title:"School grounds and community",category:"Campus Grounds",image:"https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=88",description:"The campus provides the setting for learning, movement and community life."},
-];
+// Public gallery uses administrator-published school photographs only. No unrelated stock imagery.
+const fallback: Item[] = [];
 
 export default function GalleryPage(){
  const {media}=useSiteMedia(["gallery_banner"]); const [items,setItems]=useState<Item[]>([]); const [filter,setFilter]=useState("All"); const [selected,setSelected]=useState<number|null>(null);
