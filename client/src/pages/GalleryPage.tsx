@@ -5,8 +5,15 @@ import { getSupabase } from "@/lib/supabase";
 import { cacheBustedUrl, resolveSiteImage, useSiteMedia } from "@/lib/siteMedia";
 
 type Item={id:string;title:string;category:string;image:string;description:string};
-// Public gallery uses administrator-published school photographs only. No unrelated stock imagery.
-const fallback: Item[] = [];
+// Keep the gallery alive before administrators publish their own photographs. These school-themed
+// local illustrations are safe, on-brand fallbacks; published school images take precedence.
+const fallback: Item[] = [
+ {id:"fallback-learning",title:"Learning in action",category:"Learning",image:"/hero-learning.svg",description:"Curiosity, confidence and purposeful learning at Menwe."},
+ {id:"fallback-community",title:"Our school community",category:"Community",image:"/hero-community.svg",description:"A school community built on belonging, respect and shared purpose."},
+ {id:"fallback-creative",title:"Creativity and expression",category:"Creative Arts",image:"/hero-arts.svg",description:"Learners building imagination, communication and creative confidence."},
+ {id:"fallback-rugby",title:"Talent beyond the classroom",category:"Sports",image:"/gallery/girls-rugby-county.svg",description:"Celebrating teamwork, discipline and learners representing Menwe in sport."},
+ {id:"fallback-science",title:"Discovery and innovation",category:"Science & STEM",image:"/hero-science.svg",description:"Exploring questions, practical skills and new ideas through learning."},
+];
 
 export default function GalleryPage(){
  const {media}=useSiteMedia(["gallery_banner"]); const [items,setItems]=useState<Item[]>([]); const [filter,setFilter]=useState("All"); const [selected,setSelected]=useState<number|null>(null);
