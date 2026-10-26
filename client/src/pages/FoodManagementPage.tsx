@@ -15,7 +15,7 @@ type Adjustment = { id: string; item_type: string; quantity: number; unit: strin
 
 const today = () => new Date().toISOString().slice(0, 10);
 const foodItems = ["MAIZE", "BEANS", "SORGHUM", "MILLET"];
-const downloadCsv = (filename:string, headers:string[], rows:(string|number|null|undefined)[][]) => { const cell=(v:string|number|null|undefined)=>`"${String(v??"").replaceAll("\"","\"\"")}"`; const csv=[headers,...rows].map(r=>r.map(cell).join(",")).join("\r\n"); const url=URL.createObjectURL(new Blob(["\\uFEFF",csv],{type:"text/csv;charset=utf-8;"})); const a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url); };
+const downloadCsv = (filename:string, headers:string[], rows:(string|number|null|undefined)[][]) => { const cell=(v:string|number|null|undefined)=>`"${String(v??"").replaceAll("\"","\"\"")}"`; const csv=[headers,...rows].map(r=>r.map(cell).join(",")).join("\r\n"); const url=URL.createObjectURL(new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8;"})); const a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url); };
 
 export default function FoodManagementPage() {
   const { profile } = useSchoolAuth();
