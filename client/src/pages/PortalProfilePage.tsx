@@ -36,7 +36,7 @@ export default function PortalProfilePage() {
   useEffect(() => {
     setFullName(profile?.full_name ?? profile?.display_name ?? "");
     setPhone(profile?.phone ?? "");
-  }, [profile?.display_name, profile?.phone]);
+  }, [profile?.full_name, profile?.display_name, profile?.phone]);
 
   useEffect(() => {
     if (!teacher || !user?.id) return;
@@ -128,7 +128,7 @@ export default function PortalProfilePage() {
     let cancelled = false;
     const key = String(profile?.avatar_url ?? "");
     if (!key || !user?.id) { setAvatarPreview(""); return; }
-    if (/^https?:\\/\\//i.test(key)) { setAvatarPreview(key); return; }
+    if (/^https?:\/\//i.test(key)) { setAvatarPreview(key); return; }
     getSupabase().storage.from("profile-photos").createSignedUrl(key, 3600).then(({ data, error: signedError }) => {
       if (!cancelled) setAvatarPreview(signedError ? "" : data?.signedUrl ?? "");
     }).catch(() => { if (!cancelled) setAvatarPreview(""); });
