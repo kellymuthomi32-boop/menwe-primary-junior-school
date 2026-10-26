@@ -47,6 +47,7 @@ export default function FoodManagementPage() {
       foodAllowed ? db.from("food_contributions").select("id,item_type,quantity,unit,received_date,received_from,notes").order("received_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       riceAllowed ? db.from("rice_payments").select("id,learner_id,payer_name,amount,payment_date,receipt_reference,status").order("payment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
       foodAllowed ? db.from("food_stock_adjustments").select("id,item_type,quantity,unit,adjustment_type,adjustment_date,notes").order("adjustment_date", { ascending: false }).limit(200) : Promise.resolve({ data: [], error: null } as any),
+      learnerQuery,
     ]);
     setContributions((food.data ?? []) as Contribution[]);
     setPayments((rice.data ?? []) as Payment[]);
