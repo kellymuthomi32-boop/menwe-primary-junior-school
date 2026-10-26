@@ -76,7 +76,6 @@ export default function MenweHomepagePremium() {
   const [news, setNews] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   useEffect(() => { let mounted = true; void Promise.all([listPublished("news_articles", 0, 3), listPublished("events", 0, 3)]).then(([n, e]) => { if (!mounted) return; setNews(n.data ?? []); setEvents(e.data ?? []); }).catch(() => undefined); return () => { mounted = false; }; }, []);
-  const principal = cacheBustedUrl(media.principal_photo?.image_url, media.principal_photo?.updated_at);
 
   return <PublicLayout>
     <div className="w-full overflow-x-hidden bg-[#F7F9F8] text-[#10261D]">
